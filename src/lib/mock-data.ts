@@ -23,6 +23,7 @@ export interface MockReason {
 export interface MockSeller {
   id: string;
   name: string;
+  whatsapp: string;
   active: boolean;
 }
 
@@ -188,11 +189,11 @@ export const mockReasons: MockReason[] = [
 ];
 
 export const mockSellers: MockSeller[] = [
-  { id: '1', name: 'Maria Silva', active: true },
-  { id: '2', name: 'João Costa', active: true },
-  { id: '3', name: 'Ana Santos', active: true },
-  { id: '4', name: 'Pedro Oliveira', active: true },
-  { id: '5', name: 'Carla Mendes', active: true }
+  { id: '1', name: 'Maria Silva', whatsapp: '(47) 99999-0001', active: true },
+  { id: '2', name: 'João Costa', whatsapp: '(47) 99999-0002', active: true },
+  { id: '3', name: 'Ana Santos', whatsapp: '(47) 99999-0003', active: true },
+  { id: '4', name: 'Pedro Oliveira', whatsapp: '(47) 99999-0004', active: true },
+  { id: '5', name: 'Carla Mendes', whatsapp: '(47) 99999-0005', active: true }
 ];
 
 export const mockCustomers: MockCustomer[] = [
@@ -258,6 +259,30 @@ export class MockDataService {
     return mockLoans.filter(loan => !loan.returnedAt && !loan.soldAt);
   }
 
+  // Enhanced loan methods with populated data
+  static getLoanWithDetails(loan: MockLoan) {
+    const item = mockInventory.find(i => i.id === loan.inventoryId);
+    const reason = mockReasons.find(r => r.id === loan.reasonId);
+    const seller = mockSellers.find(s => s.id === loan.sellerId);
+    const customer = loan.customerId ? mockCustomers.find(c => c.id === loan.customerId) : null;
+
+    return {
+      ...loan,
+      item,
+      reason,
+      seller,
+      customer
+    };
+  }
+
+  static getAllLoansWithDetails() {
+    return mockLoans.map(loan => this.getLoanWithDetails(loan));
+  }
+
+  static getActiveLoansWithDetails() {
+    return this.getActiveLoans().map(loan => this.getLoanWithDetails(loan));
+  }
+
   static isOverdue(loan: MockLoan): boolean {
     if (!loan.dueAt) return false;
     return new Date(loan.dueAt) < new Date();
@@ -292,5 +317,44 @@ export class MockDataService {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     return `${diffHours}h ${diffMins}min`;
+  }
+
+  // Mock data getters
+  static get mockInventory() { return mockInventory; }
+  static get mockReasons() { return mockReasons; }
+  static get mockSellers() { return mockSellers; }
+  static get mockCustomers() { return mockCustomers; }
+  static get mockLoans() { return mockLoans; }
+
+  // Additional utility methods
+  static validateIMEI(imei: string): { isValid: boolean; message?: string } {
+    const cleanIMEI = imei.replace(/\D/g, '');
+    
+    if (cleanIMEI.length !== 15) {
+      return { isValid: false, message: "IMEI deve ter exatamente 15 dígitos" };
+    }
+    
+    const exists = this.findItemByIMEI(cleanIMEI);
+    if (exists) {
+      return { isValid: false, message: "IMEI já existe no sistema" };
+    }
+    
+    return { isValid: true };
+  }
+
+  static getSystemStats() {
+    const totalItems = mockInventory.length;
+    const activeLoans = this.getActiveLoans().length;
+    const overdueLoans = this.getActiveLoans().filter(loan => this.isOverdue(loan)).length;
+    const soldItems = mockInventory.filter(item => item.status === 'vendido').length;
+    const availableItems = mockInventory.filter(item => item.status === 'cofre').length;
+
+    return {
+      totalItems,
+      activeLoans,
+      overdueLoans,
+      soldItems,
+      availableItems
+    };
   }
 }

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Search, List, Clock, BarChart3 } from "lucide-react";
+import { Search, List, Clock, BarChart3, Package, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { ActionCard } from "@/components/ActionCard";
+import { StatsCard } from "@/components/ui/stats-card";
 import { MockDataService } from "@/lib/mock-data";
 
 interface HomeProps {
@@ -10,6 +11,7 @@ interface HomeProps {
 
 export const Home = ({ onNavigate }: HomeProps) => {
   const [activeLoansCount] = useState(() => MockDataService.getActiveLoans().length);
+  const stats = MockDataService.getSystemStats();
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,25 +62,34 @@ export const Home = ({ onNavigate }: HomeProps) => {
         </div>
 
         {/* Quick stats */}
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          <div className="bg-card rounded-lg p-4 shadow-soft">
-            <div className="text-2xl font-bold text-success">
-              {MockDataService.getActiveLoans().length}
-            </div>
-            <div className="text-muted-foreground">Itens fora agora</div>
-          </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            title="Itens fora agora"
+            value={stats.activeLoans}
+            icon={Clock}
+            variant={stats.activeLoans > 0 ? "warning" : "default"}
+          />
           
-          <div className="bg-card rounded-lg p-4 shadow-soft">
-            <div className="text-2xl font-bold text-primary">8</div>
-            <div className="text-muted-foreground">Total de itens</div>
-          </div>
+          <StatsCard
+            title="Total de itens"
+            value={stats.totalItems}
+            icon={Package}
+            variant="default"
+          />
 
-          <div className="bg-card rounded-lg p-4 shadow-soft">
-            <div className="text-2xl font-bold text-warning">
-              {MockDataService.getActiveLoans().filter(loan => MockDataService.isOverdue(loan)).length}
-            </div>
-            <div className="text-muted-foreground">Itens em atraso</div>
-          </div>
+          <StatsCard
+            title="Itens em atraso"
+            value={stats.overdueLoans}
+            icon={AlertTriangle}
+            variant={stats.overdueLoans > 0 ? "destructive" : "success"}
+          />
+
+          <StatsCard
+            title="Disponíveis"
+            value={stats.availableItems}
+            icon={Package}
+            variant="success"
+          />
         </div>
       </main>
     </div>

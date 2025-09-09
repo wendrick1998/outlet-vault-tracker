@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
 import { ActiveLoans } from "./pages/ActiveLoans";
+import { History } from "./pages/History";
+import { Admin } from "./pages/Admin";
 
 type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin';
 
@@ -27,9 +29,9 @@ const App = () => {
       case 'active-loans':
         return <ActiveLoans onBack={handleBack} />;
       case 'history':
-        return <div className="p-8 text-center">História em desenvolvimento...</div>;
+        return <History onBack={handleBack} />;
       case 'admin':
-        return <div className="p-8 text-center">Admin em desenvolvimento...</div>;
+        return <Admin onBack={handleBack} />;
       default:
         return <Home onNavigate={handleNavigate} />;
     }
