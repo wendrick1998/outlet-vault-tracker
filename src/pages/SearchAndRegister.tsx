@@ -6,13 +6,14 @@ import { ItemSelectionList } from "@/components/ItemSelectionList";
 import { OutflowForm } from "@/components/OutflowForm";
 import { InflowActions } from "@/components/InflowActions";
 import { NotesDialog } from "@/components/NotesDialog";
+import { OutflowSuccess } from "@/components/OutflowSuccess";
 import { MockInventory } from "@/lib/mock-data";
 
 interface SearchAndRegisterProps {
   onBack: () => void;
 }
 
-type ViewState = 'search' | 'multiple-results' | 'item-details' | 'outflow-form' | 'inflow-actions' | 'notes-dialog';
+type ViewState = 'search' | 'multiple-results' | 'item-details' | 'outflow-form' | 'inflow-actions' | 'notes-dialog' | 'outflow-success';
 
 export const SearchAndRegister = ({ onBack }: SearchAndRegisterProps) => {
   const [viewState, setViewState] = useState<ViewState>('search');
@@ -57,7 +58,17 @@ export const SearchAndRegister = ({ onBack }: SearchAndRegisterProps) => {
     if (selectedItem) {
       selectedItem.status = 'fora';
     }
-    setViewState('item-details');
+    setViewState('outflow-success');
+  };
+
+  const handleAddAnother = () => {
+    setViewState('search');
+    setSelectedItem(null);
+    setMultipleItems([]);
+  };
+
+  const handleBackToMenu = () => {
+    onBack();
   };
 
   const handleInflowComplete = () => {
@@ -119,6 +130,15 @@ export const SearchAndRegister = ({ onBack }: SearchAndRegisterProps) => {
           <NotesDialog
             item={selectedItem}
             onClose={() => setViewState('item-details')}
+          />
+        ) : null;
+
+      case 'outflow-success':
+        return selectedItem ? (
+          <OutflowSuccess
+            item={selectedItem}
+            onAddAnother={handleAddAnother}
+            onBackToMenu={handleBackToMenu}
           />
         ) : null;
 
