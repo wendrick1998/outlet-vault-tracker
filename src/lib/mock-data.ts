@@ -148,6 +148,36 @@ export const mockInventory: MockInventory[] = [
     type: 'tablet',
     status: 'fora',
     notes: []
+  },
+  {
+    id: '9',
+    imei: '350839224453446',
+    imeiSuffix5: '53446',
+    model: 'Samsung Galaxy S23',
+    color: 'Preto',
+    type: 'smartphone',
+    status: 'cofre',
+    notes: []
+  },
+  {
+    id: '10',
+    imei: '356598107137286',
+    imeiSuffix5: '37286',
+    model: 'iPhone 14 Pro',
+    color: 'Roxo Profundo',
+    type: 'smartphone',
+    status: 'cofre',
+    notes: []
+  },
+  {
+    id: '11',
+    imei: '354746820095545',
+    imeiSuffix5: '95545',
+    model: 'Xiaomi 13 Pro',
+    color: 'Branco',
+    type: 'smartphone',
+    status: 'cofre',
+    notes: []
   }
 ];
 
