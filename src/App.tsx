@@ -1,27 +1,47 @@
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { Home } from "./pages/Home";
+import { SearchAndRegister } from "./pages/SearchAndRegister";
+import { ActiveLoans } from "./pages/ActiveLoans";
 
-const queryClient = new QueryClient();
+type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+const App = () => {
+  const [currentPage, setCurrentPage] = useState<AppPage>('home');
+
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page as AppPage);
+  };
+
+  const handleBack = () => {
+    setCurrentPage('home');
+  };
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return <Home onNavigate={handleNavigate} />;
+      case 'search':
+        return <SearchAndRegister onBack={handleBack} />;
+      case 'active-loans':
+        return <ActiveLoans onBack={handleBack} />;
+      case 'history':
+        return <div className="p-8 text-center">História em desenvolvimento...</div>;
+      case 'admin':
+        return <div className="p-8 text-center">Admin em desenvolvimento...</div>;
+      default:
+        return <Home onNavigate={handleNavigate} />;
+    }
+  };
+
+  return (
+    <div className="app">
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      {renderCurrentPage()}
+    </div>
+  );
+};
 
 export default App;

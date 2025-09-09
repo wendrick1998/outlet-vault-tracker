@@ -2,41 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* Cofre Tracker Design System - Outlet Store Plus
+Modern, professional colors for electronics retail with PWA-optimized contrast
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base colors - Clean and modern */
+    --background: 240 10% 98%;
+    --foreground: 240 10% 8%;
 
+    /* Cards and surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 8%;
 
+    /* Popover elements */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 240 10% 8%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary brand - Professional blue */
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 210 100% 45%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary actions */
+    --secondary: 210 20% 95%;
+    --secondary-foreground: 240 10% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted elements */
+    --muted: 210 15% 92%;
+    --muted-foreground: 240 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent for highlights */
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Interactive elements */
+    --border: 210 20% 88%;
+    --input: 210 20% 95%;
+    --ring: 210 100% 50%;
 
-    --radius: 0.5rem;
+    /* PWA optimized spacing and typography */
+    --radius: 0.75rem;
+    --font-size-large: 1.125rem; /* 18px minimum for PWA */
+    --button-height-touch: 3rem; /* 48px minimum touch target */
+    
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-hover)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 76% 32%));
+    --gradient-card: linear-gradient(180deg, hsl(var(--card)), hsl(210 15% 97%));
+    
+    /* Shadows for depth */
+    --shadow-soft: 0 2px 8px -2px hsl(var(--primary) / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(var(--primary) / 0.12);
+    --shadow-strong: 0 8px 24px -8px hsl(var(--primary) / 0.16);
+    
+    /* Status indicator colors */
+    --status-cofre: var(--success);
+    --status-fora: var(--warning);
+    --status-vendido: var(--muted);
 
     --sidebar-background: 0 0% 98%;
 

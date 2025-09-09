@@ -1,0 +1,143 @@
+import { useState } from "react";
+import { Header } from "@/components/Header";
+import { IMEISearch } from "@/components/IMEISearch";
+import { ItemCard } from "@/components/ItemCard";
+import { ItemSelectionList } from "@/components/ItemSelectionList";
+import { OutflowForm } from "@/components/OutflowForm";
+import { InflowActions } from "@/components/InflowActions";
+import { NotesDialog } from "@/components/NotesDialog";
+import { MockInventory } from "@/lib/mock-data";
+
+interface SearchAndRegisterProps {
+  onBack: () => void;
+}
+
+type ViewState = 'search' | 'multiple-results' | 'item-details' | 'outflow-form' | 'inflow-actions' | 'notes-dialog';
+
+export const SearchAndRegister = ({ onBack }: SearchAndRegisterProps) => {
+  const [viewState, setViewState] = useState<ViewState>('search');
+  const [selectedItem, setSelectedItem] = useState<MockInventory | null>(null);
+  const [multipleItems, setMultipleItems] = useState<MockInventory[]>([]);
+
+  const handleItemFound = (item: MockInventory) => {
+    setSelectedItem(item);
+    setViewState('item-details');
+  };
+
+  const handleMultipleFound = (items: MockInventory[]) => {
+    setMultipleItems(items);
+    setViewState('multiple-results');
+  };
+
+  const handleItemSelected = (item: MockInventory) => {
+    setSelectedItem(item);
+    setViewState('item-details');
+  };
+
+  const handleRegisterOutflow = () => {
+    setViewState('outflow-form');
+  };
+
+  const handleInflowActions = () => {
+    setViewState('inflow-actions');
+  };
+
+  const handleViewNotes = () => {
+    setViewState('notes-dialog');
+  };
+
+  const handleBackToSearch = () => {
+    setViewState('search');
+    setSelectedItem(null);
+    setMultipleItems([]);
+  };
+
+  const handleOutflowComplete = () => {
+    // Update item status to 'fora' (mock)
+    if (selectedItem) {
+      selectedItem.status = 'fora';
+    }
+    setViewState('item-details');
+  };
+
+  const handleInflowComplete = () => {
+    // Update item status based on action (mock)
+    handleBackToSearch();
+  };
+
+  const renderContent = () => {
+    switch (viewState) {
+      case 'search':
+        return (
+          <IMEISearch 
+            onItemFound={handleItemFound}
+            onMultipleFound={handleMultipleFound}
+          />
+        );
+
+      case 'multiple-results':
+        return (
+          <ItemSelectionList
+            items={multipleItems}
+            onSelectItem={handleItemSelected}
+            onBack={handleBackToSearch}
+          />
+        );
+
+      case 'item-details':
+        return selectedItem ? (
+          <ItemCard
+            item={selectedItem}
+            onRegisterOutflow={handleRegisterOutflow}
+            onReturn={handleInflowActions}
+            onMarkSold={handleInflowActions}
+            onViewNotes={handleViewNotes}
+            onAddNote={handleViewNotes}
+          />
+        ) : null;
+
+      case 'outflow-form':
+        return selectedItem ? (
+          <OutflowForm
+            item={selectedItem}
+            onComplete={handleOutflowComplete}
+            onCancel={() => setViewState('item-details')}
+          />
+        ) : null;
+
+      case 'inflow-actions':
+        return selectedItem ? (
+          <InflowActions
+            item={selectedItem}
+            onComplete={handleInflowComplete}
+            onCancel={() => setViewState('item-details')}
+          />
+        ) : null;
+
+      case 'notes-dialog':
+        return selectedItem ? (
+          <NotesDialog
+            item={selectedItem}
+            onClose={() => setViewState('item-details')}
+          />
+        ) : null;
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header 
+        title="Buscar & Registrar"
+        showBack={true}
+        onBack={viewState === 'search' ? onBack : handleBackToSearch}
+      />
+      
+      <main className="container mx-auto px-4 py-6">
+        {renderContent()}
+      </main>
+    </div>
+  );
+};
