@@ -6,8 +6,9 @@ import { SearchAndRegister } from "./pages/SearchAndRegister";
 import { ActiveLoans } from "./pages/ActiveLoans";
 import { History } from "./pages/History";
 import { Admin } from "./pages/Admin";
+import { BatchOutflow } from "./pages/BatchOutflow";
 
-type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin';
+type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
@@ -32,6 +33,8 @@ const App = () => {
         return <History onBack={handleBack} />;
       case 'admin':
         return <Admin onBack={handleBack} />;
+      case 'batch-outflow':
+        return <BatchOutflow onBack={handleBack} />;
       default:
         return <Home onNavigate={handleNavigate} />;
     }

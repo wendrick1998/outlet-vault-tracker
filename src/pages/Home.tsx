@@ -37,6 +37,14 @@ export const Home = ({ onNavigate }: HomeProps) => {
           />
 
           <ActionCard
+            title="Saída em Lote"
+            description="Registre a saída de múltiplos aparelhos de uma vez"
+            icon={Package}
+            onClick={() => onNavigate('batch-outflow')}
+            variant="default"
+          />
+
+          <ActionCard
             title="Fora Agora"
             description="Veja todos os itens que estão fora do cofre no momento"
             icon={Clock}
