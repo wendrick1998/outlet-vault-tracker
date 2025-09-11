@@ -23,7 +23,11 @@ import {
   type ItemFormData,
   type ReasonFormData,
   type SellerFormData,
-  type CustomerFormData
+  type CustomerFormData,
+  type InventoryItem,
+  type Reason,
+  type Seller,
+  type Customer
 } from "@/types/admin";
 import { itemSchema, reasonSchema, sellerSchema, customerSchema } from "@/lib/validation";
 
@@ -106,43 +110,53 @@ export const Admin = ({ onBack }: AdminProps) => {
   // Modal handlers
   const openModal = (type: AdminModal, item?: any) => {
     setActiveModal(type);
-    setEditingItem(item || null);
     
     if (item) {
+      setEditingItem({
+        id: item.id,
+        type,
+        data: item
+      });
+      
       switch (type) {
         case "item":
+          const inventoryItem = item as InventoryItem;
           setItemForm({
-            imei: item.imei,
-            model: item.model,
-            color: item.color,
-            brand: item.brand,
-            storage: item.storage || ""
+            imei: inventoryItem.imei,
+            model: inventoryItem.model,
+            color: inventoryItem.color,
+            brand: inventoryItem.brand,
+            storage: inventoryItem.storage || ""
           });
           break;
         case "reason":
+          const reason = item as Reason;
           setReasonForm({
-            name: item.name,
-            description: item.description || "",
-            requires_customer: item.requires_customer,
-            requires_seller: item.requires_seller
+            name: reason.name,
+            description: reason.description || "",
+            requires_customer: reason.requires_customer,
+            requires_seller: reason.requires_seller
           });
           break;
         case "seller":
+          const seller = item as Seller;
           setSellerForm({
-            name: item.name,
-            phone: item.phone || "",
-            email: item.email || ""
+            name: seller.name,
+            phone: seller.phone || "",
+            email: seller.email || ""
           });
           break;
         case "customer":
+          const customer = item as Customer;
           setCustomerForm({
-            name: item.name,
-            phone: item.phone || "",
-            email: item.email || ""
+            name: customer.name,
+            phone: customer.phone || "",
+            email: customer.email || ""
           });
           break;
       }
     } else {
+      setEditingItem(null);
       // Reset forms
       setItemForm({ imei: "", model: "", color: "", brand: "", storage: "" });
       setReasonForm({ name: "", description: "", requires_customer: false, requires_seller: false });
