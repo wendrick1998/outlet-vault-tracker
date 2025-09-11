@@ -167,6 +167,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "loans_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "loans_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -185,6 +192,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers_view"
             referencedColumns: ["id"]
           },
         ]
@@ -284,7 +298,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      customers_view: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_registered: boolean | null
+          name: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: never
+          id?: string | null
+          is_registered?: boolean | null
+          name?: string | null
+          phone?: never
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: never
+          id?: string | null
+          is_registered?: boolean | null
+          name?: string | null
+          phone?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sellers_view: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          phone?: never
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          phone?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_system_stats: {
@@ -305,6 +378,14 @@ export type Database = {
       is_admin: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      log_sensitive_access: {
+        Args: {
+          accessed_fields: string[]
+          record_id: string
+          table_name: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
