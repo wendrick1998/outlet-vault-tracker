@@ -167,13 +167,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "loans_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers_view"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "loans_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -192,13 +185,6 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "sellers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "loans_seller_id_fkey"
-            columns: ["seller_id"]
-            isOneToOne: false
-            referencedRelation: "sellers_view"
             referencedColumns: ["id"]
           },
         ]
@@ -298,68 +284,17 @@ export type Database = {
       }
     }
     Views: {
-      customers_view: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          is_registered: boolean | null
-          name: string | null
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          is_registered?: boolean | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          is_registered?: boolean | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      sellers_view: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: never
-          id?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_customer_safe: {
+        Args: { customer_id: string }
+        Returns: Json
+      }
+      get_seller_safe: {
+        Args: { seller_id: string }
+        Returns: Json
+      }
       get_system_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
