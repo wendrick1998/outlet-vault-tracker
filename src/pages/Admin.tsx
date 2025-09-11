@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Settings, Package, Users, UserCheck, Tag, Plus, Edit, Trash2, Upload } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
@@ -36,6 +36,7 @@ interface AdminProps {
 }
 
 export const Admin = ({ onBack }: AdminProps) => {
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [activeModal, setActiveModal] = useState<AdminModal>("none");
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
@@ -302,14 +303,19 @@ export const Admin = ({ onBack }: AdminProps) => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold">Gestão de Itens</h2>
                   <div className="flex gap-3">
-                    <Button variant="outline" className="gap-2">
+                    <input
+                      ref={csvInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleCSVUpload}
+                      className="hidden"
+                    />
+                    <Button 
+                      variant="outline" 
+                      className="gap-2"
+                      onClick={() => csvInputRef.current?.click()}
+                    >
                       <Upload className="h-4 w-4" />
-                      <input
-                        type="file"
-                        accept=".csv"
-                        onChange={handleCSVUpload}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                      />
                       Importar CSV
                     </Button>
                     <Button onClick={() => openModal("item")} className="gap-2">

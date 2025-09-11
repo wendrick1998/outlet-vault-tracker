@@ -1,9 +1,11 @@
 import { useState, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Loading } from "@/components/ui/loading";
+import { useAuth } from "@/hooks/useAuth";
+import { Auth } from "./pages/Auth";
 import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
-import { Loading } from "./components/ui/loading";
 
 // Lazy load heavy pages for better performance
 const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
@@ -14,6 +16,7 @@ const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow').then(m => ({ 
 type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow';
 
 const App = () => {
+  const { isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
 
   const handleNavigate = (page: string) => {
@@ -21,6 +24,10 @@ const App = () => {
   };
 
   const handleBack = () => {
+    setCurrentPage('home');
+  };
+
+  const handleLoginSuccess = () => {
     setCurrentPage('home');
   };
 
@@ -58,6 +65,20 @@ const App = () => {
         return <Home onNavigate={handleNavigate} />;
     }
   };
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Toaster />
+        <Sonner />
+        <Auth onLoginSuccess={handleLoginSuccess} />
+      </>
+    );
+  }
 
   return (
     <div className="app">
