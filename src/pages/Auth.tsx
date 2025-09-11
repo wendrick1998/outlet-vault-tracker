@@ -24,6 +24,7 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   const [isReset, setIsReset] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     // Check if user is already authenticated
@@ -36,13 +37,31 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
     checkAuth();
   }, [onLoginSuccess]);
 
-  // Detecta modo de recuperação de senha pelo link do email
+  // Handle email confirmation and password recovery links
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash || '';
+      console.log('Auth URL hash:', hash); // Debug logging
+      
       if (hash.includes('type=recovery')) {
         setIsReset(true);
         setIsLogin(true);
+        toast({
+          title: "Redefinição de senha",
+          description: "Defina sua nova senha abaixo"
+        });
+      } else if (hash.includes('type=signup')) {
+        setIsConfirming(true);
+        toast({
+          title: "Email confirmado!",
+          description: "Sua conta foi confirmada. Você já pode fazer login."
+        });
+        // Clear the hash and redirect to clean URL
+        setTimeout(() => {
+          window.location.hash = '';
+          setIsConfirming(false);
+          setIsLogin(true);
+        }, 2000);
       }
     }
   }, []);
@@ -86,10 +105,17 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
         });
 
         if (error) {
+          console.log('Login error:', error); // Debug logging
           if (error.message.includes('Invalid login credentials')) {
             toast({
               title: "Erro de Login",
-              description: "Email ou senha incorretos",
+              description: "Email ou senha incorretos. Se você criou uma conta recentemente, verifique se confirmou seu email.",
+              variant: "destructive"
+            });
+          } else if (error.message.includes('Email not confirmed')) {
+            toast({
+              title: "Email não confirmado",
+              description: "Verifique sua caixa de entrada e confirme seu email antes de fazer login.",
               variant: "destructive"
             });
           } else {
@@ -201,7 +227,9 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
           </div>
           <h1 className="text-2xl font-bold">Outlet Store Plus</h1>
           <p className="text-muted-foreground">
-            {isReset
+            {isConfirming
+              ? "Email confirmado com sucesso!"
+              : isReset
               ? "Defina sua nova senha"
               : isForgot
               ? "Informe seu email para recuperar a senha"

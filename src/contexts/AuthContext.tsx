@@ -65,21 +65,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id); // Debug logging
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Fetch profile when user signs in
-        if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-        }
-
         // Handle auth events
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Ensure user profile exists first
+          setTimeout(async () => {
+            try {
+              await supabase.rpc('ensure_profile_exists', { 
+                user_id: session.user.id 
+              });
+              console.log('Profile ensured for user:', session.user.id);
+              // Then fetch the profile
+              await fetchProfile(session.user.id);
+            } catch (error) {
+              console.error('Error ensuring profile:', error);
+              // Fallback: still try to fetch profile
+              await fetchProfile(session.user.id);
+            }
+          }, 0);
+          
           toast({
             title: "Login realizado",
             description: "Bem-vindo de volta!"
@@ -92,6 +100,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           });
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed successfully');
+        } else if (session?.user && !profile) {
+          // Fetch profile for existing sessions
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
+        } else if (!session?.user) {
+          setProfile(null);
         }
       }
     );
