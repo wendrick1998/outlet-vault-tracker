@@ -14,6 +14,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          record_id: string | null
+          table_name: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
@@ -189,35 +274,103 @@ export type Database = {
           },
         ]
       }
+      password_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          password_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          password_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          password_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          bloqueado_ate: string | null
+          codigo_backup: string[] | null
           created_at: string
           email: string
           full_name: string | null
+          horario_fim: string | null
+          horario_inicio: string | null
           id: string
           is_active: boolean
+          mfa_habilitado: boolean | null
+          mfa_secret: string | null
+          observacoes: string | null
           role: Database["public"]["Enums"]["app_role"]
+          senha_alterada_em: string | null
+          sessao_unica_token: string | null
+          telefone: string | null
+          tentativas_login: number | null
+          turno: string | null
+          ultimo_login: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          bloqueado_ate?: string | null
+          codigo_backup?: string[] | null
           created_at?: string
           email: string
           full_name?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
           id: string
           is_active?: boolean
+          mfa_habilitado?: boolean | null
+          mfa_secret?: string | null
+          observacoes?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          senha_alterada_em?: string | null
+          sessao_unica_token?: string | null
+          telefone?: string | null
+          tentativas_login?: number | null
+          turno?: string | null
+          ultimo_login?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          bloqueado_ate?: string | null
+          codigo_backup?: string[] | null
           created_at?: string
           email?: string
           full_name?: string | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
           id?: string
           is_active?: boolean
+          mfa_habilitado?: boolean | null
+          mfa_secret?: string | null
+          observacoes?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          senha_alterada_em?: string | null
+          sessao_unica_token?: string | null
+          telefone?: string | null
+          tentativas_login?: number | null
+          turno?: string | null
+          ultimo_login?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -287,6 +440,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_customer_safe: {
         Args: { customer_id: string }
         Returns: Json
@@ -314,6 +471,19 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_working_hours: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_record_id?: string
+          p_table_name?: string
+        }
+        Returns: undefined
+      }
       log_sensitive_access: {
         Args: {
           accessed_fields: string[]
@@ -321,6 +491,10 @@ export type Database = {
           table_name: string
         }
         Returns: undefined
+      }
+      validate_password_strength: {
+        Args: { password: string }
+        Returns: Json
       }
     }
     Enums: {
