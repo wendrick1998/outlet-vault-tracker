@@ -2,10 +2,12 @@ import { Trash2, Package, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MockInventory } from "@/lib/mock-data";
+import type { Database } from "@/integrations/supabase/types";
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface BatchItemListProps {
-  items: MockInventory[];
+  items: InventoryItem[];
   onRemoveItem: (imei: string) => void;
   onClearAll: () => void;
   onProceed: () => void;
@@ -52,7 +54,7 @@ export const BatchItemList = ({ items, onRemoveItem, onClearAll, onProceed }: Ba
                 <div>
                   <h4 className="font-medium">{item.model}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {item.color} • ...{item.imeiSuffix5}
+                    {item.color} • ...{item.imei.slice(-5)}
                   </p>
                 </div>
               </div>

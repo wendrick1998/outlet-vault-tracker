@@ -106,10 +106,10 @@ export function useInventory() {
     error,
 
     // Actions
-    createItem: createMutation.mutate,
-    updateItem: updateMutation.mutate,
-    deleteItem: deleteMutation.mutate,
-    updateStatus: updateStatusMutation.mutate,
+    createItem: createMutation.mutateAsync,
+    updateItem: updateMutation.mutateAsync,
+    deleteItem: deleteMutation.mutateAsync,
+    updateStatus: updateStatusMutation.mutateAsync,
 
     // Status
     isCreating: createMutation.isPending,

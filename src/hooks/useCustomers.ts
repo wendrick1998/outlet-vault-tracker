@@ -132,11 +132,11 @@ export function useCustomers() {
     error,
 
     // Actions
-    createCustomer: createMutation.mutate,
-    updateCustomer: updateMutation.mutate,
-    deleteCustomer: deleteMutation.mutate,
-    registerCustomer: registerMutation.mutate,
-    unregisterCustomer: unregisterMutation.mutate,
+    createCustomer: createMutation.mutateAsync,
+    updateCustomer: updateMutation.mutateAsync,
+    deleteCustomer: deleteMutation.mutateAsync,
+    registerCustomer: registerMutation.mutateAsync,
+    unregisterCustomer: unregisterMutation.mutateAsync,
 
     // Status
     isCreating: createMutation.isPending,

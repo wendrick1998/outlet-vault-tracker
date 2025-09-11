@@ -5,11 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Loading } from "@/components/ui/loading";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MockDataService, MockLoan } from "@/lib/mock-data";
+import { useLoans } from "@/hooks/useLoans";
+import { useActiveReasons } from "@/hooks/useReasons";
+import { useActiveSellers } from "@/hooks/useSellers";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { Database } from "@/integrations/supabase/types";
 
 interface HistoryProps {
   onBack: () => void;
@@ -18,6 +22,13 @@ interface HistoryProps {
 type FilterPeriod = "all" | "today" | "7d" | "30d";
 type FilterStatus = "all" | "active" | "returned" | "sold";
 
+type LoanWithDetails = Database['public']['Tables']['loans']['Row'] & {
+  inventory?: Database['public']['Tables']['inventory']['Row'];
+  reason?: Database['public']['Tables']['reasons']['Row'];
+  seller?: Database['public']['Tables']['sellers']['Row'];
+  customer?: Database['public']['Tables']['customers']['Row'];
+};
+
 export const History = ({ onBack }: HistoryProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>("all");
@@ -25,18 +36,18 @@ export const History = ({ onBack }: HistoryProps) => {
   const [filterReason, setFilterReason] = useState<string>("all");
   const [filterSeller, setFilterSeller] = useState<string>("all");
 
-  const allLoans = MockDataService.getAllLoansWithDetails();
-  const reasons = MockDataService.mockReasons;
-  const sellers = MockDataService.mockSellers;
+  const { loans, isLoading } = useLoans();
+  const { data: reasons = [] } = useActiveReasons();
+  const { data: sellers = [] } = useActiveSellers();
 
   const filteredLoans = useMemo(() => {
-    let filtered = [...allLoans];
+    let filtered = [...loans];
 
     // Filter by search term (IMEI or model)
     if (searchTerm) {
       filtered = filtered.filter(loan => 
-        loan.item?.imei.includes(searchTerm) ||
-        loan.item?.model.toLowerCase().includes(searchTerm.toLowerCase())
+        loan.inventory?.imei.includes(searchTerm) ||
+        loan.inventory?.model.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -57,20 +68,17 @@ export const History = ({ onBack }: HistoryProps) => {
           break;
       }
       
-      filtered = filtered.filter(loan => new Date(loan.outAt) >= cutoffDate);
+      filtered = filtered.filter(loan => new Date(loan.issued_at) >= cutoffDate);
     }
 
     // Filter by status
     if (filterStatus !== "all") {
       switch (filterStatus) {
         case "active":
-          filtered = filtered.filter(loan => !loan.returnedAt && !loan.soldAt);
+          filtered = filtered.filter(loan => loan.status === 'active');
           break;
         case "returned":
-          filtered = filtered.filter(loan => loan.returnedAt);
-          break;
-        case "sold":
-          filtered = filtered.filter(loan => loan.soldAt);
+          filtered = filtered.filter(loan => loan.status === 'returned');
           break;
       }
     }
@@ -85,17 +93,19 @@ export const History = ({ onBack }: HistoryProps) => {
       filtered = filtered.filter(loan => loan.seller?.id === filterSeller);
     }
 
-    return filtered.sort((a, b) => new Date(b.outAt).getTime() - new Date(a.outAt).getTime());
-  }, [allLoans, searchTerm, filterPeriod, filterStatus, filterReason, filterSeller]);
+    return filtered.sort((a, b) => new Date(b.issued_at).getTime() - new Date(a.issued_at).getTime());
+  }, [loans, searchTerm, filterPeriod, filterStatus, filterReason, filterSeller]);
 
-  const getStatusBadge = (loan: MockLoan) => {
-    if (loan.soldAt) {
-      return <Badge variant="destructive">Vendido</Badge>;
+  const getStatusBadge = (loan: LoanWithDetails) => {
+    switch (loan.status) {
+      case 'sold':
+        return <Badge variant="destructive">Vendido</Badge>;
+      case 'returned':
+        return <Badge variant="secondary">Devolvido</Badge>;
+      case 'active':
+      default:
+        return <Badge variant="secondary">Em aberto</Badge>;
     }
-    if (loan.returnedAt) {
-      return <Badge variant="secondary">Devolvido</Badge>;
-    }
-    return <Badge variant="secondary">Em aberto</Badge>;
   };
 
   const formatDate = (dateStr: string) => {
@@ -105,14 +115,14 @@ export const History = ({ onBack }: HistoryProps) => {
   const exportToCSV = () => {
     const headers = ["Data Saída", "IMEI", "Modelo", "Motivo", "Vendedor", "Cliente", "Status", "Data Retorno/Venda"];
     const rows = filteredLoans.map(loan => [
-      formatDate(loan.outAt),
-      loan.item?.imei || "N/A",
-      loan.item?.model || "N/A",
+      formatDate(loan.issued_at),
+      loan.inventory?.imei || "N/A",
+      loan.inventory?.model || "N/A",
       loan.reason?.name || "N/A",
       loan.seller?.name || "N/A",
-      loan.customer?.name || loan.customerName || "N/A",
-      loan.soldAt ? "Vendido" : loan.returnedAt ? "Devolvido" : "Em aberto",
-      loan.returnedAt ? formatDate(loan.returnedAt) : loan.soldAt ? formatDate(loan.soldAt) : "N/A"
+      loan.customer?.name || "N/A",
+      loan.status === 'sold' ? "Vendido" : loan.status === 'returned' ? "Devolvido" : "Em aberto",
+      loan.returned_at ? formatDate(loan.returned_at) : "N/A"
     ]);
 
     const csvContent = [headers, ...rows]
@@ -139,6 +149,10 @@ export const History = ({ onBack }: HistoryProps) => {
       />
       
       <main className="container mx-auto px-4 py-6">
+        {isLoading ? (
+          <Loading />
+        ) : (
+        <>
         {/* Filters */}
         <Card className="p-6 mb-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
@@ -241,13 +255,13 @@ export const History = ({ onBack }: HistoryProps) => {
                   {filteredLoans.map((loan) => (
                     <TableRow key={loan.id}>
                       <TableCell className="font-mono text-sm">
-                        {formatDate(loan.outAt)}
+                        {formatDate(loan.issued_at)}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{loan.item?.model || "N/A"}</div>
+                          <div className="font-medium">{loan.inventory?.model || "N/A"}</div>
                           <div className="text-sm text-muted-foreground">
-                            ...{loan.item?.imei.slice(-5) || "N/A"}
+                            ...{loan.inventory?.imei.slice(-5) || "N/A"}
                           </div>
                         </div>
                       </TableCell>
@@ -255,12 +269,10 @@ export const History = ({ onBack }: HistoryProps) => {
                         <Badge variant="outline">{loan.reason?.name || "N/A"}</Badge>
                       </TableCell>
                       <TableCell>{loan.seller?.name || "N/A"}</TableCell>
-                      <TableCell>{loan.customer?.name || loan.customerName || "N/A"}</TableCell>
+                      <TableCell>{loan.customer?.name || "N/A"}</TableCell>
                       <TableCell>{getStatusBadge(loan)}</TableCell>
                       <TableCell className="font-mono text-sm">
-                        {loan.returnedAt && formatDate(loan.returnedAt)}
-                        {loan.soldAt && formatDate(loan.soldAt)}
-                        {!loan.returnedAt && !loan.soldAt && "—"}
+                        {loan.returned_at ? formatDate(loan.returned_at) : "—"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -275,6 +287,8 @@ export const History = ({ onBack }: HistoryProps) => {
             </div>
           </div>
         </Card>
+        </>
+        )}
       </main>
     </div>
   );

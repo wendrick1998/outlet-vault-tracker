@@ -7,11 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Loading } from "@/components/ui/loading";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useToast } from "@/hooks/use-toast";
-import { MockDataService, MockInventory, MockReason, MockSeller, MockCustomer } from "@/lib/mock-data";
+import { useInventory } from "@/hooks/useInventory";
+import { useReasons } from "@/hooks/useReasons";
+import { useSellers } from "@/hooks/useSellers";
+import { useCustomers } from "@/hooks/useCustomers";
 
 interface AdminProps {
   onBack: () => void;
@@ -29,36 +33,67 @@ export const Admin = ({ onBack }: AdminProps) => {
     item: null
   });
 
+  const { 
+    items, 
+    isLoading: inventoryLoading, 
+    createItem, 
+    updateItem, 
+    deleteItem 
+  } = useInventory();
+  
+  const { 
+    reasons, 
+    isLoading: reasonsLoading, 
+    createReason, 
+    updateReason, 
+    deleteReason 
+  } = useReasons();
+  
+  const { 
+    sellers, 
+    isLoading: sellersLoading, 
+    createSeller, 
+    updateSeller, 
+    deleteSeller 
+  } = useSellers();
+  
+  const { 
+    customers, 
+    isLoading: customersLoading, 
+    createCustomer, 
+    updateCustomer, 
+    deleteCustomer 
+  } = useCustomers();
+
   // Form states
   const [itemForm, setItemForm] = useState({
     imei: "",
     model: "",
     color: "",
-    type: "smartphone" as "smartphone" | "tablet" | "accessory"
+    brand: "",
+    storage: ""
   });
   
   const [reasonForm, setReasonForm] = useState({
     name: "",
-    requiresCustomer: false,
-    slaHours: ""
+    description: "",
+    requires_customer: false,
+    requires_seller: false
   });
 
   const [sellerForm, setSellerForm] = useState({
     name: "",
-    whatsapp: ""
+    phone: "",
+    email: ""
   });
 
   const [customerForm, setCustomerForm] = useState({
     name: "",
-    whatsapp: ""
+    phone: "",
+    email: ""
   });
 
   const [guestCustomerEnabled, setGuestCustomerEnabled] = useState(true);
-
-  const inventory = MockDataService.mockInventory;
-  const reasons = MockDataService.mockReasons;
-  const sellers = MockDataService.mockSellers;
-  const customers = MockDataService.mockCustomers;
 
   // Modal handlers
   const openModal = (type: AdminModal, item?: any) => {
@@ -72,35 +107,39 @@ export const Admin = ({ onBack }: AdminProps) => {
             imei: item.imei,
             model: item.model,
             color: item.color,
-            type: item.type
+            brand: item.brand,
+            storage: item.storage || ""
           });
           break;
         case "reason":
           setReasonForm({
             name: item.name,
-            requiresCustomer: item.requiresCustomer,
-            slaHours: item.slaHours?.toString() || ""
+            description: item.description || "",
+            requires_customer: item.requires_customer,
+            requires_seller: item.requires_seller
           });
           break;
         case "seller":
           setSellerForm({
             name: item.name,
-            whatsapp: item.whatsapp
+            phone: item.phone || "",
+            email: item.email || ""
           });
           break;
         case "customer":
           setCustomerForm({
             name: item.name,
-            whatsapp: item.whatsapp
+            phone: item.phone || "",
+            email: item.email || ""
           });
           break;
       }
     } else {
       // Reset forms
-      setItemForm({ imei: "", model: "", color: "", type: "smartphone" });
-      setReasonForm({ name: "", requiresCustomer: false, slaHours: "" });
-      setSellerForm({ name: "", whatsapp: "" });
-      setCustomerForm({ name: "", whatsapp: "" });
+      setItemForm({ imei: "", model: "", color: "", brand: "", storage: "" });
+      setReasonForm({ name: "", description: "", requires_customer: false, requires_seller: false });
+      setSellerForm({ name: "", phone: "", email: "" });
+      setCustomerForm({ name: "", phone: "", email: "" });
     }
   };
 
@@ -109,15 +148,48 @@ export const Admin = ({ onBack }: AdminProps) => {
     setEditingItem(null);
   };
 
-  const handleSave = () => {
-    // Simulate save operation
-    toast({
-      title: editingItem ? "Item atualizado" : "Item adicionado",
-      description: editingItem 
-        ? "As alterações foram salvas com sucesso" 
-        : "Novo item foi adicionado com sucesso"
-    });
-    closeModal();
+  const handleSave = async () => {
+    try {
+      if (activeModal === "item") {
+        if (editingItem) {
+          await updateItem({ id: editingItem.id, data: itemForm });
+        } else {
+          await createItem(itemForm);
+        }
+      } else if (activeModal === "reason") {
+        if (editingItem) {
+          await updateReason({ id: editingItem.id, data: reasonForm });
+        } else {
+          await createReason(reasonForm);
+        }
+      } else if (activeModal === "seller") {
+        if (editingItem) {
+          await updateSeller({ id: editingItem.id, data: sellerForm });
+        } else {
+          await createSeller(sellerForm);
+        }
+      } else if (activeModal === "customer") {
+        if (editingItem) {
+          await updateCustomer({ id: editingItem.id, data: customerForm });
+        } else {
+          await createCustomer(customerForm);
+        }
+      }
+      
+      toast({
+        title: editingItem ? "Item atualizado" : "Item adicionado",
+        description: editingItem 
+          ? "As alterações foram salvas com sucesso" 
+          : "Novo item foi adicionado com sucesso"
+      });
+      closeModal();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar item",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDelete = (type: string, item: any) => {
@@ -128,12 +200,33 @@ export const Admin = ({ onBack }: AdminProps) => {
     });
   };
 
-  const confirmDelete = () => {
-    toast({
-      title: "Item removido",
-      description: "O item foi removido com sucesso",
-      variant: "destructive"
-    });
+  const confirmDelete = async () => {
+    try {
+      const { type, item } = confirmModal;
+      
+      if (type === "item") {
+        await deleteItem(item.id);
+      } else if (type === "reason") {
+        await deleteReason(item.id);
+      } else if (type === "seller") {
+        await deleteSeller(item.id);
+      } else if (type === "customer") {
+        await deleteCustomer(item.id);
+      }
+      
+      toast({
+        title: "Item removido",
+        description: "O item foi removido com sucesso",
+        variant: "destructive"
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao remover item",
+        variant: "destructive"
+      });
+    }
+    
     setConfirmModal({ isOpen: false, type: "", item: null });
   };
 
@@ -204,56 +297,59 @@ export const Admin = ({ onBack }: AdminProps) => {
                   </div>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>IMEI</TableHead>
-                      <TableHead>Modelo</TableHead>
-                      <TableHead>Cor</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {inventory.map((item) => (
-                      <TableRow key={item.imei}>
-                        <TableCell className="font-mono">...{item.imei.slice(-5)}</TableCell>
-                        <TableCell>{item.model}</TableCell>
-                        <TableCell>{item.color}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.type}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={
-                            item.status === "cofre" ? "default" : 
-                            item.status === "fora" ? "secondary" : "destructive"
-                          }>
-                            {item.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openModal("item", item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm" 
-                              onClick={() => handleDelete("item", item)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                {inventoryLoading ? (
+                  <Loading />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>IMEI</TableHead>
+                        <TableHead>Marca</TableHead>
+                        <TableHead>Modelo</TableHead>
+                        <TableHead>Cor</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono">...{item.imei.slice(-5)}</TableCell>
+                          <TableCell>{item.brand}</TableCell>
+                          <TableCell>{item.model}</TableCell>
+                          <TableCell>{item.color}</TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              item.status === "available" ? "default" : 
+                              item.status === "loaned" ? "secondary" : "destructive"
+                            }>
+                              {item.status === "available" ? "Disponível" : 
+                               item.status === "loaned" ? "Emprestado" : "Vendido"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openModal("item", item)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm" 
+                                onClick={() => handleDelete("item", item)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </div>
             </Card>
           </TabsContent>

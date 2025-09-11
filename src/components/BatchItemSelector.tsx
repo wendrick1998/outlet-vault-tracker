@@ -3,12 +3,15 @@ import { Search, Scan, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MockDataService, MockInventory } from "@/lib/mock-data";
+import { useIMEISearch } from "@/hooks/useSearch";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface BatchItemSelectorProps {
-  onItemSelected: (item: MockInventory) => void;
-  selectedItems: MockInventory[];
+  onItemSelected: (item: InventoryItem) => void;
+  selectedItems: InventoryItem[];
 }
 
 export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSelectorProps) => {
@@ -22,7 +25,9 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
     inputRef.current?.focus();
   }, [selectedItems]);
 
-  const handleSearch = () => {
+  const { refetch: searchByIMEI } = useIMEISearch(imeiInput);
+
+  const handleSearch = async () => {
     if (!imeiInput.trim()) {
       toast({
         title: "IMEI obrigatório",
@@ -34,52 +39,39 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
 
     setIsSearching(true);
 
-    setTimeout(() => {
+    try {
       const cleanIMEI = imeiInput.trim().replace(/\D/g, '');
+      const result = await searchByIMEI();
       
-      if (cleanIMEI.length === 15) {
-        // Exact IMEI search
-        const item = MockDataService.findItemByIMEI(cleanIMEI);
-        if (item) {
-          handleItemFound(item);
-        } else {
-          toast({
-            title: "IMEI não encontrado",
-            description: "Nenhum item encontrado com este IMEI",
-            variant: "destructive"
-          });
-        }
-      } else if (cleanIMEI.length === 5) {
-        // Suffix search
-        const items = MockDataService.findItemsBySuffix(cleanIMEI);
-        if (items.length === 1) {
-          handleItemFound(items[0]);
-        } else if (items.length > 1) {
-          toast({
-            title: "Múltiplos resultados",
-            description: "Use a busca individual para selecionar entre múltiplos itens",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Nenhum resultado",
-            description: "Nenhum item encontrado com estes últimos 5 dígitos",
-            variant: "destructive"
-          });
-        }
+      if (result.data?.exactMatch) {
+        handleItemFound(result.data.exactMatch);
+      } else if (result.data?.items && result.data.items.length === 1) {
+        handleItemFound(result.data.items[0]);
+      } else if (result.data?.items && result.data.items.length > 1) {
+        toast({
+          title: "Múltiplos resultados",
+          description: "Use a busca individual para selecionar entre múltiplos itens",
+          variant: "destructive"
+        });
       } else {
         toast({
-          title: "IMEI inválido",
-          description: "Digite o IMEI completo (15 dígitos) ou últimos 5 dígitos",
+          title: "IMEI não encontrado",
+          description: "Nenhum item encontrado com este IMEI",
           variant: "destructive"
         });
       }
-      
+    } catch (error) {
+      toast({
+        title: "Erro na busca",
+        description: "Erro ao buscar o item",
+        variant: "destructive"
+      });
+    } finally {
       setIsSearching(false);
-    }, 300);
+    }
   };
 
-  const handleItemFound = (item: MockInventory) => {
+  const handleItemFound = (item: InventoryItem) => {
     // Check if already selected
     if (selectedItems.find(i => i.imei === item.imei)) {
       toast({
@@ -92,10 +84,10 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
     }
 
     // Check if item is available
-    if (item.status !== 'cofre') {
+    if (item.status !== 'available') {
       toast({
         title: "Item não disponível",
-        description: `${item.model} não está no cofre`,
+        description: `${item.model} não está disponível`,
         variant: "destructive"
       });
       setImeiInput("");

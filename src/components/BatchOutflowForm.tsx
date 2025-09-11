@@ -4,11 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Package, Users, FileText } from "lucide-react";
-import { mockReasons, mockSellers, mockCustomers, MockInventory } from "@/lib/mock-data";
+import { useActiveReasons } from "@/hooks/useReasons";
+import { useActiveSellers } from "@/hooks/useSellers";
+import { useCustomers } from "@/hooks/useCustomers";
+import { useLoans } from "@/hooks/useLoans";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface BatchOutflowFormProps {
-  items: MockInventory[];
+  items: InventoryItem[];
   onComplete: () => void;
   onCancel: () => void;
 }
@@ -17,24 +23,25 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [selectedSeller, setSelectedSeller] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
-  const [guestCustomer, setGuestCustomer] = useState<string>("");
-  const [useGuestCustomer, setUseGuestCustomer] = useState(false);
   const [quickNote, setQuickNote] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
+  const { data: reasons = [] } = useActiveReasons();
+  const { data: sellers = [] } = useActiveSellers();
+  const { data: customers = [] } = useCustomers();
+  const { createLoan } = useLoans();
   
-  const selectedReasonData = mockReasons.find(r => r.id === selectedReason);
-  const requiresCustomer = selectedReasonData?.requiresCustomer || false;
+  const selectedReasonData = reasons.find(r => r.id === selectedReason);
+  const requiresCustomer = selectedReasonData?.requires_customer || false;
 
   const isFormValid = () => {
     if (!selectedReason || !selectedSeller) return false;
-    if (requiresCustomer && !useGuestCustomer && !selectedCustomer) return false;
-    if (requiresCustomer && useGuestCustomer && !guestCustomer.trim()) return false;
+    if (requiresCustomer && !selectedCustomer) return false;
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isFormValid()) {
       toast({
         title: "Campos obrigatórios",
@@ -46,16 +53,33 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
 
     setIsSubmitting(true);
     
-    // Mock API call for batch operation
-    setTimeout(() => {
+    try {
+      // Create loans for all items
+      await Promise.all(items.map(item => 
+        createLoan({
+          item_id: item.id,
+          reason_id: selectedReason,
+          seller_id: selectedSeller,
+          customer_id: selectedCustomer || undefined,
+          notes: quickNote || undefined,
+        })
+      ));
+
       toast({
         title: "Saída em lote registrada",
         description: `${items.length} ${items.length === 1 ? 'item saiu' : 'itens saíram'} do cofre com sucesso`,
       });
       
-      setIsSubmitting(false);
       onComplete();
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: "Erro ao registrar saída",
+        description: "Não foi possível registrar a saída em lote",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -84,7 +108,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
               <div>
                 <h4 className="font-medium">{item.model}</h4>
                 <p className="text-sm text-muted-foreground">
-                  {item.color} • ...{item.imeiSuffix5}
+                  {item.color} • ...{item.imei.slice(-5)}
                 </p>
               </div>
             </div>
@@ -107,7 +131,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           <div className="space-y-3">
             <label className="text-sm font-medium">Motivo da Saída *</label>
             <div className="flex flex-wrap gap-2">
-              {mockReasons.map((reason) => (
+              {reasons.map((reason) => (
                 <Badge
                   key={reason.id}
                   variant={selectedReason === reason.id ? "default" : "outline"}
@@ -118,9 +142,6 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
                   onClick={() => setSelectedReason(reason.id)}
                 >
                   {reason.name}
-                  {reason.slaHours && (
-                    <span className="ml-1 text-xs">({reason.slaHours}h)</span>
-                  )}
                 </Badge>
               ))}
             </div>
@@ -130,7 +151,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           <div className="space-y-3">
             <label className="text-sm font-medium">Vendedor Responsável *</label>
             <div className="grid grid-cols-2 gap-2">
-              {mockSellers.filter(s => s.active).map((seller) => (
+              {sellers.filter(s => s.is_active).map((seller) => (
                 <Button
                   key={seller.id}
                   variant={selectedSeller === seller.id ? "default" : "outline"}
@@ -148,48 +169,21 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
             <div className="space-y-3">
               <label className="text-sm font-medium">Cliente *</label>
               
-              <div className="flex gap-2 mb-3">
-                <Button
-                  variant={!useGuestCustomer ? "default" : "outline"}
-                  onClick={() => setUseGuestCustomer(false)}
-                  size="sm"
-                >
-                  Lista de Clientes
-                </Button>
-                <Button
-                  variant={useGuestCustomer ? "default" : "outline"}
-                  onClick={() => setUseGuestCustomer(true)}
-                  size="sm"
-                >
-                  Cliente Avulso
-                </Button>
+              <div className="grid gap-2 max-h-48 overflow-y-auto">
+                {customers.map((customer) => (
+                  <Button
+                    key={customer.id}
+                    variant={selectedCustomer === customer.id ? "default" : "outline"}
+                    onClick={() => setSelectedCustomer(customer.id)}
+                    className="justify-between h-auto p-3"
+                  >
+                    <div className="text-left">
+                      <div className="font-medium">{customer.name}</div>
+                      <div className="text-sm text-muted-foreground">{customer.phone}</div>
+                    </div>
+                  </Button>
+                ))}
               </div>
-
-              {!useGuestCustomer ? (
-                <div className="grid gap-2 max-h-48 overflow-y-auto">
-                  {mockCustomers.map((customer) => (
-                    <Button
-                      key={customer.id}
-                      variant={selectedCustomer === customer.id ? "default" : "outline"}
-                      onClick={() => setSelectedCustomer(customer.id)}
-                      className="justify-between h-auto p-3"
-                    >
-                      <div className="text-left">
-                        <div className="font-medium">{customer.name}</div>
-                        <div className="text-sm text-muted-foreground">{customer.whatsapp}</div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  placeholder="Nome do cliente avulso..."
-                  value={guestCustomer}
-                  onChange={(e) => setGuestCustomer(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-border bg-input focus:ring-2 focus:ring-ring focus:border-transparent"
-                />
-              )}
             </div>
           )}
 

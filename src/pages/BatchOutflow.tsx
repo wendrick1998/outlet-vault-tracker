@@ -3,7 +3,9 @@ import { Header } from "@/components/Header";
 import { BatchItemSelector } from "@/components/BatchItemSelector";
 import { BatchItemList } from "@/components/BatchItemList";
 import { BatchOutflowForm } from "@/components/BatchOutflowForm";
-import { MockInventory } from "@/lib/mock-data";
+import type { Database } from "@/integrations/supabase/types";
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface BatchOutflowProps {
   onBack: () => void;
@@ -12,10 +14,10 @@ interface BatchOutflowProps {
 type BatchFlowState = 'selecting' | 'form-filling' | 'confirming';
 
 export const BatchOutflow = ({ onBack }: BatchOutflowProps) => {
-  const [selectedItems, setSelectedItems] = useState<MockInventory[]>([]);
+  const [selectedItems, setSelectedItems] = useState<InventoryItem[]>([]);
   const [flowState, setFlowState] = useState<BatchFlowState>('selecting');
 
-  const handleItemSelected = (item: MockInventory) => {
+  const handleItemSelected = (item: InventoryItem) => {
     // Check if item already selected
     if (selectedItems.find(i => i.imei === item.imei)) {
       return; // Already selected

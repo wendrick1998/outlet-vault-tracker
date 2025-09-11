@@ -115,10 +115,10 @@ export function useLoans() {
     error,
 
     // Actions
-    createLoan: createMutation.mutate,
-    updateLoan: updateMutation.mutate,
-    returnLoan: returnMutation.mutate,
-    extendLoan: extendMutation.mutate,
+    createLoan: createMutation.mutateAsync,
+    updateLoan: updateMutation.mutateAsync,
+    returnLoan: returnMutation.mutateAsync,
+    extendLoan: extendMutation.mutateAsync,
 
     // Status
     isCreating: createMutation.isPending,
