@@ -2,13 +2,23 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { ProfileService } from '@/services/profileService';
+import type { Database } from '@/integrations/supabase/types';
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type AppRole = Database['public']['Enums']['app_role'];
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  hasRole: (role: AppRole) => boolean;
+  isAdmin: boolean;
+  refetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,7 +38,28 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      setProfileLoading(true);
+      const profile = await ProfileService.getProfileById(userId);
+      setProfile(profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const refetchProfile = async () => {
+    if (user?.id) {
+      await fetchProfile(user.id);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -38,6 +69,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
+        // Fetch profile when user signs in
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+
         // Handle auth events
         if (event === 'SIGNED_IN') {
           toast({
@@ -45,6 +85,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             description: "Bem-vindo de volta!"
           });
         } else if (event === 'SIGNED_OUT') {
+          setProfile(null);
           toast({
             title: "Logout realizado",
             description: "Você foi desconectado com sucesso"
@@ -68,6 +109,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Fetch profile if user exists
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -90,12 +136,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const hasRole = (role: AppRole): boolean => {
+    return profile?.role === role && profile?.is_active === true;
+  };
+
+  const isAdmin = profile?.role === 'admin' && profile?.is_active === true;
+
   const value: AuthContextType = {
     user,
     session,
+    profile,
     loading,
+    profileLoading,
     signOut,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    hasRole,
+    isAdmin,
+    refetchProfile
   };
 
   return (

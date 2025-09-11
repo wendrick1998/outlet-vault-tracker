@@ -6,9 +6,19 @@ interface HeaderProps {
   title?: string;
   showBack?: boolean;
   onBack?: () => void;
+  onNavigate?: (page: string) => void;
+  onProfileClick?: () => void;
+  onSettingsClick?: () => void;
 }
 
-export const Header = ({ title = "Cofre Tracker", showBack = false, onBack }: HeaderProps) => {
+export const Header = ({ 
+  title = "Cofre Tracker", 
+  showBack = false, 
+  onBack, 
+  onNavigate, 
+  onProfileClick, 
+  onSettingsClick 
+}: HeaderProps) => {
   const { user } = useAuth();
 
   return (
@@ -36,7 +46,11 @@ export const Header = ({ title = "Cofre Tracker", showBack = false, onBack }: He
           </div>
 
           {user && (
-            <UserMenu userEmail={user.email} />
+            <UserMenu 
+              userEmail={user.email} 
+              onProfileClick={onProfileClick}
+              onSettingsClick={onSettingsClick}
+            />
           )}
         </div>
       </div>

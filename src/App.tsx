@@ -4,8 +4,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Loading } from "@/components/ui/loading";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Header } from "@/components/Header";
 import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
+import { Profile } from "./pages/Profile";
+import { Settings } from "./pages/Settings";
 
 // Lazy load heavy pages for better performance
 const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
@@ -13,7 +16,7 @@ const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m
 const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow').then(m => ({ default: m.BatchOutflow })));
 
-type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow';
+type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow' | 'profile' | 'settings';
 
 const AppContent = () => {
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
@@ -56,6 +59,10 @@ const AppContent = () => {
             <LazyBatchOutflow onBack={handleBack} />
           </Suspense>
         );
+      case 'profile':
+        return <Profile onBack={handleBack} />;
+      case 'settings':
+        return <Settings onBack={handleBack} />;
       default:
         return <Home onNavigate={handleNavigate} />;
     }
@@ -64,7 +71,14 @@ const AppContent = () => {
   return (
     <ProtectedRoute>
       <div className="app">
-        {renderCurrentPage()}
+        <Header 
+          onNavigate={handleNavigate}
+          onProfileClick={() => setCurrentPage('profile')}
+          onSettingsClick={() => setCurrentPage('settings')}
+        />
+        <div className="min-h-screen pt-16">
+          {renderCurrentPage()}
+        </div>
       </div>
     </ProtectedRoute>
   );
