@@ -444,6 +444,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      ensure_profile_exists: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
       get_customer_safe: {
         Args: { customer_id: string }
         Returns: Json
