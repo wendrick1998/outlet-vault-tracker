@@ -1,10 +1,12 @@
 import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MockInventory } from "@/lib/mock-data";
+import type { Database } from '@/integrations/supabase/types';
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface OutflowSuccessProps {
-  item: MockInventory;
+  item: InventoryItem;
   onAddAnother: () => void;
   onBackToMenu: () => void;
 }
@@ -32,7 +34,7 @@ export const OutflowSuccess = ({ item, onAddAnother, onBackToMenu }: OutflowSucc
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status:</span>
-              <span className="font-medium text-orange-600">Fora do Cofre</span>
+              <span className="font-medium text-orange-600">Emprestado</span>
             </div>
           </div>
 

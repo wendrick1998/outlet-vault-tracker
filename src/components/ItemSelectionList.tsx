@@ -1,10 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MockInventory } from "@/lib/mock-data";
+import type { Database } from '@/integrations/supabase/types';
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface ItemSelectionListProps {
-  items: MockInventory[];
-  onSelectItem: (item: MockInventory) => void;
+  items: InventoryItem[];
+  onSelectItem: (item: InventoryItem) => void;
   onBack: () => void;
 }
 
@@ -34,20 +36,20 @@ export const ItemSelectionList = ({ items, onSelectItem, onBack }: ItemSelection
                 <h3 className="font-semibold text-lg">{item.model}</h3>
                 <p className="text-muted-foreground">{item.color}</p>
                 <p className="font-mono text-sm text-muted-foreground">
-                  ...{item.imeiSuffix5} ({item.imei})
+                  ...{item.suffix || item.imei.slice(-5)} ({item.imei})
                 </p>
               </div>
               
               <div className="text-right">
                 <div className={`
                   px-3 py-1 rounded-full text-sm font-medium
-                  ${item.status === 'cofre' ? 'bg-success/20 text-success' : ''}
-                  ${item.status === 'fora' ? 'bg-warning/20 text-warning' : ''}
-                  ${item.status === 'vendido' ? 'bg-muted text-muted-foreground' : ''}
+                  ${item.status === 'available' ? 'bg-success/20 text-success' : ''}
+                  ${item.status === 'loaned' ? 'bg-warning/20 text-warning' : ''}
+                  ${item.status === 'sold' ? 'bg-muted text-muted-foreground' : ''}
                 `}>
-                  {item.status === 'cofre' && 'No Cofre'}
-                  {item.status === 'fora' && 'Fora'}
-                  {item.status === 'vendido' && 'Vendido'}
+                  {item.status === 'available' && 'Disponível'}
+                  {item.status === 'loaned' && 'Emprestado'}
+                  {item.status === 'sold' && 'Vendido'}
                 </div>
               </div>
             </div>

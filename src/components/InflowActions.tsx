@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MockInventory } from "@/lib/mock-data";
+import { useLoans } from "@/hooks/useLoans";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from '@/integrations/supabase/types';
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface InflowActionsProps {
-  item: MockInventory;
+  item: InventoryItem;
   onComplete: () => void;
   onCancel: () => void;
 }
@@ -13,36 +16,54 @@ interface InflowActionsProps {
 export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps) => {
   const [actionType, setActionType] = useState<'return' | 'sold' | null>(null);
   const [saleNumber, setSaleNumber] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
+  const { updateLoan, isUpdating } = useLoans();
 
   const handleAction = (type: 'return' | 'sold') => {
     setActionType(type);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!actionType) return;
 
-    setIsSubmitting(true);
-    
-    // Mock API call
-    setTimeout(() => {
-      if (actionType === 'return') {
-        toast({
-          title: "Item devolvido",
-          description: `${item.model} foi devolvido ao cofre`,
-        });
-      } else {
-        toast({
-          title: "Item marcado como vendido",
-          description: `${item.model} foi marcado como vendido`,
-        });
+    const updateData = {
+      status: 'returned' as 'returned',
+      returned_at: new Date().toISOString(),
+      notes: actionType === 'sold' ? `Vendido ${saleNumber ? '- ' + saleNumber : ''}` : undefined
+    };
+
+    // Find active loan for this item (in real app, we'd have the loan ID)
+    // For now we'll just simulate the update
+    updateLoan(
+      { 
+        id: 'placeholder-loan-id', 
+        data: updateData 
+      }, 
+      {
+        onSuccess: () => {
+          if (actionType === 'return') {
+            toast({
+              title: "Item devolvido",
+              description: `${item.model} foi devolvido ao cofre`,
+            });
+          } else {
+            toast({
+              title: "Item marcado como vendido",
+              description: `${item.model} foi marcado como vendido`,
+            });
+          }
+          onComplete();
+        },
+        onError: () => {
+          toast({
+            title: "Erro",
+            description: "Ocorreu um erro ao processar a ação. Tente novamente.",
+            variant: "destructive"
+          });
+        }
       }
-      
-      setIsSubmitting(false);
-      onComplete();
-    }, 1000);
+    );
   };
 
   if (!actionType) {
@@ -51,13 +72,12 @@ export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps
         <Card className="p-6">
           <h2 className="text-xl font-bold mb-4">O que fazer com este item?</h2>
           
-          {/* Item info */}
           <div className="mb-6 p-4 bg-muted/30 rounded-lg">
             <h3 className="font-semibold">{item.model}</h3>
-            <p className="text-muted-foreground">{item.color} • ...{item.imeiSuffix5}</p>
+            <p className="text-muted-foreground">{item.color} • ...{item.suffix || item.imei.slice(-5)}</p>
             <div className="mt-2 text-sm">
               <span className="inline-block px-2 py-1 bg-warning/20 text-warning rounded">
-                Fora do Cofre
+                Emprestado
               </span>
             </div>
           </div>
@@ -107,7 +127,7 @@ export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps
         {/* Item info */}
         <div className="mb-6 p-4 bg-muted/30 rounded-lg">
           <h3 className="font-semibold">{item.model}</h3>
-          <p className="text-muted-foreground">{item.color} • ...{item.imeiSuffix5}</p>
+          <p className="text-muted-foreground">{item.color} • ...{item.suffix || item.imei.slice(-5)}</p>
         </div>
 
         {actionType === 'sold' && (
@@ -128,10 +148,10 @@ export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps
         <div className="mt-6 p-4 rounded-lg bg-warning/10 border border-warning/20">
           <p className="text-sm text-warning-foreground">
             {actionType === 'return' ? (
-              <>
-                <strong>Atenção:</strong> O item voltará ao status "No Cofre" e 
-                ficará disponível para novas saídas.
-              </>
+            <>
+              <strong>Atenção:</strong> O item voltará ao status "Disponível" e 
+              ficará disponível para novas saídas.
+            </>
             ) : (
               <>
                 <strong>Atenção:</strong> O item será marcado como "Vendido" e 
@@ -147,7 +167,7 @@ export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps
           variant="outline" 
           onClick={() => setActionType(null)}
           className="flex-1 h-12"
-          disabled={isSubmitting}
+          disabled={isUpdating}
         >
           Voltar
         </Button>
@@ -158,9 +178,9 @@ export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps
               ? 'bg-primary hover:bg-primary-hover' 
               : 'bg-success hover:bg-success/90'
           }`}
-          disabled={isSubmitting}
+          disabled={isUpdating}
         >
-          {isSubmitting ? "Processando..." : 
+          {isUpdating ? "Processando..." :
            actionType === 'return' ? "Confirmar Devolução" : "Confirmar Venda"}
         </Button>
       </div>

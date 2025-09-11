@@ -2,10 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Clock, CheckCircle, AlertTriangle } from "lucide-react";
-import { MockInventory } from "@/lib/mock-data";
+import type { Database } from '@/integrations/supabase/types';
+import { useItemNotes } from "@/hooks/useItemNotes";
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface ItemCardProps {
-  item: MockInventory;
+  item: InventoryItem;
   onRegisterOutflow?: () => void;
   onReturn?: () => void;
   onMarkSold?: () => void;
@@ -23,19 +26,20 @@ export const ItemCard = ({
   onAddNote,
   showActions = true 
 }: ItemCardProps) => {
+  const { notes } = useItemNotes(item.id);
   const getStatusBadge = () => {
     const statusConfig = {
-      cofre: { 
-        label: "No Cofre", 
+      available: { 
+        label: "Disponível", 
         className: "bg-success text-success-foreground",
         icon: CheckCircle 
       },
-      fora: { 
-        label: "Fora do Cofre", 
+      loaned: { 
+        label: "Emprestado", 
         className: "bg-warning text-warning-foreground",
         icon: Clock 
       },
-      vendido: { 
+      sold: { 
         label: "Vendido", 
         className: "bg-muted text-muted-foreground",
         icon: CheckCircle 
@@ -57,7 +61,7 @@ export const ItemCard = ({
     if (!showActions) return null;
 
     switch (item.status) {
-      case 'cofre':
+      case 'available':
         return (
           <Button 
             onClick={onRegisterOutflow}
@@ -67,7 +71,7 @@ export const ItemCard = ({
           </Button>
         );
       
-      case 'fora':
+      case 'loaned':
         return (
           <div className="flex gap-3">
             <Button 
@@ -86,7 +90,7 @@ export const ItemCard = ({
           </div>
         );
         
-      case 'vendido':
+      case 'sold':
         return (
           <div className="text-center text-muted-foreground text-base">
             Item já foi vendido
@@ -114,7 +118,7 @@ export const ItemCard = ({
         <div className="bg-muted/30 rounded-lg p-3">
           <div className="text-sm text-muted-foreground">IMEI</div>
           <div className="font-mono text-base">
-            ...{item.imeiSuffix5}
+            ...{item.suffix || item.imei.slice(-5)}
             <span className="text-xs text-muted-foreground ml-2">
               ({item.imei})
             </span>
@@ -122,12 +126,12 @@ export const ItemCard = ({
         </div>
 
         {/* Notes indicator */}
-        {item.notes.length > 0 && (
+        {notes && notes.length > 0 && (
           <div className="flex items-center justify-between bg-warning/10 rounded-lg p-3 border border-warning/20">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-warning" />
               <span className="text-sm font-medium text-warning-foreground">
-                {item.notes.length} observação{item.notes.length > 1 ? 'ões' : ''}
+                {notes.length} observação{notes.length > 1 ? 'ões' : ''}
               </span>
             </div>
             <Button 

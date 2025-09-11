@@ -7,7 +7,9 @@ import { OutflowForm } from "@/components/OutflowForm";
 import { InflowActions } from "@/components/InflowActions";
 import { NotesDialog } from "@/components/NotesDialog";
 import { OutflowSuccess } from "@/components/OutflowSuccess";
-import { MockInventory } from "@/lib/mock-data";
+import type { Database } from '@/integrations/supabase/types';
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface SearchAndRegisterProps {
   onBack: () => void;
@@ -17,20 +19,20 @@ type ViewState = 'search' | 'multiple-results' | 'item-details' | 'outflow-form'
 
 export const SearchAndRegister = ({ onBack }: SearchAndRegisterProps) => {
   const [viewState, setViewState] = useState<ViewState>('search');
-  const [selectedItem, setSelectedItem] = useState<MockInventory | null>(null);
-  const [multipleItems, setMultipleItems] = useState<MockInventory[]>([]);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [multipleItems, setMultipleItems] = useState<InventoryItem[]>([]);
 
-  const handleItemFound = (item: MockInventory) => {
+  const handleItemFound = (item: InventoryItem) => {
     setSelectedItem(item);
     setViewState('item-details');
   };
 
-  const handleMultipleFound = (items: MockInventory[]) => {
+  const handleMultipleFound = (items: InventoryItem[]) => {
     setMultipleItems(items);
     setViewState('multiple-results');
   };
 
-  const handleItemSelected = (item: MockInventory) => {
+  const handleItemSelected = (item: InventoryItem) => {
     setSelectedItem(item);
     setViewState('item-details');
   };
@@ -54,10 +56,7 @@ export const SearchAndRegister = ({ onBack }: SearchAndRegisterProps) => {
   };
 
   const handleOutflowComplete = () => {
-    // Update item status to 'fora' (mock)
-    if (selectedItem) {
-      selectedItem.status = 'fora';
-    }
+    // Status will be updated automatically by database triggers
     setViewState('outflow-success');
   };
 

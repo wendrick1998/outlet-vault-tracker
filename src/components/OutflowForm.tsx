@@ -3,11 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { mockReasons, mockSellers, mockCustomers, MockInventory } from "@/lib/mock-data";
+import { useReasons } from "@/hooks/useReasons";
+import { useSellers } from "@/hooks/useSellers";
+import { useCustomers } from "@/hooks/useCustomers";
+import { useLoans } from "@/hooks/useLoans";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from '@/integrations/supabase/types';
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface OutflowFormProps {
-  item: MockInventory;
+  item: InventoryItem;
   onComplete: () => void;
   onCancel: () => void;
 }
@@ -19,12 +25,15 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const [guestCustomer, setGuestCustomer] = useState<string>("");
   const [useGuestCustomer, setUseGuestCustomer] = useState(false);
   const [quickNote, setQuickNote] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
+  const { reasons = [] } = useReasons();
+  const { sellers = [] } = useSellers();
+  const { customers = [] } = useCustomers();
+  const { createLoan, isCreating } = useLoans();
   
-  const selectedReasonData = mockReasons.find(r => r.id === selectedReason);
-  const requiresCustomer = selectedReasonData?.requiresCustomer || false;
+  const selectedReasonData = reasons.find(r => r.id === selectedReason);
+  const requiresCustomer = selectedReasonData?.requires_customer || false;
 
   const isFormValid = () => {
     if (!selectedReason || !selectedSeller) return false;
@@ -33,7 +42,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isFormValid()) {
       toast({
         title: "Campos obrigatórios",
@@ -43,18 +52,30 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Mock API call
-    setTimeout(() => {
-      toast({
-        title: "Saída registrada",
-        description: `${item.model} saiu do cofre com sucesso`,
-      });
-      
-      setIsSubmitting(false);
-      onComplete();
-    }, 1000);
+    const loanData = {
+      item_id: item.id,
+      reason_id: selectedReason,
+      seller_id: selectedSeller,
+      customer_id: useGuestCustomer ? null : (selectedCustomer || null),
+      notes: quickNote.trim() || null,
+    };
+
+    createLoan(loanData, {
+      onSuccess: () => {
+        toast({
+          title: "Saída registrada",
+          description: `${item.model} saiu do cofre com sucesso`,
+        });
+        onComplete();
+      },
+      onError: () => {
+        toast({
+          title: "Erro ao registrar saída",
+          description: "Ocorreu um erro. Tente novamente.",
+          variant: "destructive"
+        });
+      }
+    });
   };
 
   return (
@@ -65,14 +86,14 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         {/* Item info */}
         <div className="mb-6 p-4 bg-muted/30 rounded-lg">
           <h3 className="font-semibold">{item.model}</h3>
-          <p className="text-muted-foreground">{item.color} • ...{item.imeiSuffix5}</p>
+          <p className="text-muted-foreground">{item.color} • ...{item.suffix || item.imei.slice(-5)}</p>
         </div>
 
         {/* Reason selection */}
         <div className="space-y-3">
           <label className="text-sm font-medium">Motivo da Saída *</label>
           <div className="flex flex-wrap gap-2">
-            {mockReasons.map((reason) => (
+            {reasons.filter(r => r.is_active).map((reason) => (
               <Badge
                 key={reason.id}
                 variant={selectedReason === reason.id ? "default" : "outline"}
@@ -83,9 +104,6 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                 onClick={() => setSelectedReason(reason.id)}
               >
                 {reason.name}
-                {reason.slaHours && (
-                  <span className="ml-1 text-xs">({reason.slaHours}h)</span>
-                )}
               </Badge>
             ))}
           </div>
@@ -95,7 +113,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         <div className="space-y-3">
           <label className="text-sm font-medium">Vendedor Responsável *</label>
           <div className="grid grid-cols-2 gap-2">
-            {mockSellers.filter(s => s.active).map((seller) => (
+            {sellers.filter(s => s.is_active).map((seller) => (
               <Button
                 key={seller.id}
                 variant={selectedSeller === seller.id ? "default" : "outline"}
@@ -132,7 +150,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
 
             {!useGuestCustomer ? (
               <div className="grid gap-2 max-h-48 overflow-y-auto">
-                {mockCustomers.map((customer) => (
+                {customers.map((customer) => (
                   <Button
                     key={customer.id}
                     variant={selectedCustomer === customer.id ? "default" : "outline"}
@@ -141,7 +159,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                   >
                     <div className="text-left">
                       <div className="font-medium">{customer.name}</div>
-                      <div className="text-sm text-muted-foreground">{customer.whatsapp}</div>
+                      <div className="text-sm text-muted-foreground">{customer.phone}</div>
                     </div>
                   </Button>
                 ))}
@@ -176,16 +194,16 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
           variant="outline" 
           onClick={onCancel}
           className="flex-1 h-12"
-          disabled={isSubmitting}
+          disabled={isCreating}
         >
           Cancelar
         </Button>
         <Button 
           onClick={handleSubmit}
           className="flex-1 h-12 bg-primary hover:bg-primary-hover"
-          disabled={!isFormValid() || isSubmitting}
+          disabled={!isFormValid() || isCreating}
         >
-          {isSubmitting ? "Registrando..." : "Confirmar Saída"}
+          {isCreating ? "Registrando..." : "Confirmar Saída"}
         </Button>
       </div>
     </div>

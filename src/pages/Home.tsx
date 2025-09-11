@@ -1,17 +1,17 @@
-import { useState } from "react";
 import { Search, List, Clock, BarChart3, Package, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { ActionCard } from "@/components/ActionCard";
 import { StatsCard } from "@/components/ui/stats-card";
-import { MockDataService } from "@/lib/mock-data";
+import { useSystemStats } from "@/hooks/useStats";
+import { useActiveLoans } from "@/hooks/useLoans";
 
 interface HomeProps {
   onNavigate: (page: string) => void;
 }
 
 export const Home = ({ onNavigate }: HomeProps) => {
-  const [activeLoansCount] = useState(() => MockDataService.getActiveLoans().length);
-  const stats = MockDataService.getSystemStats();
+  const { data: systemStats, isLoading: statsLoading } = useSystemStats();
+  const { data: activeLoans, isLoading: loansLoading } = useActiveLoans();
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,8 +49,8 @@ export const Home = ({ onNavigate }: HomeProps) => {
             description="Veja todos os itens que estão fora do cofre no momento"
             icon={Clock}
             onClick={() => onNavigate('active-loans')}
-            variant={activeLoansCount > 0 ? 'warning' : 'default'}
-            badge={activeLoansCount > 0 ? activeLoansCount.toString() : undefined}
+            variant={(activeLoans?.length || 0) > 0 ? 'warning' : 'default'}
+            badge={(activeLoans?.length || 0) > 0 ? (activeLoans?.length || 0).toString() : undefined}
           />
 
           <ActionCard
@@ -71,33 +71,48 @@ export const Home = ({ onNavigate }: HomeProps) => {
 
         {/* Quick stats */}
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Itens fora agora"
-            value={stats.activeLoans}
-            icon={Clock}
-            variant={stats.activeLoans > 0 ? "warning" : "default"}
-          />
-          
-          <StatsCard
-            title="Total de itens"
-            value={stats.totalItems}
-            icon={Package}
-            variant="default"
-          />
+          {statsLoading || loansLoading ? (
+            // Loading skeletons
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-muted rounded-lg h-20"></div>
+              </div>
+            ))
+          ) : systemStats ? (
+            <>
+              <StatsCard
+                title="Itens fora agora"
+                value={systemStats.loans.active}
+                icon={Clock}
+                variant={systemStats.loans.active > 0 ? "warning" : "default"}
+              />
+              
+              <StatsCard
+                title="Total de itens"
+                value={systemStats.inventory.total}
+                icon={Package}
+                variant="default"
+              />
 
-          <StatsCard
-            title="Itens em atraso"
-            value={stats.overdueLoans}
-            icon={AlertTriangle}
-            variant={stats.overdueLoans > 0 ? "destructive" : "success"}
-          />
+              <StatsCard
+                title="Itens em atraso"
+                value={systemStats.loans.overdue}
+                icon={AlertTriangle}
+                variant={systemStats.loans.overdue > 0 ? "destructive" : "success"}
+              />
 
-          <StatsCard
-            title="Disponíveis"
-            value={stats.availableItems}
-            icon={Package}
-            variant="success"
-          />
+              <StatsCard
+                title="Disponíveis"
+                value={systemStats.inventory.available}
+                icon={Package}
+                variant="success"
+              />
+            </>
+          ) : (
+            <div className="col-span-full text-center text-muted-foreground">
+              Erro ao carregar estatísticas
+            </div>
+          )}
         </div>
       </main>
     </div>

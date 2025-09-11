@@ -2,12 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { Search, Scan } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MockDataService, MockInventory } from "@/lib/mock-data";
+import { SearchService } from "@/services/searchService";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from '@/integrations/supabase/types';
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface IMEISearchProps {
-  onItemFound: (item: MockInventory) => void;
-  onMultipleFound: (items: MockInventory[]) => void;
+  onItemFound: (item: InventoryItem) => void;
+  onMultipleFound: (items: InventoryItem[]) => void;
 }
 
 export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) => {
@@ -21,7 +24,7 @@ export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) =>
     inputRef.current?.focus();
   }, []);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!imeiInput.trim()) {
       toast({
         title: "IMEI obrigatório",
@@ -33,45 +36,33 @@ export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) =>
 
     setIsSearching(true);
 
-    setTimeout(() => {
+    try {
       const cleanIMEI = imeiInput.trim().replace(/\D/g, ''); // Remove non-digits
       
-      if (cleanIMEI.length === 15) {
-        // Exact IMEI search
-        const item = MockDataService.findItemByIMEI(cleanIMEI);
-        if (item) {
-          onItemFound(item);
-        } else {
-          toast({
-            title: "IMEI não encontrado",
-            description: "Nenhum item encontrado com este IMEI",
-            variant: "destructive"
-          });
-        }
-      } else if (cleanIMEI.length === 5) {
-        // Suffix search
-        const items = MockDataService.findItemsBySuffix(cleanIMEI);
-        if (items.length === 1) {
-          onItemFound(items[0]);
-        } else if (items.length > 1) {
-          onMultipleFound(items);
-        } else {
-          toast({
-            title: "Nenhum resultado",
-            description: "Nenhum item encontrado com estes últimos 5 dígitos",
-            variant: "destructive"
-          });
-        }
+      const result = await SearchService.searchByIMEI(cleanIMEI);
+      
+      if (result.exactMatch) {
+        onItemFound(result.exactMatch);
+      } else if (result.hasMultiple) {
+        onMultipleFound(result.items);
+      } else if (result.items.length === 1) {
+        onItemFound(result.items[0]);
       } else {
         toast({
-          title: "IMEI inválido",
-          description: "Digite o IMEI completo (15 dígitos) ou últimos 5 dígitos",
+          title: "Nenhum resultado",
+          description: "Nenhum item encontrado com este termo de busca",
           variant: "destructive"
         });
       }
-      
+    } catch (error) {
+      toast({
+        title: "Erro na busca",
+        description: "Ocorreu um erro ao buscar o item. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
       setIsSearching(false);
-    }, 300);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

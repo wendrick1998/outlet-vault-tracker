@@ -4,20 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Calendar } from "lucide-react";
-import { MockInventory } from "@/lib/mock-data";
+import { useItemNotes } from "@/hooks/useItemNotes";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from '@/integrations/supabase/types';
+
+type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
 interface NotesDialogProps {
-  item: MockInventory;
+  item: InventoryItem;
   onClose: () => void;
 }
 
 export const NotesDialog = ({ item, onClose }: NotesDialogProps) => {
   const [newNote, setNewNote] = useState("");
   const [selectedTag, setSelectedTag] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
+  const { notes, addNote, isAdding } = useItemNotes(item.id);
 
   const noteTags = [
     { value: "defeito", label: "Defeito", color: "destructive" },
@@ -46,31 +49,7 @@ export const NotesDialog = ({ item, onClose }: NotesDialogProps) => {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Mock API call
-    setTimeout(() => {
-      const note = {
-        id: `n${Date.now()}`,
-        inventoryId: item.id,
-        note: newNote.trim(),
-        createdAt: new Date().toISOString(),
-        author: 'Operadora',
-        tag: selectedTag || undefined
-      };
-
-      // Add to mock data (in real app this would be API call)
-      item.notes.unshift(note);
-
-      toast({
-        title: "Observação adicionada",
-        description: "A observação foi salva com sucesso",
-      });
-      
-      setNewNote("");
-      setSelectedTag("");
-      setIsSubmitting(false);
-    }, 500);
+    addNote(newNote.trim());
   };
 
   return (
@@ -89,7 +68,7 @@ export const NotesDialog = ({ item, onClose }: NotesDialogProps) => {
         {/* Item info */}
         <div className="mb-6 p-4 bg-muted/30 rounded-lg">
           <h3 className="font-semibold">{item.model}</h3>
-          <p className="text-muted-foreground">{item.color} • ...{item.imeiSuffix5}</p>
+          <p className="text-muted-foreground">{item.color} • ...{item.suffix || item.imei.slice(-5)}</p>
         </div>
 
         {/* Add new note */}
@@ -130,10 +109,10 @@ export const NotesDialog = ({ item, onClose }: NotesDialogProps) => {
           
           <Button 
             onClick={handleAddNote}
-            disabled={isSubmitting || !newNote.trim()}
+            disabled={isAdding || !newNote.trim()}
             className="w-full"
           >
-            {isSubmitting ? "Salvando..." : "Adicionar Observação"}
+            {isAdding ? "Salvando..." : "Adicionar Observação"}
           </Button>
         </div>
 
@@ -141,34 +120,34 @@ export const NotesDialog = ({ item, onClose }: NotesDialogProps) => {
         <div className="space-y-3">
           <h4 className="font-medium flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Histórico de Observações ({item.notes.length})
+            Histórico de Observações ({notes?.length || 0})
           </h4>
           
-          {item.notes.length === 0 ? (
+          {!notes || notes.length === 0 ? (
             <p className="text-muted-foreground text-center py-6">
               Nenhuma observação registrada ainda
             </p>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {item.notes.map((note) => (
+              {notes.map((note) => (
                 <div 
                   key={note.id} 
                   className="p-4 border border-border rounded-lg bg-card/50"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{note.author}</span>
-                      {note.tag && (
+                      <span className="text-sm font-medium">Sistema</span>
+                      {selectedTag && (
                         <Badge 
                           variant="secondary"
                           className="text-xs"
                         >
-                          {noteTags.find(t => t.value === note.tag)?.label || note.tag}
+                          {noteTags.find(t => t.value === selectedTag)?.label || selectedTag}
                         </Badge>
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {formatDate(note.createdAt)}
+                      {formatDate(note.created_at)}
                     </span>
                   </div>
                   <p className="text-sm">{note.note}</p>
