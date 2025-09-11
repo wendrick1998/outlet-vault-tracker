@@ -1,6 +1,6 @@
 import { Store } from "lucide-react";
 import { UserMenu } from "./UserMenu";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   title?: string;

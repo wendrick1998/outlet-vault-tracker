@@ -2,8 +2,8 @@ import { useState, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Loading } from "@/components/ui/loading";
-import { useAuth } from "@/hooks/useAuth";
-import { Auth } from "./pages/Auth";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
 
@@ -15,8 +15,7 @@ const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow').then(m => ({ 
 
 type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow';
 
-const App = () => {
-  const { isAuthenticated, loading } = useAuth();
+const AppContent = () => {
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
 
   const handleNavigate = (page: string) => {
@@ -24,10 +23,6 @@ const App = () => {
   };
 
   const handleBack = () => {
-    setCurrentPage('home');
-  };
-
-  const handleLoginSuccess = () => {
     setCurrentPage('home');
   };
 
@@ -66,26 +61,22 @@ const App = () => {
     }
   };
 
-  if (loading) {
-    return <Loading />;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Toaster />
-        <Sonner />
-        <Auth onLoginSuccess={handleLoginSuccess} />
-      </>
-    );
-  }
-
   return (
-    <div className="app">
+    <ProtectedRoute>
+      <div className="app">
+        {renderCurrentPage()}
+      </div>
+    </ProtectedRoute>
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
       <Toaster />
       <Sonner />
-      {renderCurrentPage()}
-    </div>
+      <AppContent />
+    </AuthProvider>
   );
 };
 
