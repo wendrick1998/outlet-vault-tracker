@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Store, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
@@ -18,6 +19,11 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [isForgot, setIsForgot] = useState(false);
+  const [isReset, setIsReset] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
 
   useEffect(() => {
     // Check if user is already authenticated
@@ -29,6 +35,26 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
     };
     checkAuth();
   }, [onLoginSuccess]);
+
+  // Detecta modo de recuperação de senha pelo link do email
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      if (hash.includes('type=recovery')) {
+        setIsReset(true);
+        setIsLogin(true);
+      }
+    }
+  }, []);
+
+  const removeSupabaseAuthKeys = () => {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-')) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +102,10 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
           title: "Sucesso",
           description: "Login realizado com sucesso!"
         });
+        if (!rememberMe) {
+          removeSupabaseAuthKeys();
+          try { sessionStorage.setItem('ephemeral_session', '1'); } catch {}
+        }
         onLoginSuccess();
       } else {
         const { error } = await supabase.auth.signUp({
@@ -116,6 +146,50 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
     }
   };
 
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({ title: "Erro", description: "Informe seu email.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`
+      });
+      if (error) throw error;
+      toast({ title: "Verifique seu email", description: "Enviamos um link para redefinir sua senha." });
+      setIsForgot(false);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message || 'Não foi possível enviar o email.', variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast({ title: "Senha fraca", description: "A nova senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast({ title: "Senha redefinida", description: "Você já pode fazer login com a nova senha." });
+      setIsReset(false);
+      setIsLogin(true);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message || 'Não foi possível redefinir a senha.', variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 space-y-6">
@@ -127,78 +201,160 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
           </div>
           <h1 className="text-2xl font-bold">Outlet Store Plus</h1>
           <p className="text-muted-foreground">
-            {isLogin ? "Faça login para continuar" : "Crie sua conta"}
+            {isReset
+              ? "Defina sua nova senha"
+              : isForgot
+              ? "Informe seu email para recuperar a senha"
+              : isLogin
+              ? "Faça login para continuar"
+              : "Crie sua conta"}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <div className="relative">
+        {/* RESET DE SENHA */}
+        {isReset ? (
+          <form onSubmit={handleResetSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova senha</Label>
               <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Sua senha"
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nova senha"
                 required
                 minLength={6}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-auto p-1"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPasswordConfirm">Confirmar nova senha</Label>
+              <Input
+                id="newPasswordConfirm"
+                type="password"
+                value={newPasswordConfirm}
+                onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                placeholder="Confirme a nova senha"
+                required
+                minLength={6}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Processando..." : "Redefinir senha"}
+            </Button>
+            <div className="text-center">
+              <Button type="button" variant="link" className="text-sm" onClick={() => setIsReset(false)}>
+                Voltar ao login
               </Button>
             </div>
-          </div>
-
-          {!isLogin && (
+          </form>
+        ) : isForgot ? (
+          /* ESQUECEU A SENHA */
+          <form onSubmit={handleForgotSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirme sua senha"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
                 required
-                minLength={6}
               />
             </div>
-          )}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Enviando..." : "Enviar link de redefinição"}
+            </Button>
+            <div className="text-center">
+              <Button type="button" variant="link" className="text-sm" onClick={() => setIsForgot(false)}>
+                Voltar ao login
+              </Button>
+            </div>
+          </form>
+        ) : (
+          /* LOGIN / CADASTRO */
+          <>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Processando..." : (isLogin ? "Entrar" : "Criar Conta")}
-          </Button>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Sua senha"
+                    required
+                    minLength={6}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-auto p-1"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
 
-        <div className="text-center">
-          <Button
-            type="button"
-            variant="link"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm"
-          >
-            {isLogin ? "Não tem uma conta? Criar conta" : "Já tem uma conta? Fazer login"}
-          </Button>
-        </div>
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirme sua senha"
+                    required
+                    minLength={6}
+                  />
+                </div>
+              )}
+
+              {isLogin && (
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={rememberMe} onCheckedChange={(v) => setRememberMe(!!v)} />
+                    Manter conectado
+                  </label>
+                  <Button type="button" variant="link" className="text-sm" onClick={() => setIsForgot(true)}>
+                    Esqueceu a senha?
+                  </Button>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Processando..." : (isLogin ? "Entrar" : "Criar Conta")}
+              </Button>
+            </form>
+
+            <div className="text-center">
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm"
+              >
+                {isLogin ? "Não tem uma conta? Criar conta" : "Já tem uma conta? Fazer login"}
+              </Button>
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );
-};
+}
