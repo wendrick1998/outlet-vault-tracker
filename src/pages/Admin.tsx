@@ -380,13 +380,13 @@ export const Admin = ({ onBack }: AdminProps) => {
                       <TableRow key={reason.id}>
                         <TableCell>{reason.name}</TableCell>
                         <TableCell>
-                          {reason.requiresCustomer ? (
+                          {reason.requires_customer ? (
                             <Badge variant="secondary">Sim</Badge>
                           ) : (
                             <Badge variant="outline">Não</Badge>
                           )}
                         </TableCell>
-                        <TableCell>{reason.slaHours || "—"}</TableCell>
+                        <TableCell>—</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -429,7 +429,7 @@ export const Admin = ({ onBack }: AdminProps) => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
-                      <TableHead>WhatsApp</TableHead>
+                      <TableHead>Telefone</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -437,7 +437,7 @@ export const Admin = ({ onBack }: AdminProps) => {
                     {sellers.map((seller) => (
                       <TableRow key={seller.id}>
                         <TableCell>{seller.name}</TableCell>
-                        <TableCell className="font-mono">{seller.whatsapp}</TableCell>
+                        <TableCell className="font-mono">{seller.phone}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -480,7 +480,7 @@ export const Admin = ({ onBack }: AdminProps) => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
-                      <TableHead>WhatsApp</TableHead>
+                      <TableHead>Telefone</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -488,7 +488,7 @@ export const Admin = ({ onBack }: AdminProps) => {
                     {customers.map((customer) => (
                       <TableRow key={customer.id}>
                         <TableCell>{customer.name}</TableCell>
-                        <TableCell className="font-mono">{customer.whatsapp}</TableCell>
+                        <TableCell className="font-mono">{customer.phone}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button

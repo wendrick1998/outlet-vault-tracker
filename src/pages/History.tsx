@@ -20,7 +20,7 @@ interface HistoryProps {
 }
 
 type FilterPeriod = "all" | "today" | "7d" | "30d";
-type FilterStatus = "all" | "active" | "returned" | "sold";
+type FilterStatus = "all" | "active" | "returned";
 
 type LoanWithDetails = Database['public']['Tables']['loans']['Row'] & {
   inventory?: Database['public']['Tables']['inventory']['Row'];
@@ -98,10 +98,10 @@ export const History = ({ onBack }: HistoryProps) => {
 
   const getStatusBadge = (loan: LoanWithDetails) => {
     switch (loan.status) {
-      case 'sold':
-        return <Badge variant="destructive">Vendido</Badge>;
       case 'returned':
         return <Badge variant="secondary">Devolvido</Badge>;
+      case 'overdue':
+        return <Badge variant="destructive">Em Atraso</Badge>;
       case 'active':
       default:
         return <Badge variant="secondary">Em aberto</Badge>;
@@ -113,7 +113,7 @@ export const History = ({ onBack }: HistoryProps) => {
   };
 
   const exportToCSV = () => {
-    const headers = ["Data Saída", "IMEI", "Modelo", "Motivo", "Vendedor", "Cliente", "Status", "Data Retorno/Venda"];
+    const headers = ["Data Saída", "IMEI", "Modelo", "Motivo", "Vendedor", "Cliente", "Status", "Data Retorno"];
     const rows = filteredLoans.map(loan => [
       formatDate(loan.issued_at),
       loan.inventory?.imei || "N/A",
@@ -121,7 +121,7 @@ export const History = ({ onBack }: HistoryProps) => {
       loan.reason?.name || "N/A",
       loan.seller?.name || "N/A",
       loan.customer?.name || "N/A",
-      loan.status === 'sold' ? "Vendido" : loan.status === 'returned' ? "Devolvido" : "Em aberto",
+      loan.status === 'returned' ? "Devolvido" : loan.status === 'overdue' ? "Em Atraso" : "Em aberto",
       loan.returned_at ? formatDate(loan.returned_at) : "N/A"
     ]);
 
@@ -188,7 +188,6 @@ export const History = ({ onBack }: HistoryProps) => {
                 <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="active">Em aberto</SelectItem>
                 <SelectItem value="returned">Devolvidos</SelectItem>
-                <SelectItem value="sold">Vendidos</SelectItem>
               </SelectContent>
             </Select>
 

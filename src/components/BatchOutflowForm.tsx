@@ -29,7 +29,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const { toast } = useToast();
   const { data: reasons = [] } = useActiveReasons();
   const { data: sellers = [] } = useActiveSellers();
-  const { data: customers = [] } = useCustomers();
+  const { customers } = useCustomers();
   const { createLoan } = useLoans();
   
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
