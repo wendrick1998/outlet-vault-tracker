@@ -12,9 +12,10 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 30, // 30 minutes (was previously 'cacheTime')
       
       // Retry failed requests
-      retry: (failureCount, error: any) => {
-        // Don't retry on 4xx errors (client errors)
-        if (error?.status >= 400 && error?.status < 500) {
+      retry: (failureCount, error: unknown) => {
+        // Don't retry on 4xx errors (client errors) 
+        const errorObj = error as any;
+        if (errorObj?.status >= 400 && errorObj?.status < 500) {
           return false;
         }
         // Retry up to 3 times for other errors
@@ -29,10 +30,16 @@ export const queryClient = new QueryClient({
       
       // Don't refetch on reconnect by default (can be overridden per query)
       refetchOnReconnect: 'always',
+
+      // Network mode optimization
+      networkMode: 'online',
     },
     mutations: {
       // Retry failed mutations once
       retry: 1,
+      
+      // Network mode for mutations
+      networkMode: 'online',
     },
   },
 });

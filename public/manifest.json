@@ -1,13 +1,14 @@
 {
-  "name": "Cofre Tracker - Outlet Store Plus",
-  "short_name": "Cofre Tracker",
-  "description": "Sistema de controle de empréstimos do cofre - Outlet Store Plus Blumenau",
+  "name": "Outlet Vault Tracker",
+  "short_name": "OutletVault",
+  "description": "Sistema de controle de estoque e empréstimos para outlets",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1e1b4b",
-  "theme_color": "#4f46e5",
-  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
   "scope": "/",
+  "lang": "pt-BR",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -37,5 +38,22 @@
     }
   ],
   "categories": ["business", "productivity"],
-  "lang": "pt-BR"
+  "shortcuts": [
+    {
+      "name": "Buscar Item",
+      "short_name": "Buscar",
+      "description": "Buscar item por IMEI",
+      "url": "/?action=search",
+      "icons": [{ "src": "/favicon.ico", "sizes": "192x192" }]
+    },
+    {
+      "name": "Empréstimos Ativos", 
+      "short_name": "Ativos",
+      "description": "Ver empréstimos ativos",
+      "url": "/?action=active-loans",
+      "icons": [{ "src": "/favicon.ico", "sizes": "192x192" }]
+    }
+  ],
+  "display_override": ["window-controls-overlay"],
+  "prefer_related_applications": false
 }

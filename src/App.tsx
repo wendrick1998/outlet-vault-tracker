@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
-import { ActiveLoans } from "./pages/ActiveLoans";
-import { History } from "./pages/History";
-import { Admin } from "./pages/Admin";
-import { BatchOutflow } from "./pages/BatchOutflow";
+import { Loading } from "./components/ui/loading";
+
+// Lazy load heavy pages for better performance
+const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
+const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m.History })));
+const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
+const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow').then(m => ({ default: m.BatchOutflow })));
 
 type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow';
 
@@ -28,13 +31,29 @@ const App = () => {
       case 'search':
         return <SearchAndRegister onBack={handleBack} />;
       case 'active-loans':
-        return <ActiveLoans onBack={handleBack} />;
+        return (
+          <Suspense fallback={<Loading />}>
+            <LazyActiveLoans onBack={handleBack} />
+          </Suspense>
+        );
       case 'history':
-        return <History onBack={handleBack} />;
+        return (
+          <Suspense fallback={<Loading />}>
+            <LazyHistory onBack={handleBack} />
+          </Suspense>
+        );
       case 'admin':
-        return <Admin onBack={handleBack} />;
+        return (
+          <Suspense fallback={<Loading />}>
+            <LazyAdmin onBack={handleBack} />
+          </Suspense>
+        );
       case 'batch-outflow':
-        return <BatchOutflow onBack={handleBack} />;
+        return (
+          <Suspense fallback={<Loading />}>
+            <LazyBatchOutflow onBack={handleBack} />
+          </Suspense>
+        );
       default:
         return <Home onNavigate={handleNavigate} />;
     }

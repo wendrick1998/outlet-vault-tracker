@@ -16,18 +16,26 @@ import { useInventory } from "@/hooks/useInventory";
 import { useReasons } from "@/hooks/useReasons";
 import { useSellers } from "@/hooks/useSellers";
 import { useCustomers } from "@/hooks/useCustomers";
+import { 
+  type AdminModal, 
+  type EditingItem, 
+  type ConfirmModalState,
+  type ItemFormData,
+  type ReasonFormData,
+  type SellerFormData,
+  type CustomerFormData
+} from "@/types/admin";
+import { itemSchema, reasonSchema, sellerSchema, customerSchema } from "@/lib/validation";
 
 interface AdminProps {
   onBack: () => void;
 }
 
-type AdminModal = "none" | "item" | "reason" | "seller" | "customer";
-
 export const Admin = ({ onBack }: AdminProps) => {
   const { toast } = useToast();
   const [activeModal, setActiveModal] = useState<AdminModal>("none");
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; type: string; item: any }>({
+  const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
     isOpen: false,
     type: "",
     item: null
