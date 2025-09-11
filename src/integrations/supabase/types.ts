@@ -14,16 +14,254 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_registered: boolean
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_registered?: boolean
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_registered?: boolean
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory: {
+        Row: {
+          brand: string
+          color: string | null
+          created_at: string
+          id: string
+          imei: string
+          model: string
+          notes: string | null
+          status: Database["public"]["Enums"]["inventory_status"]
+          storage: string | null
+          suffix: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          imei: string
+          model: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["inventory_status"]
+          storage?: string | null
+          suffix?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          imei?: string
+          model?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["inventory_status"]
+          storage?: string | null
+          suffix?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      item_notes: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          note: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          note: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_notes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          due_at: string | null
+          id: string
+          issued_at: string
+          item_id: string
+          notes: string | null
+          reason_id: string
+          returned_at: string | null
+          seller_id: string | null
+          status: Database["public"]["Enums"]["loan_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          due_at?: string | null
+          id?: string
+          issued_at?: string
+          item_id: string
+          notes?: string | null
+          reason_id: string
+          returned_at?: string | null
+          seller_id?: string | null
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          due_at?: string | null
+          id?: string
+          issued_at?: string
+          item_id?: string
+          notes?: string | null
+          reason_id?: string
+          returned_at?: string | null
+          seller_id?: string | null
+          status?: Database["public"]["Enums"]["loan_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_reason_id_fkey"
+            columns: ["reason_id"]
+            isOneToOne: false
+            referencedRelation: "reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reasons: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          requires_customer: boolean
+          requires_seller: boolean
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          requires_customer?: boolean
+          requires_seller?: boolean
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          requires_customer?: boolean
+          requires_seller?: boolean
+        }
+        Relationships: []
+      }
+      sellers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_system_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
-      [_ in never]: never
+      inventory_status: "available" | "loaned" | "sold" | "maintenance"
+      loan_status: "active" | "returned" | "overdue"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +388,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      inventory_status: ["available", "loaned", "sold", "maintenance"],
+      loan_status: ["active", "returned", "overdue"],
+    },
   },
 } as const
