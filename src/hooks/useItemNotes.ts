@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NotesService } from '@/services/notesService';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type ItemNote = Database['public']['Tables']['item_notes']['Row'];

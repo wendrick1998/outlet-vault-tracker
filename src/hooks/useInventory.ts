@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryService } from '@/services/inventoryService';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];

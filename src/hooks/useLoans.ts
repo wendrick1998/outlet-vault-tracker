@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LoanService, type LoanWithDetails } from '@/services/loanService';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type LoanInsert = Database['public']['Tables']['loans']['Insert'];
