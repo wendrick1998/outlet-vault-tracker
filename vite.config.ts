@@ -17,29 +17,37 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     target: "esnext",
-    minify: "esbuild",
+    minify: mode === "production" ? "esbuild" : false,
     sourcemap: mode === "development",
     cssCodeSplit: true,
+    cssMinify: mode === "production",
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          router: ["react-router-dom"],
-          query: ["@tanstack/react-query"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-select", "@radix-ui/react-tabs"],
-          supabase: ["@supabase/supabase-js"],
-          charts: ["recharts"],
-          utils: ["date-fns", "clsx", "tailwind-merge"]
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('@tanstack/react-query')) return 'query';
+            if (id.includes('@supabase')) return 'supabase';
+            if (id.includes('@radix-ui')) return 'ui';
+            if (id.includes('react-router')) return 'router';
+            if (id.includes('recharts')) return 'charts';
+            if (id.includes('react') || id.includes('react-dom')) return 'vendor';
+            return 'vendor';
+          }
+          if (id.includes('src/components/ui')) return 'ui-components';
+          if (id.includes('src/hooks')) return 'hooks';
+          if (id.includes('src/services')) return 'services';
         },
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId 
             ? chunkInfo.facadeModuleId.split('/').pop()?.replace('.tsx', '').replace('.ts', '') || 'chunk'
             : 'chunk';
           return `assets/${facadeModuleId}-[hash].js`;
-        }
+        },
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 500,
+    reportCompressedSize: false,
   },
   optimizeDeps: {
     include: [

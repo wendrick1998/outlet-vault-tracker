@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { beforeAll, afterEach, afterAll, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import './setup/vitest-extended';
 
 // Mock IntersectionObserver
 const mockIntersectionObserver = vi.fn();

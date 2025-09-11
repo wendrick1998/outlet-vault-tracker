@@ -108,7 +108,7 @@ export const Admin = ({ onBack }: AdminProps) => {
   const [guestCustomerEnabled, setGuestCustomerEnabled] = useState(true);
 
   // Modal handlers
-  const openModal = (type: AdminModal, item?: any) => {
+  const openModal = (type: AdminModal, item?: InventoryItem | Reason | Seller | Customer) => {
     setActiveModal(type);
     
     if (item) {
@@ -214,7 +214,7 @@ export const Admin = ({ onBack }: AdminProps) => {
     }
   };
 
-  const handleDelete = (type: string, item: any) => {
+  const handleDelete = (type: string, item: InventoryItem | Reason | Seller | Customer) => {
     setConfirmModal({
       isOpen: true,
       type,

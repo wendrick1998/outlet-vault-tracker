@@ -2,7 +2,7 @@
 export const isDevelopment = import.meta.env.DEV;
 export const isProduction = import.meta.env.PROD;
 
-// Conditional logging
+// Conditional logging - Deprecated: Use logger from @/lib/logger instead
 export const devLog = (...args: any[]) => {
   if (isDevelopment) {
     console.log(...args);

@@ -10,6 +10,7 @@ import { initializeMonitoring } from "./lib/monitoring";
 import { Loading } from "./components/ui/loading";
 import { bundleAnalyzer } from '@/lib/bundle-analyzer';
 import { UpdateNotification } from '@/components/ui/update-notification';
+import { OfflineIndicator } from '@/components/ui/offline-indicator';
 import { register } from '@/lib/serviceWorker';
 import { config } from '@/lib/environment';
 
@@ -43,6 +44,7 @@ const AppWithUpdates = () => {
   return (
     <>
       <App />
+      <OfflineIndicator />
       {updateRegistration && (
         <UpdateNotification
           registration={updateRegistration}
