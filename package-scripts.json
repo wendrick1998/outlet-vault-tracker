@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "analyze:bundle": "npm run build && npx vite-bundle-analyzer dist",
+    "analyze:deps": "npx depcheck",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "lighthouse": "npx lighthouse http://localhost:8080 --output-path=./lighthouse-report.html",
+    "perf:audit": "npm run lighthouse && npm run analyze:bundle",
+    "check:security": "npm audit && npx better-npm-audit",
+    "optimize": "npm run analyze:deps && npm run test:coverage && npm run perf:audit"
+  }
+}

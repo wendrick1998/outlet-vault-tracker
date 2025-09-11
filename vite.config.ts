@@ -15,4 +15,35 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    target: "esnext",
+    minify: "esbuild",
+    sourcemap: mode === "development",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          router: ["react-router-dom"],
+          query: ["@tanstack/react-query"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-select"],
+          supabase: ["@supabase/supabase-js"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "@tanstack/react-query",
+      "@supabase/supabase-js"
+    ],
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+  },
 }));
