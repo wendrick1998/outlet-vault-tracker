@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, Smartphone } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ export const AdminModelsTab = () => {
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const { models, isLoading, toggleModelStatus, isUpdating } = useDeviceModelsAdmin();
+  const { models, isLoading, toggleModelStatus, seedAppleModels, isUpdating, isSeeding } = useDeviceModelsAdmin();
 
   const filteredModels = models.filter(model => {
     const matchesSearch = model.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -34,6 +34,13 @@ export const AdminModelsTab = () => {
   });
 
   const uniqueBrands = [...new Set(models.map(model => model.brand))];
+  const appleModelsCount = models.filter(model => model.brand === "Apple").length;
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setBrandFilter("all");
+    setStatusFilter("all");
+  };
 
   if (isLoading) {
     return <Loading />;
@@ -43,11 +50,27 @@ export const AdminModelsTab = () => {
     <Card>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Modelos de Aparelhos</h2>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Adicionar Modelo
-          </Button>
+          <div>
+            <h2 className="text-xl font-bold">Modelos de Aparelhos</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {models.length} modelos cadastrados{appleModelsCount > 0 && ` • ${appleModelsCount} modelos Apple`}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => seedAppleModels()}
+              disabled={isSeeding}
+            >
+              <Smartphone className="h-4 w-4" />
+              {isSeeding ? "Processando..." : "Pré-carregar Catálogo Apple"}
+            </Button>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Adicionar Modelo
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}
@@ -85,7 +108,7 @@ export const AdminModelsTab = () => {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={clearFilters}>
             <Filter className="h-4 w-4" />
             Limpar Filtros
           </Button>
@@ -99,7 +122,7 @@ export const AdminModelsTab = () => {
                 <TableHead>Marca</TableHead>
                 <TableHead>Modelo</TableHead>
                 <TableHead>Variante</TableHead>
-                <TableHead>Armazenamentos</TableHead>
+                <TableHead>Armazenamentos (GB)</TableHead>
                 <TableHead>Cores Disponíveis</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
@@ -109,13 +132,29 @@ export const AdminModelsTab = () => {
               {filteredModels.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Nenhum modelo encontrado
+                    {models.length === 0 ? (
+                      <div className="space-y-2">
+                        <p>Nenhum modelo encontrado</p>
+                        <p className="text-xs">Use o botão "Pré-carregar Catálogo Apple" para começar</p>
+                      </div>
+                    ) : (
+                      "Nenhum modelo encontrado com os filtros aplicados"
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredModels.map((model) => (
                   <TableRow key={model.id}>
-                    <TableCell className="font-medium">{model.brand}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {model.brand}
+                        {model.seed_source === 'apple-catalog' && (
+                          <Badge variant="outline" className="text-xs px-1">
+                            📦
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{model.model}</TableCell>
                     <TableCell>{model.variant || '-'}</TableCell>
                     <TableCell>
@@ -128,15 +167,15 @@ export const AdminModelsTab = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {model.available_colors?.slice(0, 3).map(color => (
+                      <div className="flex flex-wrap gap-1 max-w-md">
+                        {model.available_colors?.slice(0, 4).map(color => (
                           <Badge key={color} variant="secondary" className="text-xs">
                             {color}
                           </Badge>
                         ))}
-                        {(model.available_colors?.length || 0) > 3 && (
+                        {(model.available_colors?.length || 0) > 4 && (
                           <Badge variant="outline" className="text-xs">
-                            +{(model.available_colors?.length || 0) - 3}
+                            +{(model.available_colors?.length || 0) - 4}
                           </Badge>
                         )}
                         {(!model.available_colors || model.available_colors.length === 0) && (

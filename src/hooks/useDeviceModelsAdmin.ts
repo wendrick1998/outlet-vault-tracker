@@ -82,6 +82,32 @@ export const useDeviceModelsAdmin = () => {
     },
   });
 
+  // Apple models seed functionality
+  const seedAppleModelsMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('seed-apple-models', {
+        body: {}
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast({
+        title: "Catálogo Apple processado!",
+        description: `${data.details.created} modelos criados, ${data.details.updated} atualizados`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao processar catálogo Apple",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleModelStatus = (modelId: string, currentStatus: boolean) => {
     updateModelMutation.mutate({
       id: modelId,
@@ -95,8 +121,10 @@ export const useDeviceModelsAdmin = () => {
     error,
     createModel: createModelMutation.mutate,
     updateModel: updateModelMutation.mutate,
+    seedAppleModels: seedAppleModelsMutation.mutate,
     toggleModelStatus,
     isCreating: createModelMutation.isPending,
     isUpdating: updateModelMutation.isPending,
+    isSeeding: seedAppleModelsMutation.isPending,
   };
 };

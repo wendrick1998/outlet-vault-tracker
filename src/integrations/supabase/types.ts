@@ -138,6 +138,9 @@ export type Database = {
           is_active: boolean
           model: string
           notes: string | null
+          seed_source: string | null
+          seed_version: string | null
+          slug: string
           supported_storage: number[] | null
           updated_at: string
           variant: string | null
@@ -150,6 +153,9 @@ export type Database = {
           is_active?: boolean
           model: string
           notes?: string | null
+          seed_source?: string | null
+          seed_version?: string | null
+          slug: string
           supported_storage?: number[] | null
           updated_at?: string
           variant?: string | null
@@ -162,6 +168,9 @@ export type Database = {
           is_active?: boolean
           model?: string
           notes?: string | null
+          seed_source?: string | null
+          seed_version?: string | null
+          slug?: string
           supported_storage?: number[] | null
           updated_at?: string
           variant?: string | null
