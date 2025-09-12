@@ -32,7 +32,7 @@ export class InventoryService {
     return data;
   }
 
-  static async searchByIMEI(imei: string, options?: {
+  static async searchByCode(code: string, options?: {
     status?: Database['public']['Enums']['inventory_status'] | 'all';
     brand?: string | 'all';
     category?: string | 'all';
@@ -43,7 +43,7 @@ export class InventoryService {
     let query = supabase
       .from('inventory')
       .select('*')
-      .or(`imei.ilike.%${imei}%,suffix.ilike.%${imei}%,model.ilike.%${imei}%,brand.ilike.%${imei}%`);
+      .or(`imei.ilike.%${code}%,suffix.ilike.%${code}%,serial_number.ilike.%${code}%,model.ilike.%${code}%,brand.ilike.%${code}%`);
 
     if (!options?.includeArchived) {
       query = query.eq('is_archived', false);
@@ -70,6 +70,18 @@ export class InventoryService {
 
     if (error) throw error;
     return data || [];
+  }
+
+  // Legacy method for backward compatibility
+  static async searchByIMEI(imei: string, options?: {
+    status?: Database['public']['Enums']['inventory_status'] | 'all';
+    brand?: string | 'all';
+    category?: string | 'all';
+    dateFrom?: string;
+    dateTo?: string;
+    includeArchived?: boolean;
+  }): Promise<InventoryItem[]> {
+    return this.searchByCode(imei, options);
   }
 
   static async getAvailable(): Promise<InventoryItem[]> {

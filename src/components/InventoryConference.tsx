@@ -9,10 +9,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useInventoryAudit } from '@/hooks/useInventoryAudit';
 import { InventoryAuditService } from '@/services/inventoryAuditService';
 import { InventoryService } from '@/services/inventoryService';
+import { ScanFeedback } from './ScanFeedback';
 import { 
   Search, 
   CheckCircle, 
-  XCircle, 
+  XCircle,
   AlertTriangle, 
   Copy,
   Volume2,
@@ -37,7 +38,7 @@ interface ScanResult {
 }
 
 export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
-  const { audit, scans, addScan, finishAudit, isScanning } = useInventoryAudit(auditId);
+  const { audit, scans, addScan, finishAudit, isScanning: isMutating } = useInventoryAudit(auditId);
   const [scanInput, setScanInput] = useState('');
   const [snapshot, setSnapshot] = useState<any[]>([]);
   const [processedItems, setProcessedItems] = useState<Set<string>>(new Set());
@@ -45,6 +46,13 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
   const [isFinishing, setIsFinishing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastScanTime, setLastScanTime] = useState<number>(0);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<{
+    type: 'scanning' | 'success' | 'warning' | 'error';
+    message: string;
+    details: string;
+    item?: any;
+  } | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Load snapshot on mount
@@ -132,59 +140,108 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
       return;
     }
 
-    // Find item in inventory
-    const inventoryItems = await InventoryService.searchByIMEI(
-      cleanedData.imei || cleanedData.serial!
-    );
+    // Show scanning feedback
+    setIsScanning(true);
+    setScanFeedback({
+      type: 'scanning',
+      message: 'Verificando item...',
+      details: cleanedData.imei ? `IMEI: ${cleanedData.imei}` : `Serial: ${cleanedData.serial}`
+    });
 
-    let matchedItem = null;
-    if (cleanedData.imei) {
-      matchedItem = inventoryItems.find(item => 
-        item.imei === cleanedData.imei || item.suffix === cleanedData.imei
+    try {
+      // Find item in inventory using enhanced search
+      const inventoryItems = await InventoryService.searchByCode(
+        cleanedData.imei || cleanedData.serial!
       );
-    } else {
-      // Search by serial would need additional logic
-    }
+
+      let matchedItem = null;
+      if (cleanedData.imei) {
+        matchedItem = inventoryItems.find(item => 
+          item.imei === cleanedData.imei || item.suffix === cleanedData.imei
+        );
+      } else if (cleanedData.serial) {
+        matchedItem = inventoryItems.find(item => 
+          item.suffix === cleanedData.serial || item.imei === cleanedData.serial
+        );
+      }
 
     let scanResult: string;
     let soundType: 'success' | 'error' | 'warning' | 'duplicate';
 
-    if (matchedItem) {
-      // Check if item was expected in snapshot
-      const wasExpected = snapshot.some(item => item.id === matchedItem.id);
-      
-      if (wasExpected) {
-        if (matchedItem.status === 'available') {
-          scanResult = 'found_expected';
-          soundType = 'success';
-          toast.success(`✓ ${matchedItem.brand} ${matchedItem.model}`);
+      if (matchedItem) {
+        // Check if item was expected in snapshot
+        const wasExpected = snapshot.some(item => item.id === matchedItem.id);
+        
+        if (wasExpected) {
+          if (matchedItem.status === 'available') {
+            scanResult = 'found_expected';
+            soundType = 'success';
+            setScanFeedback({
+              type: 'success',
+              message: 'Item encontrado!',
+              details: `${matchedItem.brand} ${matchedItem.model}`,
+              item: matchedItem
+            });
+          } else {
+            scanResult = 'status_incongruent';
+            soundType = 'warning';
+            setScanFeedback({
+              type: 'warning',
+              message: 'Status incongruente',
+              details: `Esperado: Disponível | Atual: ${matchedItem.status}`,
+              item: matchedItem
+            });
+          }
         } else {
-          scanResult = 'status_incongruent';
+          scanResult = 'unexpected_present';
           soundType = 'warning';
-          toast.warning(`⚠️ Status incongruente: ${matchedItem.status}`);
+          setScanFeedback({
+            type: 'warning',
+            message: 'Item fora do estoque esperado',
+            details: `${matchedItem.brand} ${matchedItem.model}`,
+            item: matchedItem
+          });
         }
       } else {
-        scanResult = 'unexpected_present';
-        soundType = 'warning';
-        toast.warning(`⚠️ Fora do estoque esperado`);
+        scanResult = 'not_found';
+        soundType = 'error';
+        setScanFeedback({
+          type: 'error',
+          message: 'Item não encontrado',
+          details: 'Código não localizado no sistema',
+          item: null
+        });
       }
-    } else {
-      scanResult = 'unexpected_present';
-      soundType = 'error';
-      toast.error('❌ Item não encontrado no sistema');
+
+      // Add scan to database
+      addScan({
+        audit_id: auditId,
+        raw_code: code,
+        imei: cleanedData.imei,
+        serial: cleanedData.serial,
+        item_id: matchedItem?.id,
+        scan_result: scanResult as any
+      });
+
+      playSound(soundType);
+      
+      // Clear feedback after 3 seconds
+      setTimeout(() => {
+        setScanFeedback(null);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Scan error:', error);
+      setScanFeedback({
+        type: 'error',
+        message: 'Erro ao processar scan',
+        details: 'Tente novamente',
+        item: null
+      });
+      playSound('error');
+    } finally {
+      setIsScanning(false);
     }
-
-    // Add scan to database
-    addScan({
-      audit_id: auditId,
-      raw_code: code,
-      imei: cleanedData.imei,
-      serial: cleanedData.serial,
-      item_id: matchedItem?.id,
-      scan_result: scanResult as any
-    });
-
-    playSound(soundType);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -294,7 +351,7 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
                 variant="outline"
                 size="sm"
                 onClick={toggleActive}
-                disabled={isScanning}
+                disabled={isScanning || isMutating}
               >
                 {isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               </Button>
@@ -370,21 +427,26 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
               value={scanInput}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
-              placeholder={isActive ? "Escaneie ou digite o código..." : "Scanner pausado"}
+              placeholder={isActive ? "Escaneie códigos, IMEI ou números de série..." : "Scanner pausado"}
               disabled={!isActive || isScanning}
-              className="text-lg"
+              className="text-lg font-mono"
             />
             {isActive && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Mantenha o foco neste campo para capturar códigos automaticamente
+                  Suporte para códigos de barras, IMEI e números de série. Mantenha o foco no campo.
                 </AlertDescription>
               </Alert>
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Scan Feedback */}
+      {scanFeedback && (
+        <ScanFeedback feedback={scanFeedback} isScanning={isScanning} />
+      )}
 
       {/* Recent Scans */}
       <Card>
