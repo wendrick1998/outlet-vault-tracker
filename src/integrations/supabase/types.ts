@@ -377,29 +377,41 @@ export type Database = {
       }
       reasons: {
         Row: {
+          auto_approve: boolean | null
+          category: Database["public"]["Enums"]["reason_category"] | null
           created_at: string
           description: string | null
+          estimated_duration_hours: number | null
           id: string
           is_active: boolean
           name: string
+          priority: Database["public"]["Enums"]["reason_priority"] | null
           requires_customer: boolean
           requires_seller: boolean
         }
         Insert: {
+          auto_approve?: boolean | null
+          category?: Database["public"]["Enums"]["reason_category"] | null
           created_at?: string
           description?: string | null
+          estimated_duration_hours?: number | null
           id?: string
           is_active?: boolean
           name: string
+          priority?: Database["public"]["Enums"]["reason_priority"] | null
           requires_customer?: boolean
           requires_seller?: boolean
         }
         Update: {
+          auto_approve?: boolean | null
+          category?: Database["public"]["Enums"]["reason_category"] | null
           created_at?: string
           description?: string | null
+          estimated_duration_hours?: number | null
           id?: string
           is_active?: boolean
           name?: string
+          priority?: Database["public"]["Enums"]["reason_priority"] | null
           requires_customer?: boolean
           requires_seller?: boolean
         }
@@ -650,6 +662,17 @@ export type Database = {
         | "system.config"
         | "system.backup"
         | "system.features"
+      reason_category:
+        | "maintenance"
+        | "loan"
+        | "sale"
+        | "warranty"
+        | "demonstration"
+        | "internal_use"
+        | "transfer"
+        | "return"
+        | "disposal"
+      reason_priority: "low" | "medium" | "high" | "urgent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -809,6 +832,18 @@ export const Constants = {
         "system.backup",
         "system.features",
       ],
+      reason_category: [
+        "maintenance",
+        "loan",
+        "sale",
+        "warranty",
+        "demonstration",
+        "internal_use",
+        "transfer",
+        "return",
+        "disposal",
+      ],
+      reason_priority: ["low", "medium", "high", "urgent"],
     },
   },
 } as const
