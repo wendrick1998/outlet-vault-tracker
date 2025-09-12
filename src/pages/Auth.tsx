@@ -27,13 +27,31 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
+  const [hasExistingAdmin, setHasExistingAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check if user is already authenticated
+    // Check if user is already authenticated and check for existing admins
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         onLoginSuccess();
+        return;
+      }
+      
+      // Check if there are any existing admins
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'admin')
+          .limit(1);
+          
+        if (!error) {
+          setHasExistingAdmin(data && data.length > 0);
+        }
+      } catch (error) {
+        logger.error('Error checking for existing admins', { error });
+        setHasExistingAdmin(null);
       }
     };
     checkAuth();
@@ -437,22 +455,31 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
                 {loading ? "Processando..." : (isLogin ? "Entrar" : "Criar Conta")}
               </Button>
 
-              {/* Bootstrap Admin Button - Only show for the specific email */}
-              {isLogin && email === 'wendrick.1761998@gmail.com' && (
+              {/* First Access Button - Only show if no admin exists */}
+              {isLogin && hasExistingAdmin === false && (
                 <div className="pt-4 border-t">
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="w-full" 
+                    className="w-full border-primary/50 hover:bg-primary/10" 
                     onClick={handleBootstrapAdmin}
                     disabled={isBootstrapping}
                   >
                     {isBootstrapping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <Shield className="mr-2 h-4 w-4" />
-                    Criar Conta Admin
+                    Primeiro Acesso - Criar Administrador
                   </Button>
                   <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Use este botão apenas se for o primeiro acesso
+                    Crie a primeira conta de administrador do sistema
+                  </p>
+                </div>
+              )}
+
+              {/* Info message when admin already exists */}
+              {isLogin && hasExistingAdmin === true && (
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground text-center">
+                    Sistema já inicializado. Entre em contato com o administrador se precisar de acesso.
                   </p>
                 </div>
               )}

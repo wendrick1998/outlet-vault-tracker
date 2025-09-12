@@ -34,6 +34,29 @@ serve(async (req) => {
 
     console.log(`Attempting to bootstrap admin for email: ${email}`)
 
+    // Check if there are already any admins in the system
+    const { data: existingAdmins, error: adminCheckError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin')
+      .limit(1)
+
+    if (adminCheckError) {
+      console.error('Error checking existing admins:', adminCheckError)
+      throw new Error('Erro ao verificar administradores existentes')
+    }
+
+    if (existingAdmins && existingAdmins.length > 0) {
+      console.log('Admin already exists, bootstrap not allowed')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Sistema já foi inicializado',
+          details: 'Já existe um administrador no sistema. Entre em contato com o administrador atual se precisar de acesso.'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // First, try to delete any existing user with this email
     try {
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
