@@ -17,6 +17,11 @@ const FEATURE_DESCRIPTIONS: Record<keyof typeof FEATURE_FLAGS, { name: string; d
     description: 'Verificação de senhas contra base de dados de vazamentos conhecidos',
     phase: 'F0'
   },
+  LEAKED_PASSWORD_PROTECTION_STRICT: {
+    name: 'Modo Estrito - Senhas Vazadas',
+    description: 'Bloqueia senhas vazadas (requer LEAKED_PASSWORD_PROTECTION ativo)',
+    phase: 'F0'
+  },
   STREAMING_AI_ANALYTICS: {
     name: 'Analytics IA em Streaming',
     description: 'Análises de IA com resposta progressiva e tempo real',

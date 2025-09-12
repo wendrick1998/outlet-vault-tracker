@@ -33,22 +33,32 @@ export class PasswordSecurityService {
 
       // 2. Verificação de vazamentos (opcional via feature flag)
       const leakCheckEnabled = localStorage.getItem('feature_flags')?.includes('leaked_password_protection');
+      const strictModeEnabled = localStorage.getItem('feature_flags')?.includes('leaked_password_protection_strict');
       
       if (leakCheckEnabled) {
         const leakResult = await this.checkPasswordLeaks(password);
         
         if (leakResult.isLeaked) {
-          return {
-            isValid: false,
-            isLeaked: true,
-            breachCount: leakResult.breachCount,
-            message: leakResult.message,
-            warnings: ['Senha encontrada em vazamentos de dados conhecidos.']
-          };
+          // No modo estrito, bloquear senhas vazadas
+          if (strictModeEnabled && !leakResult.fallback) {
+            return {
+              isValid: false,
+              isLeaked: true,
+              breachCount: leakResult.breachCount,
+              message: `SEGURANÇA: ${leakResult.message}`,
+              warnings: ['Senha encontrada em vazamentos de dados conhecidos - bloqueada pelo modo estrito.']
+            };
+          }
+          
+          // Modo permissivo - avisar mas aceitar
+          warnings.push(`Atenção: ${leakResult.message}`);
         }
         
         if (leakResult.fallback) {
-          warnings.push('Verificação de vazamentos temporariamente indisponível.');
+          warnings.push(strictModeEnabled 
+            ? 'Verificação de vazamentos falhou - senha aceita no modo permissivo.'
+            : 'Verificação de vazamentos temporariamente indisponível.'
+          );
         }
       } else {
         warnings.push('Proteção contra senhas vazadas está desabilitada.');

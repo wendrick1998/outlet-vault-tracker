@@ -5,7 +5,48 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
+
+// Rate limiting cache (IP -> { count, resetTime })
+const rateLimitCache = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 10; // 10 requests per minute
+const RATE_LIMIT_WINDOW = 60000; // 1 minute in ms
+
+// Cleanup expired rate limit entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of rateLimitCache.entries()) {
+    if (now > data.resetTime) {
+      rateLimitCache.delete(ip);
+    }
+  }
+}, 30000); // Cleanup every 30 seconds
+
+// Helper function for retry with jitter
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      
+      // Exponential backoff with jitter
+      const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -14,6 +55,32 @@ serve(async (req) => {
   }
 
   try {
+    // Rate limiting check
+    const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const now = Date.now();
+    
+    let rateLimitData = rateLimitCache.get(clientIP);
+    if (!rateLimitData || now > rateLimitData.resetTime) {
+      rateLimitData = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
+      rateLimitCache.set(clientIP, rateLimitData);
+    }
+    
+    rateLimitData.count++;
+    
+    if (rateLimitData.count > RATE_LIMIT_MAX) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Too many requests', 
+          message: 'Por favor, aguarde antes de verificar novamente.',
+          retry_after: Math.ceil((rateLimitData.resetTime - now) / 1000)
+        }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } 
+        }
+      );
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -43,22 +110,24 @@ serve(async (req) => {
 
     console.log(`Hash prefix: ${prefix}`);
 
-    // Verificar via HaveIBeenPwned API usando k-anonymity
-    const hibpResponse = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+    // Verificar via HaveIBeenPwned API usando k-anonymity com timeout e retry
+    const hibpResponse = await fetchWithRetry(`https://api.pwnedpasswords.com/range/${prefix}`, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Inventory-System-Security-Check'
+        'Add-Padding': 'true',
+        'User-Agent': 'OutletStorePlus-SecurityCheck'
       }
     });
 
     if (!hibpResponse.ok) {
-      console.warn('HaveIBeenPwned API unavailable, allowing password');
-      // Fallback: se a API estiver indisponível, permitir a senha
+      console.warn(`HaveIBeenPwned API unavailable, status: ${hibpResponse.status}`);
+      // Fallback gracioso: se a API estiver indisponível, permitir a senha
       return new Response(
         JSON.stringify({ 
           isLeaked: false, 
-          message: 'Password check completed (external service unavailable)', 
-          fallback: true 
+          message: 'Verificação de segurança temporariamente indisponível', 
+          fallback: true,
+          fallback_reason: 'hibp_service_unavailable'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -106,13 +175,19 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in check-leaked-passwords function:', error);
     
+    // Determinar tipo de erro para melhor fallback
+    const isTimeout = error.name === 'AbortError' || error.message.includes('timeout');
+    const fallback_reason = isTimeout ? 'timeout' : 'network_error';
+    
     // Fallback em caso de erro: não bloquear o usuário
     return new Response(
       JSON.stringify({ 
         isLeaked: false, 
-        message: 'Password check completed (verification failed gracefully)', 
-        error: 'Service temporarily unavailable',
-        fallback: true 
+        message: isTimeout 
+          ? 'Verificação de segurança demorou muito - senha aceita'
+          : 'Verificação de segurança temporariamente indisponível',
+        fallback: true,
+        fallback_reason
       }),
       { 
         status: 200, 

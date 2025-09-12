@@ -6,6 +6,7 @@ export const FEATURE_FLAGS = {
   // Phase F0 - Infrastructure & Security
   ENHANCED_AUDIT_LOGGING: 'enhanced_audit_logging',
   LEAKED_PASSWORD_PROTECTION: 'leaked_password_protection',
+  LEAKED_PASSWORD_PROTECTION_STRICT: 'leaked_password_protection_strict',
   STREAMING_AI_ANALYTICS: 'streaming_ai_analytics',
   
   // Phase F1 - Advanced Inventory
@@ -34,6 +35,7 @@ export type FeatureFlag = typeof FEATURE_FLAGS[keyof typeof FEATURE_FLAGS];
 const DEFAULT_FEATURES: Record<FeatureFlag, boolean> = {
   [FEATURE_FLAGS.ENHANCED_AUDIT_LOGGING]: true,
   [FEATURE_FLAGS.LEAKED_PASSWORD_PROTECTION]: true, // Nova funcionalidade de segurança
+  [FEATURE_FLAGS.LEAKED_PASSWORD_PROTECTION_STRICT]: false, // Modo estrito (production-ready)
   [FEATURE_FLAGS.STREAMING_AI_ANALYTICS]: false, // Streaming em beta
   [FEATURE_FLAGS.ADVANCED_INVENTORY_SEARCH]: true,
   [FEATURE_FLAGS.BATCH_OPERATIONS]: true,

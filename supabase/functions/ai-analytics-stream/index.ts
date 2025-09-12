@@ -7,12 +7,26 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
+  'Connection': 'keep-alive'
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Validate OpenAI API key presence
+  if (!openAIApiKey) {
+    return new Response(
+      JSON.stringify({ error: 'OpenAI API key not configured' }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 
   try {
@@ -26,13 +40,39 @@ serve(async (req) => {
 
     console.log(`AI Analytics Stream: ${type} analysis for ${period}`);
 
-    // Resposta inicial imediata (202 Accepted)
-    const jobId = crypto.randomUUID();
+    // Create AbortController for cleanup
+    const abortController = new AbortController();
     
     // Resposta streaming com progresso
     const readable = new ReadableStream({
       start(controller) {
         const encoder = new TextEncoder();
+        let heartbeatInterval: number;
+        
+        // Setup heartbeat (ping every 15s)
+        heartbeatInterval = setInterval(() => {
+          if (!abortController.signal.aborted) {
+            try {
+              controller.enqueue(encoder.encode(`: ping\n\n`));
+            } catch (error) {
+              console.log('Heartbeat failed - connection closed');
+              clearInterval(heartbeatInterval);
+            }
+          }
+        }, 15000);
+        
+        // Cleanup on abort
+        abortController.signal.addEventListener('abort', () => {
+          clearInterval(heartbeatInterval);
+          try {
+            controller.close();
+          } catch (e) {
+            console.log('Controller already closed');
+          }
+        });
+        
+        // Resposta inicial imediata
+        const jobId = crypto.randomUUID();
         
         // Enviar progresso inicial
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -45,6 +85,9 @@ serve(async (req) => {
         // Processar análise em background
         (async () => {
           try {
+            // Early abort check
+            if (abortController.signal.aborted) return;
+            
             // Progresso: coletando dados
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               status: 'progress',
@@ -53,30 +96,42 @@ serve(async (req) => {
               message: 'Coletando dados do sistema...'
             })}\n\n`));
 
-            // Buscar dados do sistema
+            // Buscar apenas dados essenciais (payload reduzido)
             const [inventoryData, loansData, customersData, sellersData] = await Promise.all([
-              supabase.from('inventory').select('*'),
-              supabase.from('loans').select('*'),
-              supabase.from('customers').select('*'),
-              supabase.from('sellers').select('*')
+              supabase.from('inventory').select('id, status, brand, model, created_at').limit(1000),
+              supabase.from('loans').select('id, status, issued_at, due_at, returned_at').limit(1000),
+              supabase.from('customers').select('id, is_registered, created_at').limit(1000),
+              supabase.from('sellers').select('id, is_active, created_at').limit(1000)
             ]);
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              status: 'progress',
-              jobId,
-              progress: 50,
-              message: 'Processando análise com IA...'
-            })}\n\n`));
+            if (abortController.signal.aborted) return;
 
-            // Preparar contexto para análise
+            // Preparar contexto resumido para análise
             const systemContext = {
-              inventory: inventoryData.data || [],
-              loans: loansData.data || [],
-              customers: customersData.data || [],
-              sellers: sellersData.data || [],
-              totalItems: inventoryData.data?.length || 0,
-              activeLoans: loansData.data?.filter(loan => loan.status === 'active').length || 0
+              summary: {
+                totalItems: inventoryData.data?.length || 0,
+                activeLoans: loansData.data?.filter(loan => loan.status === 'active').length || 0,
+                totalCustomers: customersData.data?.length || 0,
+                activeSellers: sellersData.data?.filter(seller => seller.is_active).length || 0
+              },
+              trends: {
+                inventory_by_status: inventoryData.data?.reduce((acc: any, item: any) => {
+                  acc[item.status] = (acc[item.status] || 0) + 1;
+                  return acc;
+                }, {}),
+                loans_by_month: loansData.data?.filter((loan: any) => 
+                  new Date(loan.issued_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                ).length || 0
+              }
             };
+
+            if (abortController.signal.aborted) return;
+
+            // Chamar OpenAI com timeout e abort controller
+            const openAIController = new AbortController();
+            const openAITimeout = setTimeout(() => openAIController.abort(), 30000); // 30s timeout
+
+            try {
 
             // Chamar OpenAI de forma mais eficiente
             const analysisPrompt = `
@@ -112,36 +167,47 @@ Foque em dados práticos e acionáveis.`;
               body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [
-                  { role: 'system', content: 'Você é um analista especialista em sistemas de inventário. Forneça análises práticas e insights acionáveis.' },
-                  { role: 'user', content: analysisPrompt }
+                  { role: 'system', content: 'Você é um analista especialista em sistemas de inventário. Forneça análises práticas e insights acionáveis em formato JSON estruturado.' },
+                  { role: 'user', content: `Analise estes dados do sistema: ${JSON.stringify(systemContext)}. Tipo: ${type}. Período: ${period}. Responda em JSON com: insights (array), predictions (array), recommendations (array), summary (string curta).` }
                 ],
-                max_tokens: 1000,
+                max_tokens: 800,
                 temperature: 0.7,
               }),
+              signal: openAIController.signal
             });
 
+            clearTimeout(openAITimeout);
+            
+            if (abortController.signal.aborted) return;
+
+            } catch (openAIError) {
+              clearTimeout(openAITimeout);
+              throw new Error(`OpenAI API error: ${openAIError.message}`);
+            }
+
             if (!response.ok) {
-              throw new Error('Falha na análise de IA');
+              const errorText = await response.text();
+              throw new Error(`OpenAI API failed: ${response.status} - ${errorText}`);
             }
 
             const aiData = await response.json();
             const aiAnalysis = aiData.choices[0].message.content;
 
-            // Parse da resposta AI em formato estruturado
-            const analysis = {
-              insights: {
-                patterns: [],
-                predictions: [],
-                recommendations: [],
-                alerts: []
-              },
-              metrics: {
-                utilizationTrend: "stable",
-                demandForecast: "medium", 
-                riskLevel: "low"
-              },
-              summary: aiAnalysis
-            };
+            let analysis;
+            try {
+              // Try to parse as JSON first
+              analysis = JSON.parse(aiAnalysis);
+            } catch {
+              // Fallback to structured format
+              analysis = {
+                insights: ["Análise gerada com sucesso"],
+                predictions: ["Tendências identificadas"],
+                recommendations: ["Recomendações disponíveis"],
+                summary: aiAnalysis.substring(0, 200)
+              };
+            }
+
+            if (abortController.signal.aborted) return;
 
             // Resposta final
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -151,31 +217,38 @@ Foque em dados práticos e acionáveis.`;
               message: 'Análise concluída!',
               result: {
                 analysis,
-                dataPoints: {
-                  totalInventory: systemContext.totalItems,
-                  totalLoans: systemContext.activeLoans,
-                  totalCustomers: systemContext.customers.length,
-                  totalSellers: systemContext.sellers.length
-                },
+                dataPoints: systemContext.summary,
                 period,
                 timestamp: new Date().toISOString()
               }
             })}\n\n`));
 
+            clearInterval(heartbeatInterval);
             controller.close();
 
           } catch (error) {
             console.error('Error in streaming analysis:', error);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              status: 'error',
-              jobId,
-              progress: 100,
-              message: 'Erro na análise. Tente novamente.',
-              error: error.message
-            })}\n\n`));
+            clearInterval(heartbeatInterval);
+            
+            if (!abortController.signal.aborted) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                status: 'error',
+                jobId,
+                progress: 100,
+                message: 'Erro na análise. Tente novamente.',
+                error: error.message
+              })}\n\n`));
+            }
+            
             controller.close();
           }
         })();
+      },
+      
+      cancel() {
+        // Handle client disconnect
+        abortController.abort();
+        console.log('Stream cancelled by client');
       }
     });
 
