@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { ProfileService } from '@/services/profileService';
+import { logger } from '@/lib/logger';
 import type { Database } from '@/integrations/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -65,7 +66,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id); // Debug logging
+        logger.info('Auth state change', { event, userId: session?.user?.id });
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -74,18 +75,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (event === 'SIGNED_IN' && session?.user) {
           // Ensure user profile exists first
           setTimeout(async () => {
-            try {
-              await supabase.rpc('ensure_profile_exists', { 
-                user_id: session.user.id 
-              });
-              console.log('Profile ensured for user:', session.user.id);
-              // Then fetch the profile
-              await fetchProfile(session.user.id);
-            } catch (error) {
-              console.error('Error ensuring profile:', error);
-              // Fallback: still try to fetch profile
-              await fetchProfile(session.user.id);
-            }
+              try {
+                await supabase.rpc('ensure_profile_exists', { 
+                  user_id: session.user.id 
+                });
+                logger.info('Profile ensured for user', { userId: session.user.id });
+                await fetchProfile(session.user.id);
+              } catch (error) {
+                logger.error('Error ensuring profile', { error, userId: session.user.id });
+                // Fallback: still try to fetch profile
+                await fetchProfile(session.user.id);
+              }
           }, 0);
           
           toast({
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             description: "Você foi desconectado com sucesso"
           });
         } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully');
+          logger.debug('Token refreshed successfully');
         } else if (session?.user && !profile) {
           // Fetch profile for existing sessions
           setTimeout(() => {
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error('Error getting session:', error);
+        logger.error('Error getting session', { error });
         toast({
           title: "Erro de autenticação",
           description: "Erro ao verificar sessão",

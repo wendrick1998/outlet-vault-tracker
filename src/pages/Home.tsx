@@ -1,5 +1,4 @@
 import { Search, List, Clock, BarChart3, Package, AlertTriangle } from "lucide-react";
-import { Header } from "@/components/Header";
 import { ActionCard } from "@/components/ActionCard";
 import { StatsCard } from "@/components/ui/stats-card";
 import { useSystemStats } from "@/hooks/useStats";
@@ -14,10 +13,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
   const { data: activeLoans, isLoading: loansLoading } = useActiveLoans();
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-6">
+    <main className="container mx-auto px-4 py-6">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground mb-2">
             Bem-vinda ao Cofre Tracker
@@ -58,14 +54,15 @@ export const Home = ({ onNavigate }: HomeProps) => {
             description="Consulte o histórico de movimentações dos aparelhos"
             icon={List}
             onClick={() => onNavigate('history')}
+            variant="default"
           />
 
-          {/* Future: Admin only */}
           <ActionCard
-            title="Relatórios"
-            description="Visualize estatísticas e relatórios detalhados"
+            title="Relatórios & Admin"
+            description="Painel administrativo e relatórios detalhados do sistema"
             icon={BarChart3}
             onClick={() => onNavigate('admin')}
+            variant="primary"
           />
         </div>
 
@@ -115,6 +112,5 @@ export const Home = ({ onNavigate }: HomeProps) => {
           )}
         </div>
       </main>
-    </div>
   );
 };

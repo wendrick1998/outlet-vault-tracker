@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Store, Eye, EyeOff, Shield, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { logger } from "@/lib/logger";
 
 interface AuthProps {
   onLoginSuccess: () => void;
@@ -42,7 +43,7 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash || '';
-      console.log('Auth URL hash:', hash); // Debug logging
+      logger.debug('Auth URL hash detected', { hash });
       
       if (hash.includes('type=recovery')) {
         setIsReset(true);
@@ -89,7 +90,7 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
     setIsBootstrapping(true);
     
     try {
-      console.log('Calling bootstrap-admin function...', { email });
+      logger.info('Calling bootstrap-admin function', { email });
       
       const { data, error } = await supabase.functions.invoke('bootstrap-admin', {
         body: {
@@ -99,11 +100,11 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
       });
 
       if (error) {
-        console.error('Bootstrap function error:', error);
+        logger.error('Bootstrap function error', { error });
         throw new Error(error.message || 'Erro ao criar conta admin');
       }
 
-      console.log('Bootstrap success:', data);
+      logger.info('Bootstrap success', { data });
 
       toast({
         title: "Conta admin criada!",
@@ -117,7 +118,7 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
       });
 
       if (signInError) {
-        console.error('Auto sign-in error:', signInError);
+        logger.error('Auto sign-in error', { error: signInError });
         toast({
           title: "Conta criada com sucesso!",
           description: "Por favor, faça login normalmente",
@@ -131,7 +132,7 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
       }
       
     } catch (error: any) {
-      console.error('Bootstrap error:', error);
+      logger.error('Bootstrap error', { error });
       toast({
         title: "Erro ao criar conta",
         description: error.message || "Erro desconhecido",
@@ -172,7 +173,7 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
         });
 
         if (error) {
-          console.log('Login error:', error); // Debug logging
+          logger.error('Login error', { error });
           if (error.message.includes('Invalid login credentials')) {
             toast({
               title: "Erro de Login",
