@@ -81,6 +81,11 @@ const FEATURE_DESCRIPTIONS: Record<keyof typeof FEATURE_FLAGS, { name: string; d
     name: 'Relatórios Avançados',
     description: 'Dashboard completo com métricas detalhadas',
     phase: 'F4'
+  },
+  ADMIN_CADASTROS: {
+    name: 'Cadastros Administrativos',
+    description: 'Tela centralizada para gerenciar usuários, modelos e aparelhos',
+    phase: 'F5'
   }
 };
 
@@ -89,7 +94,8 @@ const PHASE_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
   'F1': 'secondary',
   'F2': 'destructive', 
   'F3': 'outline',
-  'F4': 'default'
+  'F4': 'default',
+  'F5': 'secondary'
 };
 
 export const FeatureFlagsAdmin = () => {

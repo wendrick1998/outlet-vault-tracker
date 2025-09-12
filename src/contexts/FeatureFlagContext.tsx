@@ -12,6 +12,7 @@ export interface FeatureFlags {
   smart_reporting: boolean;
   leaked_password_protection: boolean;
   leaked_password_protection_strict: boolean;
+  admin_cadastros: boolean;
 }
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
@@ -26,6 +27,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   smart_reporting: true,
   leaked_password_protection: true,
   leaked_password_protection_strict: false,
+  admin_cadastros: false,
 };
 
 interface FeatureFlagContextType {

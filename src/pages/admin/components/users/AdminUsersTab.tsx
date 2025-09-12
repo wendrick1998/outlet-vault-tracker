@@ -1,0 +1,184 @@
+import { useState } from "react";
+import { Plus, Search, Filter } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAllProfiles } from "@/hooks/useProfile";
+import { Loading } from "@/components/ui/loading";
+
+export const AdminUsersTab = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [canWithdrawFilter, setCanWithdrawFilter] = useState<string>("all");
+
+  const { data: profiles, isLoading } = useAllProfiles();
+
+  const filteredProfiles = profiles?.filter(profile => {
+    const matchesSearch = profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         profile.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || profile.role === roleFilter;
+    const matchesStatus = statusFilter === "all" || 
+                         (statusFilter === "active" && profile.is_active) ||
+                         (statusFilter === "inactive" && !profile.is_active);
+    const matchesCanWithdraw = canWithdrawFilter === "all" || 
+                              (canWithdrawFilter === "yes" && profile.can_withdraw) ||
+                              (canWithdrawFilter === "no" && !profile.can_withdraw);
+    
+    return matchesSearch && matchesRole && matchesStatus && matchesCanWithdraw;
+  }) || [];
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
+  return (
+    <Card>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold">Usuários Autorizados</h2>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar Usuário
+          </Button>
+        </div>
+
+        {/* Filtros */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os papéis" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os papéis</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="user">Operador</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="active">Ativo</SelectItem>
+              <SelectItem value="inactive">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={canWithdrawFilter} onValueChange={setCanWithdrawFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pode retirar?" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="yes">Pode retirar</SelectItem>
+              <SelectItem value="no">Não pode retirar</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" className="gap-2">
+            <Filter className="h-4 w-4" />
+            Limpar Filtros
+          </Button>
+        </div>
+
+        {/* Tabela */}
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Papel</TableHead>
+                <TableHead>Pode Retirar?</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Último Acesso</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProfiles.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Nenhum usuário encontrado
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredProfiles.map((profile) => (
+                  <TableRow key={profile.id}>
+                    <TableCell className="font-medium">
+                      {profile.full_name || 'Sem nome'}
+                    </TableCell>
+                    <TableCell>{profile.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        profile.role === 'admin' ? 'destructive' :
+                        profile.role === 'manager' ? 'default' : 'secondary'
+                      }>
+                        {profile.role === 'admin' ? 'Admin' :
+                         profile.role === 'manager' ? 'Manager' : 'Operador'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Switch 
+                        checked={profile.can_withdraw || false}
+                        disabled
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={profile.is_active ? 'default' : 'secondary'}>
+                        {profile.is_active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {profile.ultimo_login ? 
+                        new Date(profile.ultimo_login).toLocaleDateString('pt-BR') : 
+                        'Nunca acessou'
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm">
+                          Editar
+                        </Button>
+                        <Button 
+                          variant={profile.is_active ? "destructive" : "default"} 
+                          size="sm"
+                        >
+                          {profile.is_active ? 'Desativar' : 'Ativar'}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </Card>
+  );
+};

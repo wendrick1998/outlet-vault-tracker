@@ -26,7 +26,10 @@ export const FEATURE_FLAGS = {
   // Phase F4 - Advanced Movements
   REAL_TIME_SYNC: 'real_time_sync',
   OFFLINE_QUEUE: 'offline_queue',
-  ADVANCED_REPORTING: 'advanced_reporting'
+  ADVANCED_REPORTING: 'advanced_reporting',
+  
+  // Phase F5 - Admin Management
+  ADMIN_CADASTROS: 'admin_cadastros'
 } as const;
 
 export type FeatureFlag = typeof FEATURE_FLAGS[keyof typeof FEATURE_FLAGS];
@@ -47,7 +50,8 @@ const DEFAULT_FEATURES: Record<FeatureFlag, boolean> = {
   [FEATURE_FLAGS.SLA_TRACKING]: true,
   [FEATURE_FLAGS.REAL_TIME_SYNC]: true,
   [FEATURE_FLAGS.OFFLINE_QUEUE]: true,
-  [FEATURE_FLAGS.ADVANCED_REPORTING]: true
+  [FEATURE_FLAGS.ADVANCED_REPORTING]: true,
+  [FEATURE_FLAGS.ADMIN_CADASTROS]: false
 };
 
 class FeatureFlagsManager {
