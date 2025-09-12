@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Settings, Package, Users, UserCheck, Tag, Plus, Edit, Trash2, Upload } from "lucide-react";
+import { Settings, Package, Users, UserCheck, Tag, Plus, Edit, Trash2, Upload, TrendingUp } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,10 @@ import { BatchOperations } from "@/components/BatchOperations";
 import { InventoryCategories } from "@/components/InventoryCategories";
 import { RoleManagement } from "@/components/RoleManagement";
 import { PermissionGuard, SystemFeaturesGuard } from "@/components/PermissionGuard";
+import { ReasonWorkflowManager } from "@/components/ReasonWorkflowManager";
+import { SmartReporting } from "@/components/SmartReporting";
+import { RealTimeSync } from "@/components/RealTimeSync";
+import { OfflineQueue } from "@/components/OfflineQueue";
 
 interface AdminProps {
   onBack: () => void;
@@ -234,7 +238,7 @@ export const Admin = ({ onBack }: AdminProps) => {
       
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="items" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="items" className="gap-2">
               <Package className="h-4 w-4" />
               Itens
@@ -255,6 +259,12 @@ export const Admin = ({ onBack }: AdminProps) => {
               <TabsTrigger value="roles" className="gap-2">
                 <Users className="h-4 w-4" />
                 Papéis
+              </TabsTrigger>
+            </FeatureFlagWrapper>
+            <FeatureFlagWrapper flag={FEATURE_FLAGS.ADVANCED_REPORTING}>
+              <TabsTrigger value="reports" className="gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Relatórios
               </TabsTrigger>
             </FeatureFlagWrapper>
             <TabsTrigger value="config" className="gap-2">
@@ -335,10 +345,77 @@ export const Admin = ({ onBack }: AdminProps) => {
             </div>
           </TabsContent>
 
+          {/* Reasons Tab */}
+          <TabsContent value="reasons">
+            <div className="space-y-6">
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold">Gestão de Motivos</h2>
+                    <Button onClick={() => openModal("reason")} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Adicionar Motivo
+                    </Button>
+                  </div>
+
+                  {reasonsLoading ? (
+                    <Loading />
+                  ) : (
+                    <div className="space-y-2">
+                      {reasons.map((reason) => (
+                        <Card key={reason.id} className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium">{reason.name}</span>
+                              {reason.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {reason.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Badge variant={reason.requires_customer ? "default" : "secondary"}>
+                                {reason.requires_customer ? "Requer Cliente" : "Sem Cliente"}
+                              </Badge>
+                              <Badge variant={reason.requires_seller ? "default" : "secondary"}>
+                                {reason.requires_seller ? "Requer Vendedor" : "Sem Vendedor"}
+                              </Badge>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Card>
+              
+              <FeatureFlagWrapper flag={FEATURE_FLAGS.REASON_WORKFLOWS}>
+                <ReasonWorkflowManager />
+              </FeatureFlagWrapper>
+            </div>
+          </TabsContent>
+
           {/* Roles Tab */}
           <FeatureFlagWrapper flag={FEATURE_FLAGS.GRANULAR_PERMISSIONS}>
             <TabsContent value="roles">
               <RoleManagement />
+            </TabsContent>
+          </FeatureFlagWrapper>
+
+          {/* Reports Tab */}
+          <FeatureFlagWrapper flag={FEATURE_FLAGS.ADVANCED_REPORTING}>
+            <TabsContent value="reports">
+              <div className="space-y-6">
+                <SmartReporting />
+                
+                <FeatureFlagWrapper flag={FEATURE_FLAGS.REAL_TIME_SYNC}>
+                  <RealTimeSync />
+                </FeatureFlagWrapper>
+                
+                <FeatureFlagWrapper flag={FEATURE_FLAGS.OFFLINE_QUEUE}>
+                  <OfflineQueue />
+                </FeatureFlagWrapper>
+              </div>
             </TabsContent>
           </FeatureFlagWrapper>
 
