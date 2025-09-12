@@ -9,7 +9,59 @@ export interface SearchResult {
   hasMultiple: boolean;
 }
 
+export interface AISearchResult {
+  correctedTerm?: string;
+  suggestions: string[];
+  searchType: string;
+  confidence: number;
+  reasoning: string;
+  results: InventoryItem[];
+  originalTerm: string;
+}
+
 export class SearchService {
+  // Enhanced AI-powered search
+  static async aiSearchByIMEI(searchTerm: string): Promise<AISearchResult> {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-search-assistant', {
+        body: {
+          searchTerm,
+          type: 'imei'
+        }
+      });
+
+      if (error) {
+        console.error('AI search error:', error);
+        // Fallback to regular search
+        const fallbackResult = await this.searchByIMEI(searchTerm);
+        return {
+          correctedTerm: null,
+          suggestions: [],
+          searchType: 'imei',
+          confidence: 0.5,
+          reasoning: 'Busca regular (IA indisponível)',
+          results: fallbackResult.items,
+          originalTerm: searchTerm
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error('AI search failed:', error);
+      // Fallback to regular search
+      const fallbackResult = await this.searchByIMEI(searchTerm);
+      return {
+        correctedTerm: null,
+        suggestions: [],
+        searchType: 'imei',
+        confidence: 0.5,
+        reasoning: 'Busca regular (erro na IA)',
+        results: fallbackResult.items,
+        originalTerm: searchTerm
+      };
+    }
+  }
+
   static async searchByIMEI(searchTerm: string): Promise<SearchResult> {
     if (!searchTerm.trim()) {
       return { items: [], hasMultiple: false };

@@ -1,8 +1,11 @@
-import { Search, List, Clock, BarChart3, Package, AlertTriangle } from "lucide-react";
+import { Search, List, Clock, BarChart3, Package, AlertTriangle, Bot } from "lucide-react";
 import { ActionCard } from "@/components/ActionCard";
 import { StatsCard } from "@/components/ui/stats-card";
 import { useSystemStats } from "@/hooks/useStats";
 import { useActiveLoans } from "@/hooks/useLoans";
+import { AIAssistant } from "@/components/AIAssistant";
+import { SmartAnalytics } from "@/components/SmartAnalytics";
+import { useState } from "react";
 
 interface HomeProps {
   onNavigate: (page: string) => void;
@@ -11,6 +14,8 @@ interface HomeProps {
 export const Home = ({ onNavigate }: HomeProps) => {
   const { data: systemStats, isLoading: statsLoading } = useSystemStats();
   const { data: activeLoans, isLoading: loansLoading } = useActiveLoans();
+  const [showAI, setShowAI] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   return (
     <main className="container mx-auto px-4 py-6">
@@ -25,15 +30,15 @@ export const Home = ({ onNavigate }: HomeProps) => {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <ActionCard
-            title="Buscar & Registrar"
-            description="Encontre um aparelho e registre saída, devolução ou venda"
+            title="🔍 Buscar & Registrar"
+            description="Encontre um aparelho com IA e registre saída, devolução ou venda"
             icon={Search}
             onClick={() => onNavigate('search')}
             variant="primary"
           />
 
           <ActionCard
-            title="Saída em Lote"
+            title="📦 Saída em Lote"
             description="Registre a saída de múltiplos aparelhos de uma vez"
             icon={Package}
             onClick={() => onNavigate('batch-outflow')}
@@ -41,7 +46,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
           />
 
           <ActionCard
-            title="Fora Agora"
+            title="⏰ Fora Agora"
             description="Veja todos os itens que estão fora do cofre no momento"
             icon={Clock}
             onClick={() => onNavigate('active-loans')}
@@ -50,21 +55,36 @@ export const Home = ({ onNavigate }: HomeProps) => {
           />
 
           <ActionCard
-            title="Histórico"
+            title="🤖 Assistente IA"
+            description="Chat com assistente inteligente do sistema"
+            icon={Bot}
+            onClick={() => setShowAI(true)}
+            variant="primary"
+          />
+
+          <ActionCard
+            title="📊 Análise Inteligente"
+            description="Insights e previsões com IA"
+            icon={BarChart3}
+            onClick={() => setShowAnalytics(!showAnalytics)}
+            variant="primary"
+          />
+
+          <ActionCard
+            title="📚 Histórico"
             description="Consulte o histórico de movimentações dos aparelhos"
             icon={List}
             onClick={() => onNavigate('history')}
             variant="default"
           />
-
-          <ActionCard
-            title="Relatórios & Admin"
-            description="Painel administrativo e relatórios detalhados do sistema"
-            icon={BarChart3}
-            onClick={() => onNavigate('admin')}
-            variant="primary"
-          />
         </div>
+
+        {/* AI Analytics Panel */}
+        {showAnalytics && (
+          <div className="mt-8">
+            <SmartAnalytics />
+          </div>
+        )}
 
         {/* Quick stats */}
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -111,6 +131,12 @@ export const Home = ({ onNavigate }: HomeProps) => {
             </div>
           )}
         </div>
+
+        {/* AI Assistant */}
+        <AIAssistant 
+          isMinimized={!showAI}
+          onToggleMinimized={() => setShowAI(!showAI)}
+        />
       </main>
   );
 };

@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.admin-create-user]
 verify_jwt = false
+
+[functions.ai-search-assistant]
+verify_jwt = true
+
+[functions.ai-chatbot]
+verify_jwt = true
+
+[functions.ai-analytics]
+verify_jwt = true
