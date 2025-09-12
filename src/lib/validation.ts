@@ -78,15 +78,16 @@ export const quickCustomerSchema = z.object({
     .min(1, 'Nome é obrigatório')
     .max(100, 'Nome deve ter no máximo 100 caracteres'),
   cpf: z.string()
-    .length(11, 'CPF deve ter 11 dígitos')
-    .regex(/^\d{11}$/, 'CPF deve conter apenas números'),
+    .optional()
+    .refine((val) => !val || (val.length === 11 && /^\d{11}$/.test(val)), 
+      'CPF deve ter 11 dígitos numéricos'),
   phone: z.string()
-    .min(10, 'Telefone deve ter pelo menos 10 caracteres')
-    .max(15, 'Telefone deve ter no máximo 15 caracteres')
-    .regex(/^\+?[\d\s()-]+$/, 'Formato de telefone inválido'),
+    .optional()
+    .refine((val) => !val || (val.length >= 10 && val.length <= 15 && /^\+?[\d\s()-]+$/.test(val)), 
+      'Formato de telefone inválido'),
   loan_reason: z.string()
-    .min(1, 'Motivo do empréstimo é obrigatório')
-    .max(200, 'Motivo deve ter no máximo 200 caracteres'),
+    .max(200, 'Motivo deve ter no máximo 200 caracteres')
+    .optional(),
 });
 
 export const loanSchema = z.object({
