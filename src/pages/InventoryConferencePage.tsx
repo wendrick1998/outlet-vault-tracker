@@ -28,7 +28,13 @@ export function InventoryConferencePage() {
   };
 
   const handleFinishConference = () => {
-    navigate('/conference');
+    // When a conference is finished, navigate to the report
+    const currentAuditId = auditId;
+    if (currentAuditId) {
+      navigate(`/conference/report/${currentAuditId}`);
+    } else {
+      navigate('/conference');
+    }
   };
 
   // If showing specific audit

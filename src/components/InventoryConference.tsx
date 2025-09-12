@@ -37,11 +37,12 @@ interface ScanResult {
 }
 
 export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
-  const { audit, scans, addScan, finishAudit, isScanning, isFinishing } = useInventoryAudit(auditId);
+  const { audit, scans, addScan, finishAudit, isScanning } = useInventoryAudit(auditId);
   const [scanInput, setScanInput] = useState('');
   const [snapshot, setSnapshot] = useState<any[]>([]);
   const [processedItems, setProcessedItems] = useState<Set<string>>(new Set());
   const [isActive, setIsActive] = useState(true);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastScanTime, setLastScanTime] = useState<number>(0);
   const scanInputRef = useRef<HTMLInputElement>(null);
@@ -220,7 +221,9 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    if (!audit || isFinishing) return;
+
     const missingCount = snapshot.length - scans.filter(s => s.scan_result === 'found_expected').length;
     const hasIssues = scans.some(s => s.scan_result !== 'found_expected') || missingCount > 0;
     
@@ -229,8 +232,21 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
       if (!confirm(message)) return;
     }
 
-    finishAudit({ id: auditId, notes: 'Finalizado pelo usuário' });
-    onFinish?.();
+    try {
+      setIsFinishing(true);
+      finishAudit({ 
+        id: auditId, 
+        notes: hasIssues ? 'Conferência finalizada com discrepâncias identificadas' : 'Conferência finalizada com sucesso'
+      });
+      
+      // Instead of redirecting, call the onFinish callback with report flag
+      setTimeout(() => {
+        onFinish?.();
+      }, 1000);
+    } catch (error) {
+      console.error('Erro ao finalizar conferência:', error);
+      setIsFinishing(false);
+    }
   };
 
   if (!audit) {
