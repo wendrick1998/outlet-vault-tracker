@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Users, Shield, Settings as SettingsIcon } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import { AdminCadastrosModal } from '@/components/admin/AdminCadastrosModal';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -64,16 +65,21 @@ export const Settings = ({ onBack }: SettingsProps) => {
           <h1 className="text-2xl font-bold">Configurações do Sistema</h1>
         </div>
 
-        {/* User Management - Admin Only */}
+        {/* Admin Management Section */}
         <AdminOnly showMessage={false}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Gerenciar Usuários
+                Administração
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="flex gap-4 mb-6">
+                <AdminCadastrosModal />
+              </div>
+              
+              <h3 className="font-semibold mb-4">Gerenciar Usuários</h3>
               <div className="space-y-4">
                 {profiles?.map((userProfile) => (
                   <div key={userProfile.id} className="flex items-center justify-between p-4 border rounded-lg">

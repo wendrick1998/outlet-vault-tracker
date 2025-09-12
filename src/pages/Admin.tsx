@@ -46,7 +46,6 @@ import { RealTimeSync } from "@/components/RealTimeSync";
 import { OfflineQueue } from "@/components/OfflineQueue";
 import { CanaryDeploymentDashboard } from "@/components/CanaryDeploymentDashboard";
 import { CanaryMetricsCollector } from "@/components/CanaryMetricsCollector";
-import { AdminCadastros } from "./admin/AdminCadastros";
 import { useFeatureFlag } from "@/lib/features";
 
 interface AdminProps {
@@ -56,7 +55,7 @@ interface AdminProps {
 export const Admin = ({ onBack }: AdminProps) => {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const isAdminCadastrosEnabled = useFeatureFlag(FEATURE_FLAGS.ADMIN_CADASTROS);
+  
   const [activeModal, setActiveModal] = useState<AdminModal>("none");
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
@@ -243,7 +242,7 @@ export const Admin = ({ onBack }: AdminProps) => {
       
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="items" className="space-y-6">
-          <TabsList className={`grid w-full ${isAdminCadastrosEnabled ? 'grid-cols-10' : 'grid-cols-9'}`}>
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="items" className="gap-2">
               <Package className="h-4 w-4" />
               Itens
@@ -260,12 +259,6 @@ export const Admin = ({ onBack }: AdminProps) => {
               <Users className="h-4 w-4" />
               Clientes
             </TabsTrigger>
-            {isAdminCadastrosEnabled && (
-              <TabsTrigger value="cadastros" className="gap-2">
-                <Users className="h-4 w-4" />
-                Cadastros
-              </TabsTrigger>
-            )}
             <FeatureFlagWrapper flag={FEATURE_FLAGS.GRANULAR_PERMISSIONS}>
               <TabsTrigger value="roles" className="gap-2">
                 <Users className="h-4 w-4" />
@@ -453,12 +446,6 @@ export const Admin = ({ onBack }: AdminProps) => {
             </SystemFeaturesGuard>
           </TabsContent>
 
-          {/* Cadastros Tab */}
-          {isAdminCadastrosEnabled && (
-            <TabsContent value="cadastros">
-              <AdminCadastros />
-            </TabsContent>
-          )}
 
           {/* Config Tab */}
           <TabsContent value="config">
