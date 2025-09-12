@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable, ResponsiveTableHeader, ResponsiveTableBody, ResponsiveTableRow } from "@/components/ui/responsive-table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -253,12 +254,69 @@ export const Admin = ({ onBack }: AdminProps) => {
     setConfirmModal({ isOpen: false, type: "", item: null });
   };
 
-  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
       toast({
-        title: "Importação iniciada",
-        description: `Processando arquivo: ${file.name}`,
+        title: "Processando CSV",
+        description: `Importando dados de ${file.name}...`,
+      });
+
+      const text = await file.text();
+      const Papa = await import('papaparse');
+      
+      const { data, errors } = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.toLowerCase().trim()
+      });
+
+      if (errors.length > 0) {
+        console.warn('CSV parsing errors:', errors);
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of data as any[]) {
+        try {
+          if (row.imei && row.brand && row.model) {
+            await createItem({
+              imei: row.imei.toString().trim(),
+              brand: row.brand.toString().trim(),
+              model: row.model.toString().trim(),
+              color: row.color?.toString().trim() || '',
+              storage: row.storage?.toString().trim() || '',
+              suffix: row.suffix?.toString().trim() || '',
+            });
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          console.error('Error creating item:', error);
+          errorCount++;
+        }
+      }
+
+      toast({
+        title: "Importação concluída",
+        description: `${successCount} itens importados com sucesso. ${errorCount > 0 ? `${errorCount} erros encontrados.` : ''}`,
+        variant: errorCount > 0 ? "default" : "default"
+      });
+
+      // Reset input
+      if (event.target) {
+        event.target.value = '';
+      }
+      
+    } catch (error) {
+      toast({
+        title: "Erro na importação",
+        description: "Erro ao processar arquivo CSV",
+        variant: "destructive"
       });
     }
   };
@@ -328,8 +386,8 @@ export const Admin = ({ onBack }: AdminProps) => {
                 {inventoryLoading ? (
                   <Loading />
                 ) : (
-                  <Table>
-                    <TableHeader>
+                  <ResponsiveTable>
+                    <ResponsiveTableHeader>
                       <TableRow>
                         <TableHead>IMEI</TableHead>
                         <TableHead>Marca</TableHead>
@@ -338,10 +396,50 @@ export const Admin = ({ onBack }: AdminProps) => {
                         <TableHead>Status</TableHead>
                         <TableHead>Ações</TableHead>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    </ResponsiveTableHeader>
+                    <ResponsiveTableBody>
                       {items.map((item) => (
-                        <TableRow key={item.id}>
+                        <ResponsiveTableRow 
+                          key={item.id}
+                          mobileLayout={
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="font-mono text-sm">...{item.imei.slice(-5)}</span>
+                                <Badge variant={
+                                  item.status === "available" ? "default" : 
+                                  item.status === "loaned" ? "secondary" : "destructive"
+                                }>
+                                  {item.status === "available" ? "Disponível" : 
+                                   item.status === "loaned" ? "Emprestado" : "Vendido"}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                <p><span className="font-medium">{item.brand}</span> • {item.model}</p>
+                                {item.color && <p>Cor: {item.color}</p>}
+                              </div>
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => openModal("item", item)}
+                                  className="flex-1"
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm" 
+                                  onClick={() => handleDelete("item", item)}
+                                  className="flex-1"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Remover
+                                </Button>
+                              </div>
+                            </div>
+                          }
+                        >
                           <TableCell className="font-mono">...{item.imei.slice(-5)}</TableCell>
                           <TableCell>{item.brand}</TableCell>
                           <TableCell>{item.model}</TableCell>
@@ -373,10 +471,10 @@ export const Admin = ({ onBack }: AdminProps) => {
                               </Button>
                             </div>
                           </TableCell>
-                        </TableRow>
+                        </ResponsiveTableRow>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </ResponsiveTableBody>
+                  </ResponsiveTable>
                 )}
               </div>
             </Card>

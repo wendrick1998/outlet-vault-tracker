@@ -30,9 +30,9 @@ All colors MUST be HSL.
     --secondary: 210 20% 95%;
     --secondary-foreground: 240 10% 15%;
 
-    /* Muted elements */
-    --muted: 210 15% 92%;
-    --muted-foreground: 240 10% 45%;
+    /* Muted elements - WCAG AA compliant */
+    --muted: 210 15% 88%;
+    --muted-foreground: 240 15% 30%;
 
     /* Accent for highlights */
     --accent: 142 76% 36%;
@@ -46,9 +46,9 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Interactive elements */
-    --border: 210 20% 88%;
-    --input: 210 20% 95%;
+    /* Interactive elements - Enhanced visibility */
+    --border: 210 20% 75%;
+    --input: 210 20% 92%;
     --ring: 210 100% 50%;
 
     /* PWA optimized spacing and typography */
