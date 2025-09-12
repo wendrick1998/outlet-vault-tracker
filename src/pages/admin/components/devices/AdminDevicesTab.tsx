@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, Upload } from "lucide-react";
+import { Plus, Search, Filter, Upload, Archive, Trash2, RotateCcw } from "lucide-react";
 import { CSVXLSXImportDialog } from "@/components/CSVXLSXImportDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,12 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDevicesAdmin } from "@/hooks/useDevicesAdmin";
 import { Loading } from "@/components/ui/loading";
+import { AddDeviceDialog } from "@/components/AddDeviceDialog";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { BatteryIndicator } from "@/components/BatteryIndicator";
+import { DeviceActions } from "@/components/DeviceActions";
 
 export const AdminDevicesTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,8 +30,13 @@ export const AdminDevicesTab = () => {
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState<boolean>(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'archive' | 'delete' | 'restore';
+    item: any;
+  }>({ isOpen: false, type: 'archive', item: null });
 
-  const { devices: items, isLoading, deleteDevice, isDeleting } = useDevicesAdmin(showArchived);
+  const { devices: items, isLoading, archiveDevice, deleteDevice, isDeleting } = useDevicesAdmin(showArchived);
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.imei?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,6 +51,60 @@ export const AdminDevicesTab = () => {
   });
 
   const uniqueBrands = [...new Set(items.map(item => item.brand).filter(Boolean))];
+
+  const handleConfirmAction = async () => {
+    if (!confirmModal.item) return;
+
+    try {
+      switch (confirmModal.type) {
+        case 'archive':
+          archiveDevice({ id: confirmModal.item.id, archived: true });
+          toast({
+            title: "Aparelho arquivado",
+            description: "O aparelho foi movido para arquivados com sucesso.",
+          });
+          break;
+          
+        case 'restore':
+          archiveDevice({ id: confirmModal.item.id, archived: false });
+          toast({
+            title: "Aparelho restaurado",
+            description: "O aparelho foi restaurado com sucesso.",
+          });
+          break;
+          
+        case 'delete':
+          // Check if device has links
+          const { data } = await supabase.rpc('check_device_links', { 
+            device_id: confirmModal.item.id 
+          });
+          
+          if (data) {
+            toast({
+              title: "Não é possível excluir",
+              description: "Este aparelho possui vínculos em empréstimos e não pode ser excluído definitivamente.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          await deleteDevice(confirmModal.item.id);
+          toast({
+            title: "Aparelho excluído",
+            description: "O aparelho foi excluído definitivamente.",
+          });
+          break;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+    
+    setConfirmModal({ isOpen: false, type: 'archive', item: null });
+  };
 
   if (isLoading) {
     return <Loading />;
@@ -59,10 +124,7 @@ export const AdminDevicesTab = () => {
               <Upload className="h-4 w-4" />
               Importar CSV/XLSX
             </Button>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar Aparelho
-            </Button>
+            <AddDeviceDialog onDeviceAdded={() => window.location.reload()} />
           </div>
         </div>
 
@@ -152,6 +214,7 @@ export const AdminDevicesTab = () => {
                 <TableHead>Cor</TableHead>
                 <TableHead>Memória</TableHead>
                 <TableHead>Condição</TableHead>
+                <TableHead>Bateria</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -159,7 +222,7 @@ export const AdminDevicesTab = () => {
             <TableBody>
               {filteredItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Nenhum aparelho encontrado
                   </TableCell>
                 </TableRow>
@@ -178,6 +241,9 @@ export const AdminDevicesTab = () => {
                       <Badge variant="outline">{item.condition || 'novo'}</Badge>
                     </TableCell>
                     <TableCell>
+                      <BatteryIndicator battery={item.battery_pct} />
+                    </TableCell>
+                    <TableCell>
                       <Badge 
                         variant={item.status === 'available' ? 'default' : 
                                item.status === 'loaned' ? 'secondary' : 'destructive'}
@@ -188,19 +254,7 @@ export const AdminDevicesTab = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          Editar
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => deleteDevice(item.id)}
-                          disabled={isDeleting}
-                        >
-                          {item.is_archived ? "Restaurar" : "Remover"}
-                        </Button>
-                      </div>
+                      <DeviceActions item={item} onAction={setConfirmModal} />
                     </TableCell>
                   </TableRow>
                 ))
@@ -217,6 +271,31 @@ export const AdminDevicesTab = () => {
             // Atualizar dados após importação
             window.location.reload(); // Refresh simples por enquanto
           }}
+        />
+
+        {/* Confirmation Modal */}
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ isOpen: false, type: 'archive', item: null })}
+          onConfirm={handleConfirmAction}
+          title={
+            confirmModal.type === 'archive' ? "Arquivar Aparelho" :
+            confirmModal.type === 'restore' ? "Restaurar Aparelho" :
+            "Excluir Definitivamente"
+          }
+          description={
+            confirmModal.type === 'archive' 
+              ? "Tem certeza que deseja arquivar este aparelho? Ele será movido para a seção de arquivados."
+              : confirmModal.type === 'restore'
+              ? "Tem certeza que deseja restaurar este aparelho?"
+              : "ATENÇÃO: Esta ação é irreversível! O aparelho será excluído permanentemente do sistema."
+          }
+          variant={confirmModal.type === 'delete' ? 'destructive' : 'default'}
+          confirmText={
+            confirmModal.type === 'archive' ? "Arquivar" :
+            confirmModal.type === 'restore' ? "Restaurar" :
+            "Excluir Definitivamente"
+          }
         />
       </div>
     </Card>

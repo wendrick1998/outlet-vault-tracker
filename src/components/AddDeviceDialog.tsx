@@ -41,7 +41,7 @@ const deviceSchema = z.object({
   storage_id: z.string().min(1, "Armazenamento é obrigatório"),
   color_id: z.string().min(1, "Cor é obrigatória"),
   condition_id: z.string().min(1, "Condição é obrigatória"),
-  battery_pct: z.number().min(0, "Bateria deve ser entre 0 e 100").max(100, "Bateria deve ser entre 0 e 100"),
+  battery_pct: z.number().min(0, "Bateria deve ser entre 0 e 100").max(100, "Bateria deve ser entre 0 e 100").nullable().optional(),
   imei: z.string().min(1, "IMEI é obrigatório").refine(validateIMEI, "IMEI inválido"),
   imei2: z.string().optional(),
   serial: z.string().optional(),
@@ -67,7 +67,7 @@ export const AddDeviceDialog = ({ onDeviceAdded }: AddDeviceDialogProps) => {
   const form = useForm<DeviceFormData>({
     resolver: zodResolver(deviceSchema),
     defaultValues: {
-      battery_pct: 100,
+      battery_pct: undefined,
     },
   });
 
@@ -89,7 +89,7 @@ export const AddDeviceDialog = ({ onDeviceAdded }: AddDeviceDialogProps) => {
         imei: data.imei,
         suffix: data.imei2 || null,
         notes: data.notes || null,
-        battery_pct: data.battery_pct,
+        battery_pct: data.battery_pct || null,
         // New FK references
         brand_id: data.brand_id,
         color_id: data.color_id,
@@ -313,18 +313,24 @@ export const AddDeviceDialog = ({ onDeviceAdded }: AddDeviceDialogProps) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Bateria (%) - 
-                        <span className={getBatteryColor(field.value || 0)}>
-                          {field.value || 0}%
-                        </span>
+                        Bateria (%) - Opcional
+                        {field.value !== undefined && (
+                          <span className={getBatteryColor(field.value)}>
+                            {field.value}%
+                          </span>
+                        )}
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           min="0"
                           max="100"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          placeholder="Deixe vazio se não informado"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.onChange(value === '' ? undefined : parseInt(value) || 0);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />

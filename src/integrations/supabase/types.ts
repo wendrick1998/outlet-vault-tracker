@@ -290,7 +290,7 @@ export type Database = {
       }
       inventory: {
         Row: {
-          battery_pct: number
+          battery_pct: number | null
           brand: string
           brand_id: string | null
           color: string | null
@@ -313,7 +313,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          battery_pct?: number
+          battery_pct?: number | null
           brand: string
           brand_id?: string | null
           color?: string | null
@@ -336,7 +336,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          battery_pct?: number
+          battery_pct?: number | null
           brand?: string
           brand_id?: string | null
           color?: string | null
@@ -577,6 +577,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          anonymized_at: string | null
+          anonymized_by: string | null
+          anonymized_reason: string | null
           avatar_url: string | null
           bloqueado_ate: string | null
           can_withdraw: boolean | null
@@ -588,6 +591,7 @@ export type Database = {
           horario_inicio: string | null
           id: string
           is_active: boolean
+          is_anonymized: boolean | null
           mfa_habilitado: boolean | null
           mfa_secret: string | null
           observacoes: string | null
@@ -601,6 +605,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          anonymized_at?: string | null
+          anonymized_by?: string | null
+          anonymized_reason?: string | null
           avatar_url?: string | null
           bloqueado_ate?: string | null
           can_withdraw?: boolean | null
@@ -612,6 +619,7 @@ export type Database = {
           horario_inicio?: string | null
           id: string
           is_active?: boolean
+          is_anonymized?: boolean | null
           mfa_habilitado?: boolean | null
           mfa_secret?: string | null
           observacoes?: string | null
@@ -625,6 +633,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          anonymized_at?: string | null
+          anonymized_by?: string | null
+          anonymized_reason?: string | null
           avatar_url?: string | null
           bloqueado_ate?: string | null
           can_withdraw?: boolean | null
@@ -636,6 +647,7 @@ export type Database = {
           horario_inicio?: string | null
           id?: string
           is_active?: boolean
+          is_anonymized?: boolean | null
           mfa_habilitado?: boolean | null
           mfa_secret?: string | null
           observacoes?: string | null
@@ -802,6 +814,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      anonymize_user: {
+        Args: { p_reason?: string; p_user_id: string }
+        Returns: undefined
+      }
       bootstrap_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -809,6 +825,10 @@ export type Database = {
       check_account_security_status: {
         Args: { user_email: string }
         Returns: Json
+      }
+      check_device_links: {
+        Args: { device_id: string }
+        Returns: boolean
       }
       check_password_leaked_status: {
         Args: { password_hash: string }

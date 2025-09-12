@@ -86,46 +86,49 @@ export const useDevicesAdmin = (includeArchived: boolean = false) => {
     },
   });
 
-  const deleteDeviceMutation = useMutation({
-    mutationFn: async (deviceId: string) => {
-      // Check if device has loans to determine if we should soft delete
-      const { data: loans } = await supabase
-        .from('loans')
-        .select('id')
-        .eq('item_id', deviceId)
-        .limit(1);
+  const archiveDeviceMutation = useMutation({
+    mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
+      const { data, error } = await supabase
+        .from('inventory')
+        .update({ is_archived: archived })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao processar aparelho",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-      if (loans && loans.length > 0) {
-        // Soft delete (archive) if has history
-        const { data, error } = await supabase
-          .from('inventory')
-          .update({ is_archived: true })
-          .eq('id', deviceId)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        return data;
-      } else {
-        // Hard delete if no history
-        const { error } = await supabase
-          .from('inventory')
-          .delete()
-          .eq('id', deviceId);
-        
-        if (error) throw error;
-      }
+  const deleteDeviceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('inventory')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast({
-        title: "Aparelho removido",
-        description: "Aparelho removido do inventário com sucesso.",
+        title: "Aparelho excluído com sucesso!",
+        description: "O aparelho foi removido permanentemente.",
       });
     },
     onError: (error) => {
       toast({
-        title: "Erro ao remover aparelho",
+        title: "Erro ao excluir aparelho",
         description: error.message,
         variant: "destructive",
       });
@@ -144,6 +147,7 @@ export const useDevicesAdmin = (includeArchived: boolean = false) => {
     error,
     createDevice,
     updateDevice: updateDeviceMutation.mutate,
+    archiveDevice: archiveDeviceMutation.mutate,
     deleteDevice: deleteDeviceMutation.mutate,
     isCreating: createDeviceMutation.isPending,
     isUpdating: updateDeviceMutation.isPending,

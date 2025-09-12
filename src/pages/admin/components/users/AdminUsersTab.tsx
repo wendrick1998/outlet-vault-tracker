@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, UserX, Archive } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,14 +15,23 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useUsersAdmin } from "@/hooks/useUsersAdmin";
 import { Loading } from "@/components/ui/loading";
+import { AddUserDialog } from "@/components/AddUserDialog";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { useAnonymizeUser } from "@/hooks/useAnonymizeUser";
 
 export const AdminUsersTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [canWithdrawFilter, setCanWithdrawFilter] = useState<string>("all");
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'anonymize';
+    user: any;
+  }>({ isOpen: false, type: 'anonymize', user: null });
 
   const { users: profiles = [], isLoading, toggleUserStatus, toggleCanWithdraw, isUpdating } = useUsersAdmin();
+  const { anonymizeUser, isAnonymizing } = useAnonymizeUser();
 
   const filteredProfiles = profiles.filter(profile => {
     const matchesSearch = profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,6 +47,16 @@ export const AdminUsersTab = () => {
     return matchesSearch && matchesRole && matchesStatus && matchesCanWithdraw;
   });
 
+  const handleConfirmAnonymize = () => {
+    if (confirmModal.user) {
+      anonymizeUser({ 
+        userId: confirmModal.user.id, 
+        reason: 'Anonimização via interface administrativa' 
+      });
+      setConfirmModal({ isOpen: false, type: 'anonymize', user: null });
+    }
+  };
+
   if (isLoading) {
     return <Loading />;
   }
@@ -47,10 +66,7 @@ export const AdminUsersTab = () => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold">Usuários Autorizados</h2>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Adicionar Usuário
-          </Button>
+          <AddUserDialog onUserAdded={() => window.location.reload()} />
         </div>
 
         {/* Filtros */}
@@ -173,6 +189,17 @@ export const AdminUsersTab = () => {
                         >
                           {profile.is_active ? 'Desativar' : 'Ativar'}
                         </Button>
+                        {profile.is_active && !profile.is_anonymized && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setConfirmModal({ isOpen: true, type: 'anonymize', user: profile })}
+                            disabled={isAnonymizing}
+                          >
+                            <UserX className="h-3 w-3 mr-1" />
+                            Anonimizar
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -181,6 +208,19 @@ export const AdminUsersTab = () => {
             </TableBody>
           </Table>
         </div>
+
+        {/* Confirmation Modal */}
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ isOpen: false, type: 'anonymize', user: null })}
+          onConfirm={handleConfirmAnonymize}
+          title="Anonimizar Usuário"
+          description={
+            `ATENÇÃO: Esta ação é irreversível! Os dados pessoais do usuário "${confirmModal.user?.full_name}" serão substituídos por dados anônimos. O histórico será preservado mas a identificação será perdida.`
+          }
+          variant="destructive"
+          confirmText="Anonimizar Usuário"
+        />
       </div>
     </Card>
   );
