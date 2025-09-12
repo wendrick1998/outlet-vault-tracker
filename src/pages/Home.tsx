@@ -9,7 +9,7 @@ import { AIAssistant } from "@/components/AIAssistant";
 import { SmartAnalytics } from "@/components/SmartAnalytics";
 import { PredictiveAlerts } from "@/components/PredictiveAlerts";
 import { SmartNotifications } from "@/components/SmartNotifications";
-import { VoiceCommands } from "@/components/VoiceCommands";
+import { StockIntelligence } from "@/components/StockIntelligence";
 import { useState } from "react";
 
 interface HomeProps {
@@ -23,30 +23,9 @@ export const Home = ({ onNavigate }: HomeProps) => {
   const [showAI, setShowAI] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
-  const [showVoiceCommands, setShowVoiceCommands] = useState(false);
+  
   const [showPendingSales, setShowPendingSales] = useState(false);
 
-  const handleVoiceCommand = (action: string, data?: any) => {
-    switch (action) {
-      case 'buscar_item':
-        onNavigate('search-and-operate');
-        break;
-      case 'ver_historico':
-        onNavigate('history');
-        break;
-      case 'mostrar_estatisticas':
-        setShowAnalytics(true);
-        break;
-      case 'listar_emprestimos':
-        onNavigate('active-loans');
-        break;
-      case 'registrar_saida':
-        onNavigate('search-and-operate');
-        break;
-      default:
-        console.log('Unknown voice command:', action, data);
-    }
-  };
 
   return (
     <main className="container mx-auto px-4 py-6">
@@ -175,12 +154,11 @@ export const Home = ({ onNavigate }: HomeProps) => {
           onToggleMinimized={() => setShowAI(!showAI)}
         />
 
-        {/* Voice Commands */}
-        <VoiceCommands
-          onCommand={handleVoiceCommand}
-          isVisible={showVoiceCommands}
-          onToggle={() => setShowVoiceCommands(!showVoiceCommands)}
-        />
+        {/* Stock Intelligence */}
+        <div className="mt-8">
+          <StockIntelligence />
+        </div>
+
       </main>
   );
 };

@@ -18,16 +18,16 @@ serve(async (req) => {
   }
 
   try {
-    const { type = 'demand', itemId, userId, period = '30d' } = await req.json();
+    const { type = 'stock_analysis', itemId, userId, period = '30d' } = await req.json();
     
-    console.log(`AI Predictions: ${type} analysis`);
+    console.log(`AI Stock Intelligence: ${type} analysis`);
     
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Collect comprehensive historical data
+    // Collect comprehensive stock and business data
     const [
       loansResponse,
       inventoryResponse,
@@ -37,10 +37,10 @@ serve(async (req) => {
     ] = await Promise.all([
       supabase.from('loans').select(`
         *,
-        inventory(*),
-        customers(*),
-        sellers(*)
-      `).order('created_at', { ascending: false }).limit(200),
+        inventory(id, brand, model, color, storage, status),
+        customers(name),
+        sellers(name)
+      `).order('created_at', { ascending: false }).limit(300),
       supabase.from('inventory').select('*'),
       supabase.from('customers').select('*'),
       supabase.from('sellers').select('*'),
@@ -57,57 +57,89 @@ serve(async (req) => {
       period
     };
 
+    // Calculate stock metrics
+    const stockMetrics = calculateStockMetrics(historicalData);
+
     let analysisPrompt = '';
     
-    if (type === 'demand') {
+    if (type === 'stock_analysis' || type === 'demand') {
       analysisPrompt = `
-        Analise os dados históricos e preveja a demanda futura de itens.
+        ANÁLISE INTELIGENTE DE ESTOQUE - GESTÃO DE INVENTÁRIO MÓVEL
         
-        Forneça previsões para:
-        1. Itens mais solicitados nos próximos 7 dias
-        2. Padrões de demanda por dia da semana
-        3. Sazonalidade identificada
-        4. Recomendações de estoque
+        Com base nos dados históricos, forneça análises específicas sobre:
         
-        Seja específico com marcas, modelos e quantidades.
+        1. ALERTAS DE ESTOQUE BAIXO:
+        - Identifique modelos específicos (marca + modelo + cor + armazenamento) com baixa quantidade
+        - Considere rotatividade e demanda para determinar criticidade
+        - Priorize por volume de saídas recentes
+        
+        2. RECOMENDAÇÕES DE COMPRA:
+        - Sugira aparelhos específicos para compra baseado em:
+          * Rotatividade alta vs estoque atual
+          * Padrões de demanda sazonal
+          * Margem de lucro estimada
+        - Quantidades recomendadas por modelo
+        
+        3. ANÁLISE DE ROTATIVIDADE:
+        - Modelos com maior giro de estoque
+        - Itens parados há muito tempo
+        - Tendências de crescimento/declínio por marca
+        
+        4. INSIGHTS DE NEGÓCIO:
+        - Oportunidades de otimização de estoque
+        - Previsão de demanda para próximos 15 dias
+        - Alertas de sazonalidade
+        
+        MÉTRICAS CALCULADAS: ${JSON.stringify(stockMetrics)}
       `;
-    } else if (type === 'risk') {
+    } else if (type === 'purchase_recommendations') {
       analysisPrompt = `
-        Analise os riscos potenciais baseado nos dados históricos.
+        RECOMENDAÇÕES INTELIGENTES DE COMPRA
         
-        Identifique:
-        1. Clientes com maior risco de atraso
-        2. Itens com maior probabilidade de problemas
-        3. Padrões de comportamento suspeitos
-        4. Alertas preventivos necessários
+        Analise os dados e forneça recomendações específicas de compra:
         
-        Seja específico com nomes, itens e probabilidades.
+        1. PRIORIDADE ALTA (Comprar URGENTE):
+        - Modelos com alta rotatividade e estoque baixo
+        - Aparelhos com demanda crescente
+        
+        2. PRIORIDADE MÉDIA (Comprar em 7-15 dias):
+        - Modelos com rotatividade moderada
+        - Reposição de estoque de segurança
+        
+        3. EVITAR COMPRAR:
+        - Modelos com baixa rotatividade
+        - Estoque alto vs demanda
+        
+        Para cada recomendação, inclua:
+        - Marca, modelo, cor, armazenamento específicos
+        - Quantidade sugerida
+        - Justificativa baseada em dados
+        - ROI estimado
+        
+        DADOS DE ESTOQUE: ${JSON.stringify(stockMetrics)}
       `;
-    } else if (type === 'performance') {
+    } else if (type === 'rotation_analysis') {
       analysisPrompt = `
-        Analise a performance operacional do sistema.
+        ANÁLISE DE ROTATIVIDADE DE ESTOQUE
         
-        Avalie:
-        1. Eficiência de vendedores/funcionários
-        2. Tempo médio de processos
-        3. Gargalos identificados
-        4. Oportunidades de melhoria
+        Forneça análise detalhada sobre:
         
-        Forneça métricas específicas e recomendações.
-      `;
-    } else if (type === 'item' && itemId) {
-      const itemData = historicalData.inventory.find(item => item.id === itemId);
-      const itemLoans = historicalData.loans.filter(loan => loan.item_id === itemId);
-      
-      analysisPrompt = `
-        Analise especificamente este item: ${JSON.stringify(itemData)}
-        Histórico de empréstimos: ${JSON.stringify(itemLoans)}
+        1. TOP PERFORMERS:
+        - Modelos com maior velocidade de rotação
+        - Tempo médio no estoque até saída
+        - Margem de contribuição
         
-        Forneça:
-        1. Padrão de uso deste item
-        2. Previsão de próxima solicitação
-        3. Risco de problemas
-        4. Recomendações específicas
+        2. SLOW MOVERS:
+        - Itens parados há mais tempo
+        - Modelos com baixa demanda
+        - Sugestões de liquidação
+        
+        3. TENDÊNCIAS:
+        - Crescimento/declínio por categoria
+        - Sazonalidade identificada
+        - Comparação mês anterior
+        
+        DADOS: ${JSON.stringify(stockMetrics)}
       `;
     }
 
@@ -122,37 +154,42 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Você é um especialista em análise preditiva para sistemas de inventário e empréstimos.
+            content: `Você é um especialista em gestão inteligente de estoque para loja de eletrônicos/celulares.
 
-DADOS HISTÓRICOS:
-${JSON.stringify(historicalData)}
+DADOS DISPONÍVEIS:
+${JSON.stringify(historicalData, null, 2)}
 
 INSTRUÇÕES:
-- Use machine learning patterns para identificar tendências
-- Seja específico com previsões e probabilidades
-- Forneça insights acionáveis
+- Foque em análises práticas e acionáveis
 - Use dados reais dos históricos fornecidos
+- Seja específico com marcas, modelos, cores e armazenamento
+- Inclua probabilidades e timelines realistas
+- Priorize ROI e lucratividade
 
-Responda em JSON com esta estrutura:
+Responda SEMPRE em JSON com esta estrutura exata:
 {
   "predictions": [
     {
-      "type": "demand|risk|performance|alert",
-      "item": "nome do item ou null",
-      "prediction": "descrição da previsão",
+      "type": "low_stock_alert|purchase_recommendation|rotation_insight|business_opportunity",
+      "item": "Marca Modelo Cor Armazenamento ou null para insights gerais",
+      "prediction": "descrição específica da previsão/recomendação",
       "probability": 0.0-1.0,
-      "timeline": "quando vai acontecer",
+      "timeline": "período específico (ex: próximos 5 dias)",
       "impact": "low|medium|high",
-      "recommendation": "o que fazer"
+      "recommendation": "ação específica a tomar",
+      "quantity": "número de unidades (se aplicável) ou null"
     }
   ],
   "insights": [
-    "insight1", "insight2"
+    "insight específico sobre o negócio",
+    "tendência identificada nos dados"
   ],
   "nextActions": [
-    "ação1", "ação2"
+    "ação prática imediata",
+    "planejamento de curto prazo"
   ],
-  "confidence": 0.0-1.0
+  "confidence": 0.0-1.0,
+  "summary": "resumo executivo das principais descobertas"
 }`
           },
           {
@@ -161,11 +198,13 @@ Responda em JSON com esta estrutura:
           }
         ],
         temperature: 0.2,
-        max_tokens: 1200
+        max_tokens: 2000
       }),
     });
 
     if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error(`OpenAI API error: ${aiResponse.status} - ${errorText}`);
       throw new Error(`OpenAI API error: ${aiResponse.status}`);
     }
 
@@ -175,36 +214,43 @@ Responda em JSON com esta estrutura:
     // Remove markdown code blocks if present
     responseContent = responseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
     
-    const predictions = JSON.parse(responseContent);
+    try {
+      const predictions = JSON.parse(responseContent);
 
-    console.log('AI Predictions generated successfully');
+      console.log('AI Stock Intelligence generated successfully');
 
-    return new Response(JSON.stringify({
-      predictions,
-      type,
-      itemId,
-      userId,
-      period,
-      timestamp: new Date().toISOString(),
-      dataPoints: {
-        loans: historicalData.loans.length,
-        inventory: historicalData.inventory.length,
-        customers: historicalData.customers.length
-      }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+      return new Response(JSON.stringify({
+        predictions,
+        type,
+        itemId,
+        userId,
+        period,
+        stockMetrics,
+        timestamp: new Date().toISOString(),
+        dataPoints: {
+          loans: historicalData.loans.length,
+          inventory: historicalData.inventory.length,
+          customers: historicalData.customers.length
+        }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Content:', responseContent);
+      throw new Error('Invalid JSON response from AI');
+    }
 
   } catch (error) {
-    console.error('Error in AI predictions:', error);
+    console.error('Error in AI Stock Intelligence:', error);
     return new Response(JSON.stringify({ 
-      error: 'Erro nas previsões de IA',
+      error: 'Erro na análise inteligente de estoque',
       details: error.message,
       predictions: {
         predictions: [],
-        insights: [],
-        nextActions: [],
-        confidence: 0
+        insights: ['Erro temporário na análise. Tente novamente.'],
+        nextActions: ['Verifique a conectividade e tente novamente'],
+        confidence: 0,
+        summary: 'Análise indisponível temporariamente'
       }
     }), {
       status: 500,
@@ -212,3 +258,53 @@ Responda em JSON com esta estrutura:
     });
   }
 });
+
+// Helper function to calculate stock metrics
+function calculateStockMetrics(data: any) {
+  const { inventory, loans } = data;
+  
+  // Group inventory by model combination
+  const modelStats = inventory.reduce((acc: any, item: any) => {
+    const key = `${item.brand}-${item.model}-${item.color}-${item.storage}`;
+    if (!acc[key]) {
+      acc[key] = {
+        brand: item.brand,
+        model: item.model,
+        color: item.color,
+        storage: item.storage,
+        total: 0,
+        available: 0,
+        loaned: 0
+      };
+    }
+    acc[key].total++;
+    if (item.status === 'available') acc[key].available++;
+    if (item.status === 'loaned') acc[key].loaned++;
+    return acc;
+  }, {});
+  
+  // Calculate rotation for last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const recentLoans = loans.filter((loan: any) => 
+    new Date(loan.created_at) >= thirtyDaysAgo
+  );
+  
+  const modelRotation = recentLoans.reduce((acc: any, loan: any) => {
+    if (loan.inventory) {
+      const key = `${loan.inventory.brand}-${loan.inventory.model}-${loan.inventory.color}-${loan.inventory.storage}`;
+      acc[key] = (acc[key] || 0) + 1;
+    }
+    return acc;
+  }, {});
+  
+  return {
+    totalItems: inventory.length,
+    availableItems: inventory.filter((i: any) => i.status === 'available').length,
+    loanedItems: inventory.filter((i: any) => i.status === 'loaned').length,
+    modelStats,
+    modelRotation,
+    recentLoansCount: recentLoans.length
+  };
+}
