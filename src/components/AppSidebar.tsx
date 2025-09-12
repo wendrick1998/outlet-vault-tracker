@@ -12,7 +12,9 @@ import {
   Bell,
   Brain,
   ChevronRight,
-  Store
+  Store,
+  CheckSquare,
+  TrendingUp
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,7 +70,13 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
     { 
       title: "Conferência de Inventário", 
       page: "conference", 
-      icon: Package, 
+      icon: CheckSquare, 
+      available: true 
+    },
+    { 
+      title: "Histórico Conferências", 
+      page: "historical-audits", 
+      icon: TrendingUp, 
       available: true 
     },
     { 

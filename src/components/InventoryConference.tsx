@@ -20,7 +20,8 @@ import {
   VolumeX,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  ClipboardList
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -47,6 +48,9 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastScanTime, setLastScanTime] = useState<number>(0);
   const [isScanning, setIsScanning] = useState(false);
+  const [showTaskManagement, setShowTaskManagement] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<{
     type: 'scanning' | 'success' | 'warning' | 'error';
     message: string;
@@ -359,9 +363,17 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
                 variant="outline"
                 size="sm"
                 onClick={resetScans}
-                disabled={isScanning}
+                disabled={isScanning || isResetting}
               >
                 <RotateCcw className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTaskManagement(!showTaskManagement)}
+              >
+                <ClipboardList className="h-4 w-4" />
               </Button>
             </div>
           </div>
