@@ -19,6 +19,7 @@ export const useDevicesAdmin = () => {
       const { data, error } = await supabase
         .from('inventory')
         .select('*')
+        .eq('is_archived', false)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -83,12 +84,33 @@ export const useDevicesAdmin = () => {
 
   const deleteDeviceMutation = useMutation({
     mutationFn: async (deviceId: string) => {
-      const { error } = await supabase
-        .from('inventory')
-        .delete()
-        .eq('id', deviceId);
-      
-      if (error) throw error;
+      // Check if device has loans to determine if we should soft delete
+      const { data: loans } = await supabase
+        .from('loans')
+        .select('id')
+        .eq('item_id', deviceId)
+        .limit(1);
+
+      if (loans && loans.length > 0) {
+        // Soft delete (archive) if has history
+        const { data, error } = await supabase
+          .from('inventory')
+          .update({ is_archived: true })
+          .eq('id', deviceId)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      } else {
+        // Hard delete if no history
+        const { error } = await supabase
+          .from('inventory')
+          .delete()
+          .eq('id', deviceId);
+        
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });

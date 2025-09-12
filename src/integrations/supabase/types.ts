@@ -176,6 +176,7 @@ export type Database = {
           created_at: string
           id: string
           imei: string
+          is_archived: boolean
           model: string
           notes: string | null
           status: Database["public"]["Enums"]["inventory_status"]
@@ -190,6 +191,7 @@ export type Database = {
           created_at?: string
           id?: string
           imei: string
+          is_archived?: boolean
           model: string
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
@@ -204,6 +206,7 @@ export type Database = {
           created_at?: string
           id?: string
           imei?: string
+          is_archived?: boolean
           model?: string
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]

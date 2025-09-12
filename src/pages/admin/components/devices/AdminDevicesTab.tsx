@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ export const AdminDevicesTab = () => {
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState<boolean>(false);
 
   const { devices: items, isLoading, deleteDevice, isDeleting } = useDevicesAdmin();
 
@@ -30,8 +32,9 @@ export const AdminDevicesTab = () => {
     const matchesBrand = brandFilter === "all" || item.brand === brandFilter;
     const matchesStatus = statusFilter === "all" || item.status === statusFilter;
     const matchesCondition = conditionFilter === "all" || item.condition === conditionFilter;
+    const matchesArchived = showArchived ? true : !item.is_archived;
     
-    return matchesSearch && matchesBrand && matchesStatus && matchesCondition;
+    return matchesSearch && matchesBrand && matchesStatus && matchesCondition && matchesArchived;
   });
 
   const uniqueBrands = [...new Set(items.map(item => item.brand).filter(Boolean))];
@@ -58,7 +61,7 @@ export const AdminDevicesTab = () => {
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -106,7 +109,28 @@ export const AdminDevicesTab = () => {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="gap-2">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="show-archived" 
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+            />
+            <label htmlFor="show-archived" className="text-sm font-medium">
+              Mostrar arquivados
+            </label>
+          </div>
+
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => {
+              setSearchTerm("");
+              setBrandFilter("all");
+              setStatusFilter("all");
+              setConditionFilter("all");
+              setShowArchived(false);
+            }}
+          >
             <Filter className="h-4 w-4" />
             Limpar Filtros
           </Button>
@@ -168,7 +192,7 @@ export const AdminDevicesTab = () => {
                           onClick={() => deleteDevice(item.id)}
                           disabled={isDeleting}
                         >
-                          Remover
+                          {item.is_archived ? "Restaurar" : "Remover"}
                         </Button>
                       </div>
                     </TableCell>

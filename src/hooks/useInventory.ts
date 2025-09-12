@@ -26,7 +26,7 @@ export function useInventory() {
     error,
   } = useQuery({
     queryKey: QUERY_KEYS.lists(),
-    queryFn: InventoryService.getAll,
+    queryFn: () => InventoryService.getAll(false), // Only show non-archived by default
   });
 
   const createMutation = useMutation({
@@ -108,6 +108,7 @@ export function useInventory() {
         category?: string | 'all';
         dateFrom?: string;
         dateTo?: string;
+        includeArchived?: boolean;
       } 
     }) => InventoryService.searchByIMEI(query, options),
     onError: (error: Error) => {
@@ -166,7 +167,7 @@ export function useLoanedItems() {
 export function useInventorySearch(searchTerm: string) {
   return useQuery({
     queryKey: QUERY_KEYS.search(searchTerm),
-    queryFn: () => InventoryService.searchByIMEI(searchTerm),
+    queryFn: () => InventoryService.searchByIMEI(searchTerm, { includeArchived: false }),
     enabled: !!searchTerm.trim(),
   });
 }

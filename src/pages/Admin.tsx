@@ -65,7 +65,7 @@ export const Admin = ({ onBack }: AdminProps) => {
   });
 
   const { 
-    items, 
+    items = [], 
     isLoading: inventoryLoading, 
     createItem, 
     updateItem, 

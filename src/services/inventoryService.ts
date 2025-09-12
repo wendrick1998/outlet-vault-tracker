@@ -6,11 +6,16 @@ type InventoryInsert = Database['public']['Tables']['inventory']['Insert'];
 type InventoryUpdate = Database['public']['Tables']['inventory']['Update'];
 
 export class InventoryService {
-  static async getAll(): Promise<InventoryItem[]> {
-    const { data, error } = await supabase
+  static async getAll(includeArchived: boolean = false): Promise<InventoryItem[]> {
+    let query = supabase
       .from('inventory')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*');
+
+    if (!includeArchived) {
+      query = query.eq('is_archived', false);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -33,11 +38,16 @@ export class InventoryService {
     category?: string | 'all';
     dateFrom?: string;
     dateTo?: string;
+    includeArchived?: boolean;
   }): Promise<InventoryItem[]> {
     let query = supabase
       .from('inventory')
       .select('*')
       .or(`imei.ilike.%${imei}%,suffix.ilike.%${imei}%,model.ilike.%${imei}%,brand.ilike.%${imei}%`);
+
+    if (!options?.includeArchived) {
+      query = query.eq('is_archived', false);
+    }
 
     // Apply filters if provided
     if (options?.status && options.status !== 'all') {
@@ -67,6 +77,7 @@ export class InventoryService {
       .from('inventory')
       .select('*')
       .eq('status', 'available')
+      .eq('is_archived', false)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -78,6 +89,7 @@ export class InventoryService {
       .from('inventory')
       .select('*')
       .eq('status', 'loaned')
+      .eq('is_archived', false)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -114,6 +126,41 @@ export class InventoryService {
       .eq('id', id);
 
     if (error) throw error;
+  }
+
+  static async archive(id: string): Promise<InventoryItem> {
+    const { data, error } = await supabase
+      .from('inventory')
+      .update({ is_archived: true })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async unarchive(id: string): Promise<InventoryItem> {
+    const { data, error } = await supabase
+      .from('inventory')
+      .update({ is_archived: false })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getArchived(): Promise<InventoryItem[]> {
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .eq('is_archived', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
   static async updateStatus(id: string, status: Database['public']['Enums']['inventory_status']): Promise<InventoryItem> {
