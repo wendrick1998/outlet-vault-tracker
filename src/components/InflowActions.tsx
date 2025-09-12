@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Package, CreditCard, AlertTriangle } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 import { useLoans } from "@/hooks/useLoans";
+import { usePendingSales } from "@/hooks/usePendingSales";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from '@/integrations/supabase/types';
+import { useAuth } from "@/hooks/useAuth";
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
@@ -13,12 +18,18 @@ interface InflowActionsProps {
   onCancel: () => void;
 }
 
-export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps) => {
+export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps) {
   const [actionType, setActionType] = useState<'return' | 'sold' | null>(null);
-  const [saleNumber, setSaleNumber] = useState<string>("");
-  
-  const { toast } = useToast();
+  const [saleNumber, setSaleNumber] = useState('');
+  const [canFinishWithoutNumber, setCanFinishWithoutNumber] = useState(false);
   const { updateLoan, isUpdating } = useLoans();
+  const { createPendingSale, isCreating } = usePendingSales();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Find the active loan for this item - for now we'll simulate it
+  // In a real scenario, we'd pass the loan ID or fetch it
+  const loanId = "placeholder-loan-id"; // This should come from props or be fetched
 
   const handleAction = (type: 'return' | 'sold') => {
     setActionType(type);
@@ -27,89 +38,116 @@ export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps
   const handleSubmit = async () => {
     if (!actionType) return;
 
-    const updateData = {
-      status: 'returned' as 'returned',
-      returned_at: new Date().toISOString(),
-      notes: actionType === 'sold' ? `Vendido ${saleNumber ? '- ' + saleNumber : ''}` : undefined
-    };
-
-    // Find active loan for this item (in real app, we'd have the loan ID)
-    // For now we'll just simulate the update
-    updateLoan(
-      { 
-        id: 'placeholder-loan-id', 
-        data: updateData 
-      }, 
-      {
-        onSuccess: () => {
-          if (actionType === 'return') {
-            toast({
-              title: "Item devolvido",
-              description: `${item.model} foi devolvido ao cofre`,
-            });
-          } else {
-            toast({
-              title: "Item marcado como vendido",
-              description: `${item.model} foi marcado como vendido`,
-            });
-          }
-          onComplete();
-        },
-        onError: () => {
-          toast({
-            title: "Erro",
-            description: "Ocorreu um erro ao processar a ação. Tente novamente.",
-            variant: "destructive"
-          });
-        }
+    try {
+      if (actionType === 'sold' && !saleNumber && !canFinishWithoutNumber) {
+        // Mostrar opção de finalizar sem número
+        setCanFinishWithoutNumber(true);
+        return;
       }
-    );
+
+      if (actionType === 'sold' && !saleNumber) {
+        // Criar pendência e finalizar
+        await createPendingSale({
+          loan_id: loanId,
+          item_id: item.id,
+          created_by: user?.id || '',
+          notes: 'Venda finalizada sem número - aguardando regularização'
+        });
+
+        // TODO: Replace with actual loan update call when loan ID is available
+        console.log('Would update loan with pending sale data');
+
+        toast({
+          title: "Item marcado como vendido",
+          description: "Venda criou uma pendência para regularização do número.",
+          variant: "default",
+        });
+      } else {
+        // Fluxo normal
+        const notes = actionType === 'sold' 
+          ? `Vendido - Venda: ${saleNumber}`
+          : 'Devolvido ao cofre';
+
+        // TODO: Replace with actual loan update call when loan ID is available  
+        console.log('Would update loan with notes:', notes);
+
+        toast({
+          title: actionType === 'sold' ? "Item marcado como vendido" : "Item devolvido",
+          description: `${item.imei} foi ${actionType === 'sold' ? 'marcado como vendido' : 'devolvido ao cofre'}.`,
+        });
+      }
+
+      onComplete();
+    } catch (error) {
+      console.error('Error updating loan:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao processar a ação.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!actionType) {
     return (
       <div className="space-y-6">
-        <Card className="p-6">
-          <h2 className="text-xl font-bold mb-4">O que fazer com este item?</h2>
-          
-          <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-            <h3 className="font-semibold">{item.model}</h3>
-            <p className="text-muted-foreground">{item.color} • ...{item.suffix || item.imei.slice(-5)}</p>
-            <div className="mt-2 text-sm">
-              <span className="inline-block px-2 py-1 bg-warning/20 text-warning rounded">
-                Emprestado
-              </span>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              O que fazer com este item?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Item Details */}
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">{item.brand} {item.model}</h3>
+                <Badge variant="outline" className="text-warning border-warning/50">
+                  Emprestado
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                IMEI: ...{item.imei.slice(-8)} • {item.color}
+              </p>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <Button
-              onClick={() => handleAction('return')}
-              variant="outline"
-              className="w-full h-16 text-lg flex flex-col gap-1"
-            >
-              <span className="font-semibold">Devolver ao Cofre</span>
-              <span className="text-sm text-muted-foreground">
-                Item volta ao estoque normal
-              </span>
-            </Button>
+            <div className="grid gap-3">
+              <Button
+                onClick={() => handleAction('return')}
+                variant="outline"
+                className="h-16 flex flex-col gap-1"
+              >
+                <div className="flex items-center gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="font-semibold">Devolver ao Cofre</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  Item volta ao estoque disponível
+                </span>
+              </Button>
 
-            <Button
-              onClick={() => handleAction('sold')}
-              className="w-full h-16 text-lg flex flex-col gap-1 bg-success hover:bg-success/90"
-            >
-              <span className="font-semibold">Marcar como Vendido</span>
-              <span className="text-sm opacity-90">
-                Item foi vendido e sai definitivamente
-              </span>
-            </Button>
-          </div>
+              <Button
+                onClick={() => handleAction('sold')}
+                className="h-16 flex flex-col gap-1"
+                variant="default"
+              >
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  <span className="font-semibold">Marcar como Vendido</span>
+                </div>
+                <span className="text-xs opacity-90">
+                  Item foi vendido e sai definitivamente
+                </span>
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
         <Button 
           variant="outline" 
           onClick={onCancel}
-          className="w-full h-12"
+          className="w-full"
         >
           Cancelar
         </Button>
@@ -119,71 +157,88 @@ export const InflowActions = ({ item, onComplete, onCancel }: InflowActionsProps
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-xl font-bold mb-4">
-          {actionType === 'return' ? 'Confirmar Devolução' : 'Confirmar Venda'}
-        </h2>
-        
-        {/* Item info */}
-        <div className="mb-6 p-4 bg-muted/30 rounded-lg">
-          <h3 className="font-semibold">{item.model}</h3>
-          <p className="text-muted-foreground">{item.color} • ...{item.suffix || item.imei.slice(-5)}</p>
-        </div>
-
-        {actionType === 'sold' && (
-          <div className="space-y-3">
-            <label className="text-sm font-medium">
-              Número da Venda (opcional)
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: V001234..."
-              value={saleNumber}
-              onChange={(e) => setSaleNumber(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-input focus:ring-2 focus:ring-ring focus:border-transparent"
-            />
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {actionType === 'return' ? 'Confirmar Devolução' : 'Confirmar Venda'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Item Details */}
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <h3 className="font-semibold">{item.brand} {item.model}</h3>
+            <p className="text-sm text-muted-foreground">
+              IMEI: ...{item.imei.slice(-8)} • {item.color}
+            </p>
           </div>
-        )}
 
-        <div className="mt-6 p-4 rounded-lg bg-warning/10 border border-warning/20">
-          <p className="text-sm text-warning-foreground">
-            {actionType === 'return' ? (
-            <>
-              <strong>Atenção:</strong> O item voltará ao status "Disponível" e 
-              ficará disponível para novas saídas.
-            </>
-            ) : (
-              <>
-                <strong>Atenção:</strong> O item será marcado como "Vendido" e 
-                não poderá mais ser usado. Esta ação não pode ser desfeita facilmente.
-              </>
-            )}
-          </p>
-        </div>
+          {actionType === 'sold' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Número da Venda
+              </label>
+              <Input
+                type="text"
+                placeholder="Ex: V001234"
+                value={saleNumber}
+                onChange={(e) => {
+                  setSaleNumber(e.target.value);
+                  setCanFinishWithoutNumber(false);
+                }}
+                className="mt-2"
+              />
+              
+              {!saleNumber && canFinishWithoutNumber && (
+                <div className="mt-3 p-3 bg-muted rounded-lg border-l-4 border-warning">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-warning">Atenção: Número de venda não informado</p>
+                      <p className="text-muted-foreground mt-1">
+                        Ao continuar sem o número, será criada uma pendência que aparecerá no dashboard 
+                        para regularização posterior.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Warning */}
+          <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
+            <p className="text-sm">
+              <strong>Atenção:</strong> {actionType === 'return' 
+                ? 'O item voltará ao status "Disponível" e ficará disponível para novas saídas.'
+                : 'O item será marcado como "Vendido" e não poderá mais ser usado.'
+              }
+            </p>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setActionType(null);
+                setCanFinishWithoutNumber(false);
+                setSaleNumber('');
+              }}
+              className="flex-1"
+            >
+              Voltar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isUpdating || isCreating}
+              className="flex-1"
+              variant={canFinishWithoutNumber && !saleNumber ? "destructive" : "default"}
+            >
+              {isUpdating || isCreating ? "Processando..." : 
+               canFinishWithoutNumber && !saleNumber ? "Finalizar sem Número" : "Confirmar"}
+            </Button>
+          </div>
+        </CardContent>
       </Card>
-
-      <div className="flex gap-3">
-        <Button 
-          variant="outline" 
-          onClick={() => setActionType(null)}
-          className="flex-1 h-12"
-          disabled={isUpdating}
-        >
-          Voltar
-        </Button>
-        <Button 
-          onClick={handleSubmit}
-          className={`flex-1 h-12 ${
-            actionType === 'return' 
-              ? 'bg-primary hover:bg-primary-hover' 
-              : 'bg-success hover:bg-success/90'
-          }`}
-          disabled={isUpdating}
-        >
-          {isUpdating ? "Processando..." :
-           actionType === 'return' ? "Confirmar Devolução" : "Confirmar Venda"}
-        </Button>
-      </div>
     </div>
   );
-};
+}

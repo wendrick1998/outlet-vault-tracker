@@ -575,6 +575,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_sales: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          item_id: string
+          loan_id: string
+          notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          sale_number: string | null
+          status: Database["public"]["Enums"]["pending_sale_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          item_id: string
+          loan_id: string
+          notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sale_number?: string | null
+          status?: Database["public"]["Enums"]["pending_sale_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          item_id?: string
+          loan_id?: string
+          notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sale_number?: string | null
+          status?: Database["public"]["Enums"]["pending_sale_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           anonymized_at: string | null
@@ -952,6 +994,7 @@ export type Database = {
         | "viewer"
       inventory_status: "available" | "loaned" | "sold" | "maintenance"
       loan_status: "active" | "returned" | "overdue"
+      pending_sale_status: "pending" | "resolved"
       permission:
         | "inventory.view"
         | "inventory.create"
@@ -1121,6 +1164,7 @@ export const Constants = {
       ],
       inventory_status: ["available", "loaned", "sold", "maintenance"],
       loan_status: ["active", "returned", "overdue"],
+      pending_sale_status: ["pending", "resolved"],
       permission: [
         "inventory.view",
         "inventory.create",

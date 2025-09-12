@@ -1,8 +1,10 @@
 import { Search, List, Clock, BarChart3, Package, AlertTriangle, Bot, Brain } from "lucide-react";
 import { ActionCard } from "@/components/ActionCard";
 import { StatsCard } from "@/components/ui/stats-card";
+import { PendingSalesManager } from "@/components/PendingSalesManager";
 import { useSystemStats } from "@/hooks/useStats";
 import { useActiveLoans } from "@/hooks/useLoans";
+import { usePendingSalesStats } from "@/hooks/usePendingSales";
 import { AIAssistant } from "@/components/AIAssistant";
 import { SmartAnalytics } from "@/components/SmartAnalytics";
 import { PredictiveAlerts } from "@/components/PredictiveAlerts";
@@ -17,10 +19,12 @@ interface HomeProps {
 export const Home = ({ onNavigate }: HomeProps) => {
   const { data: systemStats, isLoading: statsLoading } = useSystemStats();
   const { data: activeLoans, isLoading: loansLoading } = useActiveLoans();
+  const { data: pendingStats, isLoading: pendingStatsLoading } = usePendingSalesStats();
   const [showAI, setShowAI] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showPredictions, setShowPredictions] = useState(false);
   const [showVoiceCommands, setShowVoiceCommands] = useState(false);
+  const [showPendingSales, setShowPendingSales] = useState(false);
 
   const handleVoiceCommand = (action: string, data?: any) => {
     switch (action) {
@@ -96,7 +100,13 @@ export const Home = ({ onNavigate }: HomeProps) => {
           </div>
 
           {/* AI Analytics Panel */}
-          {showAnalytics && (
+      {showPendingSales && (
+        <div className="mt-6">
+          <PendingSalesManager />
+        </div>
+      )}
+
+      {showAnalytics && (
             <div className="mt-8">
               <SmartAnalytics />
             </div>
@@ -140,6 +150,18 @@ export const Home = ({ onNavigate }: HomeProps) => {
                 icon={AlertTriangle}
                 variant={(systemStats.loans?.overdue || 0) > 0 ? "destructive" : "success"}
               />
+              
+              <div 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setShowPendingSales(!showPendingSales)}
+              >
+                <StatsCard
+                  title="Pendências"
+                  value={pendingStats?.total_pending || 0}
+                  icon={AlertTriangle}
+                  variant={pendingStats?.total_pending ? "destructive" : "default"}
+                />
+              </div>
 
               <StatsCard
                 title="Disponíveis"
