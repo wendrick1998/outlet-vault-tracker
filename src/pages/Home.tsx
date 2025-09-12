@@ -82,29 +82,6 @@ export const Home = ({ onNavigate }: HomeProps) => {
           />
 
           <ActionCard
-            title="🤖 Assistente IA"
-            description="Chat com assistente inteligente do sistema"
-            icon={Bot}
-            onClick={() => setShowAI(true)}
-            variant="primary"
-          />
-
-            <ActionCard
-              title="🧠 Previsões IA"
-              description="Alertas preditivos e análise de tendências"
-              icon={Brain}
-              onClick={() => setShowPredictions(!showPredictions)}
-              variant="primary"
-            />
-            <ActionCard
-              title="📊 Análise Inteligente"
-              description="Insights e recomendações com IA"
-              icon={BarChart3}
-              onClick={() => setShowAnalytics(!showAnalytics)}
-              variant="primary"
-            />
-
-          <ActionCard
             title="📚 Histórico"
             description="Consulte o histórico de movimentações dos aparelhos"
             icon={List}

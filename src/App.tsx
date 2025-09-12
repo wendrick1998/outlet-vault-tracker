@@ -5,6 +5,8 @@ import { Loading } from "@/components/ui/loading";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Header } from "@/components/Header";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
 import { Profile } from "./pages/Profile";
@@ -16,7 +18,7 @@ const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m
 const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow').then(m => ({ default: m.BatchOutflow })));
 
-type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow' | 'profile' | 'settings';
+type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions';
 
 const AppContent = () => {
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
@@ -63,6 +65,20 @@ const AppContent = () => {
         return <Profile onBack={handleBack} />;
       case 'settings':
         return <Settings onBack={handleBack} />;
+      // Placeholder pages for features not yet implemented
+      case 'analytics':
+      case 'ai-assistant':
+      case 'voice-commands':
+      case 'smart-notifications':
+      case 'predictions':
+        return (
+          <div className="container mx-auto px-4 py-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">Recurso em Desenvolvimento</h2>
+              <p className="text-muted-foreground">Esta funcionalidade será disponibilizada em breve.</p>
+            </div>
+          </div>
+        );
       default:
         return <Home onNavigate={handleNavigate} />;
     }
@@ -70,16 +86,35 @@ const AppContent = () => {
 
   return (
     <ProtectedRoute>
-      <div className="app">
-        <Header 
-          onNavigate={handleNavigate}
-          onProfileClick={() => setCurrentPage('profile')}
-          onSettingsClick={() => setCurrentPage('settings')}
-        />
-        <div className="min-h-screen pt-16">
-          {renderCurrentPage()}
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar onNavigate={handleNavigate} currentPage={currentPage} />
+          
+          <SidebarInset className="flex-1">
+            <header className="bg-primary text-primary-foreground shadow-medium border-b">
+              <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger />
+                  <div>
+                    <h1 className="text-lg font-semibold">Cofre Tracker</h1>
+                    <p className="text-sm opacity-90 text-primary-foreground/80">Sistema de Inventário</p>
+                  </div>
+                </div>
+                
+                <Header 
+                  onNavigate={handleNavigate}
+                  onProfileClick={() => setCurrentPage('profile')}
+                  onSettingsClick={() => setCurrentPage('settings')}
+                />
+              </div>
+            </header>
+            
+            <main className="flex-1">
+              {renderCurrentPage()}
+            </main>
+          </SidebarInset>
         </div>
-      </div>
+      </SidebarProvider>
     </ProtectedRoute>
   );
 };

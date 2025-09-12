@@ -51,7 +51,7 @@ const DEFAULT_FEATURES: Record<FeatureFlag, boolean> = {
   [FEATURE_FLAGS.REAL_TIME_SYNC]: true,
   [FEATURE_FLAGS.OFFLINE_QUEUE]: true,
   [FEATURE_FLAGS.ADVANCED_REPORTING]: true,
-  [FEATURE_FLAGS.ADMIN_CADASTROS]: false
+  [FEATURE_FLAGS.ADMIN_CADASTROS]: true
 };
 
 class FeatureFlagsManager {
