@@ -9,18 +9,22 @@ type InventoryUpdate = Database['public']['Tables']['inventory']['Update'];
 
 const QUERY_KEY = 'admin-devices';
 
-export const useDevicesAdmin = () => {
+export const useDevicesAdmin = (includeArchived: boolean = false) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: devices = [], isLoading, error } = useQuery({
-    queryKey: [QUERY_KEY],
+    queryKey: [QUERY_KEY, includeArchived],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('inventory')
-        .select('*')
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false });
+        .select('*');
+      
+      if (!includeArchived) {
+        query = query.eq('is_archived', false);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
       return data as InventoryItem[];

@@ -23,7 +23,7 @@ export const AdminDevicesTab = () => {
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState<boolean>(false);
 
-  const { devices: items, isLoading, deleteDevice, isDeleting } = useDevicesAdmin();
+  const { devices: items, isLoading, deleteDevice, isDeleting } = useDevicesAdmin(showArchived);
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.imei?.toLowerCase().includes(searchTerm.toLowerCase()) ||
