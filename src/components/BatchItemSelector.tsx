@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Scan, Plus } from "lucide-react";
+import { Search, Scan, Plus, Upload } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIMEISearch } from "@/hooks/useSearch";
 import { useToast } from "@/hooks/use-toast";
+import { CSVImporter } from "./CSVImporter";
 import type { Database } from "@/integrations/supabase/types";
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -117,15 +119,25 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
     setImeiInput(cleanValue);
   };
 
+  const handleCSVImportComplete = (result: any) => {
+    toast({
+      title: "Importação concluída",
+      description: `${result.created} itens foram importados e estão disponíveis no inventário`,
+    });
+    
+    // Refresh the page or emit an event to update inventory lists
+    window.location.reload();
+  };
+
   return (
     <Card className="p-6 bg-gradient-card">
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Scan className="h-6 w-6 text-primary" />
             <div>
               <h2 className="text-xl font-bold text-foreground">Adicionar Itens</h2>
-              <p className="text-muted-foreground">Escaneie ou digite os IMEIs dos aparelhos</p>
+              <p className="text-muted-foreground">Escaneie IMEIs individuais ou importe em lote via CSV</p>
             </div>
           </div>
           
@@ -136,51 +148,70 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
           )}
         </div>
 
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <input
-              ref={inputRef}
-              type="text"
-              value={imeiInput}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite ou escaneie o próximo IMEI..."
-              className="
-                w-full px-4 py-3 text-lg rounded-lg border border-border
-                bg-input focus:ring-2 focus:ring-ring focus:border-transparent
-                placeholder:text-muted-foreground transition-all
-              "
-              maxLength={15}
-              autoComplete="off"
-            />
-            <div className="mt-2 text-sm text-muted-foreground">
-              {imeiInput.length > 0 && (
-                <>
-                  {imeiInput.length}/15 dígitos
-                  {imeiInput.length === 5 && " (busca por sufixo)"}
-                  {imeiInput.length === 15 && " (busca exata)"}
-                </>
-              )}
-            </div>
-          </div>
+        <Tabs defaultValue="scan" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="scan" className="gap-2">
+              <Scan className="h-4 w-4" />
+              Buscar por IMEI
+            </TabsTrigger>
+            <TabsTrigger value="csv" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Importar CSV
+            </TabsTrigger>
+          </TabsList>
           
-          <Button
-            onClick={handleSearch}
-            disabled={isSearching || !imeiInput.trim()}
-            className="px-6 py-3 h-auto text-lg bg-primary hover:bg-primary-hover"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            {isSearching ? "Buscando..." : "Adicionar"}
-          </Button>
-        </div>
+          <TabsContent value="scan" className="space-y-4">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={imeiInput}
+                  onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Digite ou escaneie o próximo IMEI..."
+                  className="
+                    w-full px-4 py-3 text-lg rounded-lg border border-border
+                    bg-input focus:ring-2 focus:ring-ring focus:border-transparent
+                    placeholder:text-muted-foreground transition-all
+                  "
+                  maxLength={15}
+                  autoComplete="off"
+                />
+                <div className="mt-2 text-sm text-muted-foreground">
+                  {imeiInput.length > 0 && (
+                    <>
+                      {imeiInput.length}/15 dígitos
+                      {imeiInput.length === 5 && " (busca por sufixo)"}
+                      {imeiInput.length === 15 && " (busca exata)"}
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <Button
+                onClick={handleSearch}
+                disabled={isSearching || !imeiInput.trim()}
+                className="px-6 py-3 h-auto text-lg bg-primary hover:bg-primary-hover"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                {isSearching ? "Buscando..." : "Adicionar"}
+              </Button>
+            </div>
 
-        {selectedItems.length > 0 && (
-          <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              Continue adicionando itens ou clique em "Prosseguir" quando terminar
-            </p>
-          </div>
-        )}
+            {selectedItems.length > 0 && (
+              <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Continue adicionando itens ou clique em "Prosseguir" quando terminar
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="csv">
+            <CSVImporter onImportComplete={handleCSVImportComplete} />
+          </TabsContent>
+        </Tabs>
       </div>
     </Card>
   );

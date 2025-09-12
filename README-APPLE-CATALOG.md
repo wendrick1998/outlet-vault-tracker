@@ -304,6 +304,87 @@ if (match) {
 }
 ```
 
+## 🔁 Integração com Importador CSV
+
+### Interface Integrada
+
+O sistema está completamente integrado com o importador CSV em **Saída em Lote → Importar CSV**:
+
+1. **Acesse:** Menu principal → "Saída em Lote"
+2. **Selecione:** Aba "Importar CSV" 
+3. **Use o modelo:** Baixe o template CSV para ver o formato correto
+4. **Faça upload:** Selecione seu arquivo CSV (máx. 10MB)
+5. **Acompanhe:** Veja o progresso em tempo real
+6. **Revise:** Analise o relatório de importação completo
+
+### Formato CSV Suportado
+
+```csv
+imei,modelo,marca,armazenamento,cor,condicao,observacoes
+123456789012345,iPhone 14 Pro Max,Apple,256GB,Dourado,novo,Em perfeito estado
+123456789012346,iPhone 13,Apple,128GB,Azul,seminovo,Pequeno risco na tela
+123456789012347,Galaxy S23,Samsung,256GB,Preto,usado,Funciona perfeitamente
+```
+
+**Colunas aceitas** (case-insensitive):
+- `imei` (obrigatório)
+- `modelo`, `model` → Nome do modelo
+- `marca`, `brand` → Marca do aparelho  
+- `armazenamento`, `storage`, `capacidade`, `memory`, `memoria` → Capacidade
+- `cor`, `color`, `colour` → Cor do aparelho
+- `condicao`, `condition`, `estado`, `status` → Estado (novo/seminovo/usado)
+- `observacoes`, `notes`, `notas`, `obs` → Observações extras
+
+### Reconhecimento Automático
+
+Ao importar linhas, o sistema:
+
+✅ **Extrai automaticamente:** brand=Apple, model="iPhone 14 Pro Max", storage=256, color="Dourado"  
+✅ **Mapeia sinônimos/acentos/hífen** usando as funções de normalização  
+✅ **Procura no catálogo** por slug para vincular ao modelo pré-cadastrado  
+✅ **Cria automaticamente** se modelo não existir e reporta no resumo  
+✅ **Valida dados** e reporta erros/conflitos para revisão
+
+### Relatório de Importação
+
+Após a importação, você recebe:
+
+- **📊 Estatísticas:** Criados, Erros, Ignorados, Total processado
+- **🍎 Matching Apple:** Quantos itens foram reconhecidos automaticamente
+- **❌ Detalhes de erro:** Linha específica, motivo, dados problemáticos  
+- **✅ Itens criados:** Lista com confidence score do matching
+- **⚠️ Itens ignorados:** Motivos (IMEI inválido, dados insuficientes, etc.)
+
+### Casos de Reconhecimento
+
+```
+✅ **Reconhecidos automaticamente:**
+"iPhone 14 Pro Max 256G Dourado"        → iPhone 14 Pro Max, 256GB, Dourado (confidence: 90%)
+"iphone 13 pro 128gb grafite"           → iPhone 13 Pro, 128GB, Grafite (confidence: 85%)
+"iPhone SE 2 64GB Vermelho"             → iPhone SE (2ª geração), 64GB, (PRODUCT)RED (confidence: 85%)
+"iPhone 11 256 Verde meia noite"        → iPhone 11 Pro, 256GB, Verde-meia-noite (confidence: 80%)
+"Apple iPhone XS 512 Space Gray"        → iPhone XS, 512GB, Cinza-espacial (confidence: 90%)
+
+✅ **Normalizações automáticas:**  
+"128G" → "128GB" | "1TB" → "1024GB" | "meia noite" → "Meia-noite"
+"space gray" → "Cinza-espacial" | "product red" → "(PRODUCT)RED"
+"azul pacifico" → "Azul-pacífico" | "prata" → "Prateado"
+
+⚠️ **Casos que precisam de revisão:**
+"iPhone modelo desconhecido" → Cria modelo genérico, reporta para revisão
+"IMEI inválido ou muito curto" → Ignora linha, reporta erro
+"Dados insuficientes (sem marca/modelo)" → Ignora linha, reporta motivo
+```
+
+### Validações e Controles
+
+- **IMEI:** Mínimo 10 dígitos, somente números
+- **Modelos:** Se não reconhecido, cria automaticamente  
+- **Storage:** Converte G/GB/TB para formato padrão
+- **Condição:** Valida novo/seminovo/usado (padrão: novo)
+- **Duplicatas:** Detecta IMEIs já existentes no inventário
+- **Arquivo:** Máximo 10MB, formato .csv obrigatório
+
 ## 📈 Estatísticas
 
 - **32 modelos** iPhone (8 → 17 Pro Max)
