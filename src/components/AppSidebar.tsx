@@ -60,16 +60,10 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
 
   const inventoryItems = [
     { 
-      title: "Buscar & Registrar", 
-      page: "search", 
+      title: "Buscar & Operar", 
+      page: "search-and-operate", 
       icon: Search, 
       available: true 
-    },
-    { 
-      title: "Saída em Lote", 
-      page: "batch-outflow", 
-      icon: Package, 
-      available: isBatchOperationsEnabled 
     },
     { 
       title: "Itens Fora Agora", 

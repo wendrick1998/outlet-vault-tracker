@@ -29,7 +29,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
   const handleVoiceCommand = (action: string, data?: any) => {
     switch (action) {
       case 'buscar_item':
-        onNavigate('search');
+        onNavigate('search-and-operate');
         break;
       case 'ver_historico':
         onNavigate('history');
@@ -41,7 +41,7 @@ export const Home = ({ onNavigate }: HomeProps) => {
         onNavigate('active-loans');
         break;
       case 'registrar_saida':
-        onNavigate('search');
+        onNavigate('search-and-operate');
         break;
       default:
         console.log('Unknown voice command:', action, data);
@@ -61,19 +61,11 @@ export const Home = ({ onNavigate }: HomeProps) => {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <ActionCard
-            title="🔍 Buscar & Registrar"
-            description="Encontre um aparelho com IA e registre saída, devolução ou venda"
+            title="🔍 Buscar & Operar"
+            description="Busque aparelhos e realize operações individuais ou em lote"
             icon={Search}
-            onClick={() => onNavigate('search')}
+            onClick={() => onNavigate('search-and-operate')}
             variant="primary"
-          />
-
-          <ActionCard
-            title="📦 Saída em Lote"
-            description="Registre a saída de múltiplos aparelhos de uma vez"
-            icon={Package}
-            onClick={() => onNavigate('batch-outflow')}
-            variant="default"
           />
 
           <ActionCard

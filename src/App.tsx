@@ -16,9 +16,9 @@ import { Settings } from "./pages/Settings";
 const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
 const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m.History })));
 const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
-const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow').then(m => ({ default: m.BatchOutflow })));
+const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate').then(m => ({ default: m.SearchAndOperate })));
 
-type AppPage = 'home' | 'search' | 'active-loans' | 'history' | 'admin' | 'batch-outflow' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions';
+type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions';
 
 const AppContent = () => {
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
@@ -35,8 +35,12 @@ const AppContent = () => {
     switch (currentPage) {
       case 'home':
         return <Home onNavigate={handleNavigate} />;
-      case 'search':
-        return <SearchAndRegister onBack={handleBack} />;
+      case 'search-and-operate':
+        return (
+          <Suspense fallback={<Loading />}>
+            <LazySearchAndOperate onBack={handleBack} />
+          </Suspense>
+        );
       case 'active-loans':
         return (
           <Suspense fallback={<Loading />}>
@@ -53,12 +57,6 @@ const AppContent = () => {
         return (
           <Suspense fallback={<Loading />}>
             <LazyAdmin onBack={handleBack} />
-          </Suspense>
-        );
-      case 'batch-outflow':
-        return (
-          <Suspense fallback={<Loading />}>
-            <LazyBatchOutflow onBack={handleBack} />
           </Suspense>
         );
       case 'profile':
