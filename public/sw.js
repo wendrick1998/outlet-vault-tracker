@@ -1,4 +1,6 @@
-const CACHE_NAME = 'outlet-vault-v2';
+// Generate cache name with version
+const BUILD_ID = self.BUILD_ID || Date.now();
+const CACHE_NAME = `app-cache-${BUILD_ID}`;
 const OFFLINE_URL = '/offline.html';
 const IS_DEVELOPMENT = false; // Set to false in production
 
@@ -26,6 +28,7 @@ self.addEventListener('install', (event) => {
         return cache.addAll(STATIC_RESOURCES);
       })
       .then(() => {
+        if (IS_DEVELOPMENT) console.log('SW: Static resources cached, skipping waiting');
         return self.skipWaiting();
       })
       .catch((error) => {
@@ -39,14 +42,15 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+        cacheNames
+          .filter((cacheName) => cacheName.startsWith('app-cache-') && cacheName !== CACHE_NAME)
+          .map((cacheName) => {
             if (IS_DEVELOPMENT) console.log('SW: Deleting old cache:', cacheName);
             return caches.delete(cacheName);
-          }
-        })
+          })
       );
     }).then(() => {
+      if (IS_DEVELOPMENT) console.log('SW: Old caches cleaned, claiming clients');
       return self.clients.claim();
     })
   );

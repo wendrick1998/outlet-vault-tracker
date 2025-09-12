@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const generateRequestId = () => crypto.randomUUID();
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -18,13 +20,36 @@ serve(async (req) => {
   }
 
   try {
+    const requestId = generateRequestId();
     const { type = 'general', period = '7d' } = await req.json();
     
-    console.log(`AI Analytics: ${type} analysis for ${period}`);
+    console.log(`AI Analytics [${requestId}]: ${type} analysis for ${period}`);
     
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.log(`AI Analytics [${requestId}]: OpenAI API key not configured`);
+      return new Response(JSON.stringify({ 
+        error: 'Serviço de IA indisponível',
+        code: 'missing_api_key',
+        requestId,
+        analysis: {
+          insights: {
+            patterns: [],
+            predictions: [],
+            recommendations: [],
+            alerts: []
+          },
+          metrics: {
+            utilizationTrend: "stable",
+            demandForecast: "medium",
+            riskLevel: "low"
+          },
+          summary: "Análise de IA indisponível no preview. Funcionalidade disponível apenas em produção."
+        }
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Collect comprehensive data based on period
@@ -129,6 +154,34 @@ Seja preciso, actionável e baseado nos dados reais fornecidos.`
     });
 
     if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error(`AI Analytics [${requestId}]: OpenAI API error: ${aiResponse.status} - ${errorText}`);
+      
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ 
+          error: 'Limite de uso da IA atingido',
+          code: 'insufficient_quota',
+          requestId,
+          analysis: {
+            insights: {
+              patterns: [],
+              predictions: [],
+              recommendations: [],
+              alerts: []
+            },
+            metrics: {
+              utilizationTrend: "stable",
+              demandForecast: "medium",
+              riskLevel: "low"
+            },
+            summary: "Limite de uso da OpenAI atingido. Tente novamente mais tarde."
+          }
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
       throw new Error(`OpenAI API error: ${aiResponse.status}`);
     }
 
@@ -140,7 +193,7 @@ Seja preciso, actionável e baseado nos dados reais fornecidos.`
     
     const analysis = JSON.parse(responseContent);
 
-    console.log('AI Analytics completed successfully');
+    console.log(`AI Analytics [${requestId}]: completed successfully`);
 
     return new Response(JSON.stringify({
       analysis,
@@ -151,16 +204,19 @@ Seja preciso, actionável e baseado nos dados reais fornecidos.`
         totalSellers: analyticsData.sellers?.length || 0
       },
       period,
+      requestId,
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('Error in AI analytics:', error);
+    const requestId = generateRequestId();
+    console.error(`AI Analytics [${requestId}]: Error - ${error.message}`);
     return new Response(JSON.stringify({ 
       error: 'Erro na análise de IA',
       details: error.message,
+      requestId,
       analysis: {
         insights: {
           patterns: [],

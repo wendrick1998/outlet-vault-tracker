@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const generateRequestId = () => crypto.randomUUID();
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -18,13 +20,29 @@ serve(async (req) => {
   }
 
   try {
+    const requestId = generateRequestId();
     const { type = 'stock_analysis', itemId, userId, period = '30d' } = await req.json();
     
-    console.log(`AI Stock Intelligence: ${type} analysis`);
+    console.log(`AI Stock Intelligence [${requestId}]: ${type} analysis`);
     
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.log(`AI Stock Intelligence [${requestId}]: OpenAI API key not configured`);
+      return new Response(JSON.stringify({ 
+        error: 'Serviço de IA indisponível',
+        code: 'missing_api_key',
+        requestId,
+        predictions: {
+          predictions: [],
+          insights: ['Análise de IA indisponível no preview. Funcionalidade disponível apenas em produção.'],
+          nextActions: ['Configurar chave da OpenAI em produção'],
+          confidence: 0,
+          summary: 'Análise de inteligência de estoque indisponível no ambiente de preview'
+        }
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Collect comprehensive stock and business data
@@ -204,7 +222,26 @@ Responda SEMPRE em JSON com esta estrutura exata:
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error(`OpenAI API error: ${aiResponse.status} - ${errorText}`);
+      console.error(`AI Stock Intelligence [${requestId}]: OpenAI API error: ${aiResponse.status} - ${errorText}`);
+      
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ 
+          error: 'Limite de uso da IA atingido',
+          code: 'insufficient_quota',
+          requestId,
+          predictions: {
+            predictions: [],
+            insights: ['Limite de uso da OpenAI atingido. Tente novamente mais tarde.'],
+            nextActions: ['Aguardar reset do limite ou aumentar quota'],
+            confidence: 0,
+            summary: 'Análise temporariamente indisponível devido ao limite de uso'
+          }
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
       throw new Error(`OpenAI API error: ${aiResponse.status}`);
     }
 
@@ -217,7 +254,7 @@ Responda SEMPRE em JSON com esta estrutura exata:
     try {
       const predictions = JSON.parse(responseContent);
 
-      console.log('AI Stock Intelligence generated successfully');
+      console.log(`AI Stock Intelligence [${requestId}]: generated successfully`);
 
       return new Response(JSON.stringify({
         predictions,
@@ -226,6 +263,7 @@ Responda SEMPRE em JSON com esta estrutura exata:
         userId,
         period,
         stockMetrics,
+        requestId,
         timestamp: new Date().toISOString(),
         dataPoints: {
           loans: historicalData.loans.length,
@@ -241,10 +279,12 @@ Responda SEMPRE em JSON com esta estrutura exata:
     }
 
   } catch (error) {
-    console.error('Error in AI Stock Intelligence:', error);
+    const requestId = generateRequestId();
+    console.error(`AI Stock Intelligence [${requestId}]: Error - ${error.message}`);
     return new Response(JSON.stringify({ 
       error: 'Erro na análise inteligente de estoque',
       details: error.message,
+      requestId,
       predictions: {
         predictions: [],
         insights: ['Erro temporário na análise. Tente novamente.'],

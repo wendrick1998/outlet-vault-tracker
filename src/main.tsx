@@ -5,6 +5,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { ReactQueryProvider } from '@/lib/react-query';
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { registerServiceWorker } from "./register-sw";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -17,3 +18,6 @@ createRoot(document.getElementById("root")!).render(
     </ErrorBoundary>
   </StrictMode>
 );
+
+// Register service worker
+registerServiceWorker();

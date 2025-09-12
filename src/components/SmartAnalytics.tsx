@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Brain, TrendingUp, AlertTriangle, Lightbulb, RefreshCw } from 'lucide-react';
 import { Loading } from '@/components/ui/loading';
+import { isPreview } from '@/lib/environment';
 
 interface AIAnalysis {
   insights: {

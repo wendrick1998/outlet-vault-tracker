@@ -81,7 +81,7 @@ export const CSVImporter = ({ onImportComplete, className }: CSVImporterProps) =
     link.download = 'modelo-importacao-inventario.csv';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
 
     toast({

@@ -204,7 +204,7 @@ export const CSVXLSXImportDialog = ({
     link.download = `erros-importacao-${batchId}.csv`;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -221,7 +221,7 @@ Samsung Galaxy S23 256GB Preto Usado,123456789012347,R58XXXXXXXX,78`;
     link.download = 'modelo-importacao-inventario.csv';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
   };
 
