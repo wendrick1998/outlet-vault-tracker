@@ -32,8 +32,8 @@ export const AdminUsersTab = () => {
                          (statusFilter === "active" && profile.is_active) ||
                          (statusFilter === "inactive" && !profile.is_active);
     const matchesCanWithdraw = canWithdrawFilter === "all" || 
-                              (canWithdrawFilter === "yes" && profile.can_withdraw) ||
-                              (canWithdrawFilter === "no" && !profile.can_withdraw);
+                              (canWithdrawFilter === "yes" && (profile as any).can_withdraw) ||
+                              (canWithdrawFilter === "no" && !(profile as any).can_withdraw);
     
     return matchesSearch && matchesRole && matchesStatus && matchesCanWithdraw;
   }) || [];
@@ -144,7 +144,7 @@ export const AdminUsersTab = () => {
                     </TableCell>
                     <TableCell>
                       <Switch 
-                        checked={profile.can_withdraw || false}
+                        checked={(profile as any).can_withdraw || false}
                         disabled
                       />
                     </TableCell>

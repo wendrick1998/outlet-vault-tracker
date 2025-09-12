@@ -331,6 +331,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bloqueado_ate: string | null
+          can_withdraw: boolean | null
           codigo_backup: string[] | null
           created_at: string
           email: string
@@ -354,6 +355,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bloqueado_ate?: string | null
+          can_withdraw?: boolean | null
           codigo_backup?: string[] | null
           created_at?: string
           email: string
@@ -377,6 +379,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bloqueado_ate?: string | null
+          can_withdraw?: boolean | null
           codigo_backup?: string[] | null
           created_at?: string
           email?: string
