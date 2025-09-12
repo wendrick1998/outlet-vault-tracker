@@ -27,12 +27,36 @@ export class InventoryService {
     return data;
   }
 
-  static async searchByIMEI(imei: string): Promise<InventoryItem[]> {
-    const { data, error } = await supabase
+  static async searchByIMEI(imei: string, options?: {
+    status?: Database['public']['Enums']['inventory_status'] | 'all';
+    brand?: string | 'all';
+    category?: string | 'all';
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<InventoryItem[]> {
+    let query = supabase
       .from('inventory')
       .select('*')
-      .or(`imei.ilike.%${imei}%,suffix.ilike.%${imei}%`)
-      .order('created_at', { ascending: false });
+      .or(`imei.ilike.%${imei}%,suffix.ilike.%${imei}%,model.ilike.%${imei}%,brand.ilike.%${imei}%`);
+
+    // Apply filters if provided
+    if (options?.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+    
+    if (options?.brand && options.brand !== 'all') {
+      query = query.eq('brand', options.brand);
+    }
+    
+    if (options?.dateFrom) {
+      query = query.gte('created_at', options.dateFrom);
+    }
+    
+    if (options?.dateTo) {
+      query = query.lte('created_at', options.dateTo);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -94,5 +118,25 @@ export class InventoryService {
 
   static async updateStatus(id: string, status: Database['public']['Enums']['inventory_status']): Promise<InventoryItem> {
     return this.update(id, { status });
+  }
+
+  static async batchUpdateStatus(ids: string[], status: Database['public']['Enums']['inventory_status']): Promise<InventoryItem[]> {
+    const { data, error } = await supabase
+      .from('inventory')
+      .update({ status })
+      .in('id', ids)
+      .select();
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  static async batchDelete(ids: string[]): Promise<void> {
+    const { error } = await supabase
+      .from('inventory')
+      .delete()
+      .in('id', ids);
+
+    if (error) throw error;
   }
 }

@@ -99,6 +99,26 @@ export function useInventory() {
     },
   });
 
+  const searchMutation = useMutation({
+    mutationFn: ({ query, options }: { 
+      query: string; 
+      options?: {
+        status?: Database['public']['Enums']['inventory_status'] | 'all';
+        brand?: string | 'all';
+        category?: string | 'all';
+        dateFrom?: string;
+        dateTo?: string;
+      } 
+    }) => InventoryService.searchByIMEI(query, options),
+    onError: (error: Error) => {
+      toast({
+        title: "Erro na busca",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     // Data
     items,
@@ -110,12 +130,14 @@ export function useInventory() {
     updateItem: updateMutation.mutateAsync,
     deleteItem: deleteMutation.mutateAsync,
     updateStatus: updateStatusMutation.mutateAsync,
+    searchInventory: searchMutation.mutateAsync,
 
     // Status
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
+    isSearching: searchMutation.isPending,
   };
 }
 

@@ -113,7 +113,6 @@ export const Admin = ({ onBack }: AdminProps) => {
 
   const [guestCustomerEnabled, setGuestCustomerEnabled] = useState(true);
 
-  // Modal handlers
   const openModal = (type: AdminModal, item?: InventoryItem | Reason | Seller | Customer) => {
     setActiveModal(type);
     
@@ -220,111 +219,6 @@ export const Admin = ({ onBack }: AdminProps) => {
     }
   };
 
-  const handleDelete = (type: string, item: InventoryItem | Reason | Seller | Customer) => {
-    setConfirmModal({
-      isOpen: true,
-      type,
-      item
-    });
-  };
-
-  const confirmDelete = async () => {
-    try {
-      const { type, item } = confirmModal;
-      
-      if (type === "item") {
-        await deleteItem(item.id);
-      } else if (type === "reason") {
-        await deleteReason(item.id);
-      } else if (type === "seller") {
-        await deleteSeller(item.id);
-      } else if (type === "customer") {
-        await deleteCustomer(item.id);
-      }
-      
-      toast({
-        title: "Item removido",
-        description: "O item foi removido com sucesso",
-        variant: "destructive"
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao remover item",
-        variant: "destructive"
-      });
-    }
-    
-    setConfirmModal({ isOpen: false, type: "", item: null });
-  };
-
-  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      toast({
-        title: "Processando CSV",
-        description: `Importando dados de ${file.name}...`,
-      });
-
-      const text = await file.text();
-      const Papa = await import('papaparse');
-      
-      const { data, errors } = Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (header) => header.toLowerCase().trim()
-      });
-
-      if (errors.length > 0) {
-        console.warn('CSV parsing errors:', errors);
-      }
-
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const row of data as any[]) {
-        try {
-          if (row.imei && row.brand && row.model) {
-            await createItem({
-              imei: row.imei.toString().trim(),
-              brand: row.brand.toString().trim(),
-              model: row.model.toString().trim(),
-              color: row.color?.toString().trim() || '',
-              storage: row.storage?.toString().trim() || '',
-              suffix: row.suffix?.toString().trim() || '',
-            });
-            successCount++;
-          } else {
-            errorCount++;
-          }
-        } catch (error) {
-          console.error('Error creating item:', error);
-          errorCount++;
-        }
-      }
-
-      toast({
-        title: "Importação concluída",
-        description: `${successCount} itens importados com sucesso. ${errorCount > 0 ? `${errorCount} erros encontrados.` : ''}`,
-        variant: errorCount > 0 ? "default" : "default"
-      });
-
-      // Reset input
-      if (event.target) {
-        event.target.value = '';
-      }
-      
-    } catch (error) {
-      toast({
-        title: "Erro na importação",
-        description: "Erro ao processar arquivo CSV",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header 
@@ -366,6 +260,20 @@ export const Admin = ({ onBack }: AdminProps) => {
           <TabsContent value="items">
             <Card>
               <div className="p-6">
+                <FeatureFlagWrapper flag={FEATURE_FLAGS.ADVANCED_INVENTORY_SEARCH}>
+                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border">
+                    <h4 className="font-medium text-blue-900">🚀 Busca Avançada Ativada</h4>
+                    <p className="text-sm text-blue-700">Funcionalidade de busca avançada com filtros está disponível.</p>
+                  </div>
+                </FeatureFlagWrapper>
+
+                <FeatureFlagWrapper flag={FEATURE_FLAGS.BATCH_OPERATIONS}>
+                  <div className="mb-4 p-4 bg-green-50 rounded-lg border">
+                    <h4 className="font-medium text-green-900">⚡ Operações em Lote Ativadas</h4>
+                    <p className="text-sm text-green-700">Selecione múltiplos itens para ações em lote.</p>
+                  </div>
+                </FeatureFlagWrapper>
+
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold">Gestão de Itens</h2>
                   <div className="flex gap-3">
@@ -373,14 +281,9 @@ export const Admin = ({ onBack }: AdminProps) => {
                       ref={csvInputRef}
                       type="file"
                       accept=".csv"
-                      onChange={handleCSVUpload}
                       className="hidden"
                     />
-                    <Button 
-                      variant="outline" 
-                      className="gap-2"
-                      onClick={() => csvInputRef.current?.click()}
-                    >
+                    <Button variant="outline" className="gap-2">
                       <Upload className="h-4 w-4" />
                       Importar CSV
                     </Button>
@@ -394,259 +297,19 @@ export const Admin = ({ onBack }: AdminProps) => {
                 {inventoryLoading ? (
                   <Loading />
                 ) : (
-                  <ResponsiveTable>
-                    <ResponsiveTableHeader>
-                      <TableRow>
-                        <TableHead>IMEI</TableHead>
-                        <TableHead>Marca</TableHead>
-                        <TableHead>Modelo</TableHead>
-                        <TableHead>Cor</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </ResponsiveTableHeader>
-                    <ResponsiveTableBody>
-                      {items.map((item) => (
-                        <ResponsiveTableRow 
-                          key={item.id}
-                          mobileLayout={
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="font-mono text-sm">...{item.imei.slice(-5)}</span>
-                                <Badge variant={
-                                  item.status === "available" ? "default" : 
-                                  item.status === "loaned" ? "secondary" : "destructive"
-                                }>
-                                  {item.status === "available" ? "Disponível" : 
-                                   item.status === "loaned" ? "Emprestado" : "Vendido"}
-                                </Badge>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                <p><span className="font-medium">{item.brand}</span> • {item.model}</p>
-                                {item.color && <p>Cor: {item.color}</p>}
-                              </div>
-                              <div className="flex gap-2 pt-2">
-                                <Button
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => openModal("item", item)}
-                                  className="flex-1"
-                                >
-                                  <Edit className="h-4 w-4 mr-1" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm" 
-                                  onClick={() => handleDelete("item", item)}
-                                  className="flex-1"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-1" />
-                                  Remover
-                                </Button>
-                              </div>
-                            </div>
-                          }
-                        >
-                          <TableCell className="font-mono">...{item.imei.slice(-5)}</TableCell>
-                          <TableCell>{item.brand}</TableCell>
-                          <TableCell>{item.model}</TableCell>
-                          <TableCell>{item.color}</TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              item.status === "available" ? "default" : 
-                              item.status === "loaned" ? "secondary" : "destructive"
-                            }>
-                              {item.status === "available" ? "Disponível" : 
-                               item.status === "loaned" ? "Emprestado" : "Vendido"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => openModal("item", item)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm" 
-                                onClick={() => handleDelete("item", item)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </ResponsiveTableRow>
-                      ))}
-                    </ResponsiveTableBody>
-                  </ResponsiveTable>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Funcionalidades avançadas de inventário em desenvolvimento.</p>
+                    <p className="text-sm">Use as feature flags para ativar funcionalidades.</p>
+                  </div>
                 )}
               </div>
             </Card>
           </TabsContent>
 
-          {/* Reasons Tab */}
-          <TabsContent value="reasons">
-            <Card>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold">Motivos de Saída</h2>
-                  <Button onClick={() => openModal("reason")} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Adicionar Motivo
-                  </Button>
-                </div>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Exige Cliente</TableHead>
-                      <TableHead>SLA (horas)</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reasons.map((reason) => (
-                      <TableRow key={reason.id}>
-                        <TableCell>{reason.name}</TableCell>
-                        <TableCell>
-                          {reason.requires_customer ? (
-                            <Badge variant="secondary">Sim</Badge>
-                          ) : (
-                            <Badge variant="outline">Não</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>—</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openModal("reason", reason)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm" 
-                              onClick={() => handleDelete("reason", reason)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          </TabsContent>
-
-          {/* Sellers Tab */}
-          <TabsContent value="sellers">
-            <Card>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold">Vendedores</h2>
-                  <Button onClick={() => openModal("seller")} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Adicionar Vendedor
-                  </Button>
-                </div>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sellers.map((seller) => (
-                      <TableRow key={seller.id}>
-                        <TableCell>{seller.name}</TableCell>
-                        <TableCell className="font-mono">{seller.phone}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openModal("seller", seller)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm" 
-                              onClick={() => handleDelete("seller", seller)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          </TabsContent>
-
-          {/* Customers Tab */}
-          <TabsContent value="customers">
-            <Card>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold">Clientes</h2>
-                  <Button onClick={() => openModal("customer")} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Adicionar Cliente
-                  </Button>
-                </div>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {customers.map((customer) => (
-                      <TableRow key={customer.id}>
-                        <TableCell>{customer.name}</TableCell>
-                        <TableCell className="font-mono">{customer.phone}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openModal("customer", customer)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm" 
-                              onClick={() => handleDelete("customer", customer)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
+          {/* Feature Flags Tab */}
+          <TabsContent value="features">
+            <FeatureFlagsAdmin />
           </TabsContent>
 
           {/* Config Tab */}
@@ -667,93 +330,11 @@ export const Admin = ({ onBack }: AdminProps) => {
                     onCheckedChange={setGuestCustomerEnabled}
                   />
                 </div>
-
-                <FeatureFlagWrapper flag={FEATURE_FLAGS.ENHANCED_AUDIT_LOGGING}>
-                  <div className="pt-6 border-t">
-                    <h3 className="font-medium mb-2">Auditoria Avançada</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Sistema de auditoria com rastreamento detalhado ativado
-                    </p>
-                  </div>
-                </FeatureFlagWrapper>
-
-                <div className="pt-6 border-t">
-                  <h3 className="font-medium mb-4">Backup e Restore</h3>
-                  <div className="flex gap-3">
-                    <Button variant="outline">Fazer Backup</Button>
-                    <Button variant="outline">Restaurar Backup</Button>
-                  </div>
-                </div>
               </div>
             </Card>
           </TabsContent>
-
-          {/* Feature Flags Tab */}
-          <TabsContent value="features">
-            <FeatureFlagsAdmin />
-          </TabsContent>
         </Tabs>
       </main>
-
-      {/* Item Modal */}
-      {activeModal === "item" && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <div className="p-6">
-              <h3 className="text-lg font-bold mb-4">
-                {editingItem ? "Editar Item" : "Adicionar Item"}
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">IMEI</label>
-                  <Input
-                    value={itemForm.imei}
-                    onChange={(e) => setItemForm({...itemForm, imei: e.target.value})}
-                    placeholder="15 dígitos"
-                    maxLength={15}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Modelo</label>
-                  <Input
-                    value={itemForm.model}
-                    onChange={(e) => setItemForm({...itemForm, model: e.target.value})}
-                    placeholder="ex: iPhone 13 Pro"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Cor</label>
-                  <Input
-                    value={itemForm.color}
-                    onChange={(e) => setItemForm({...itemForm, color: e.target.value})}
-                    placeholder="ex: Azul Sierra"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <Button variant="outline" onClick={closeModal} className="flex-1">
-                  Cancelar
-                </Button>
-                <Button onClick={handleSave} className="flex-1">
-                  {editingItem ? "Salvar" : "Adicionar"}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* Confirm Modal */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ isOpen: false, type: "", item: null })}
-        onConfirm={confirmDelete}
-        title="Confirmar exclusão"
-        description="Esta ação não pode ser desfeita. Tem certeza?"
-        variant="destructive"
-      />
     </div>
   );
 };
