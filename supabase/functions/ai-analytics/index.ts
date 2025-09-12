@@ -7,6 +7,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Simple rate limiting store
+const rateLimitStore = new Map();
+
+const checkRateLimit = (userId: string, ip: string) => {
+  const key = `${userId || ip}`;
+  const now = Date.now();
+  const windowMs = 60000; // 1 minute
+  const maxRequests = 5;
+  
+  if (!rateLimitStore.has(key)) {
+    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true, resetTime: now + windowMs };
+  }
+  
+  const record = rateLimitStore.get(key);
+  
+  if (now > record.resetTime) {
+    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true, resetTime: now + windowMs };
+  }
+  
+  if (record.count >= maxRequests) {
+    return { allowed: false, resetTime: record.resetTime };
+  }
+  
+  record.count++;
+  return { allowed: true, resetTime: record.resetTime };
+};
+
 const generateRequestId = () => crypto.randomUUID();
 
 const supabase = createClient(
@@ -19,9 +48,34 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = generateRequestId();
+  
   try {
-    const requestId = generateRequestId();
     const { type = 'general', period = '7d' } = await req.json();
+    
+    // Rate limiting
+    const userId = req.headers.get('authorization')?.replace('Bearer ', '') || '';
+    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimit = checkRateLimit(userId, ip);
+    
+    if (!rateLimit.allowed) {
+      const retryAfter = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
+      console.log(`AI Analytics [${requestId}]: Rate limited - retry after ${retryAfter}s`);
+      
+      return new Response(JSON.stringify({
+        status: 'rate_limited',
+        message: `Muitas solicitações. Tente novamente em ${retryAfter}s`,
+        requestId,
+        retryAfter
+      }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Retry-After': retryAfter.toString()
+        }
+      });
+    }
     
     console.log(`AI Analytics [${requestId}]: ${type} analysis for ${period}`);
     

@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAI } from '@/hooks/useAI';
+import { isPreview } from '@/lib/environment';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -44,10 +45,14 @@ interface StockAnalysis {
 export function StockIntelligence({ className }: StockIntelligenceProps) {
   const [analysis, setAnalysis] = useState<StockAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [retryAfter, setRetryAfter] = useState<number>(0);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const { executeAIAction, isLoading } = useAI();
   const { toast } = useToast();
 
   const loadStockAnalysis = async (analysisType = 'stock_analysis') => {
+    if (isRateLimited) return;
+    
     try {
       const result = await executeAIAction({
         type: 'predict',
@@ -59,6 +64,8 @@ export function StockIntelligence({ className }: StockIntelligenceProps) {
 
       if (result.success && result.data?.predictions) {
         setAnalysis(result.data.predictions);
+        setIsRateLimited(false);
+        setRetryAfter(0);
         
         // Show high-impact alerts
         const highImpactAlerts = result.data.predictions.predictions?.filter(
@@ -72,19 +79,42 @@ export function StockIntelligence({ className }: StockIntelligenceProps) {
             variant: "destructive",
           });
         }
+      } else if (result.error?.includes('Muitas solicitações')) {
+        const retrySeconds = parseInt(result.error.match(/\d+/)?.[0] || '30');
+        setIsRateLimited(true);
+        setRetryAfter(retrySeconds);
+        
+        // Auto-retry after the specified time
+        setTimeout(() => {
+          setIsRateLimited(false);
+          setRetryAfter(0);
+        }, retrySeconds * 1000);
       }
     } catch (error) {
       console.error('Error loading stock analysis:', error);
-      toast({
-        title: "Erro na análise",
-        description: "Não foi possível carregar a análise de estoque",
-        variant: "destructive",
-      });
+      if (error instanceof Error && error.message.includes('Muitas solicitações')) {
+        setIsRateLimited(true);
+        const retrySeconds = parseInt(error.message.match(/\d+/)?.[0] || '30');
+        setRetryAfter(retrySeconds);
+        setTimeout(() => {
+          setIsRateLimited(false);
+          setRetryAfter(0);
+        }, retrySeconds * 1000);
+      } else {
+        toast({
+          title: "Erro na análise",
+          description: "Não foi possível carregar a análise de estoque",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   useEffect(() => {
-    loadStockAnalysis();
+    // Don't auto-load in preview to avoid rate limiting
+    if (!isPreview) {
+      loadStockAnalysis();
+    }
   }, []);
 
   const getImpactColor = (impact: string) => {
@@ -115,12 +145,38 @@ export function StockIntelligence({ className }: StockIntelligenceProps) {
       <Card className={className}>
         <CardContent className="flex flex-col items-center justify-center p-8">
           <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground text-center">
-            Nenhuma análise disponível no momento
-          </p>
-          <Button onClick={() => loadStockAnalysis()} className="mt-4">
-            Carregar Análise
-          </Button>
+          {isPreview ? (
+            <div className="text-center">
+              <p className="text-muted-foreground mb-2">
+                Análise de IA indisponível no preview
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Funcionalidade disponível apenas em produção
+              </p>
+            </div>
+          ) : isRateLimited ? (
+            <div className="text-center">
+              <p className="text-muted-foreground mb-2">
+                Muitas solicitações. Tente novamente em {retryAfter}s
+              </p>
+              <Button 
+                onClick={() => loadStockAnalysis()} 
+                disabled={retryAfter > 0}
+                className="mt-4"
+              >
+                {retryAfter > 0 ? `Aguarde ${retryAfter}s` : 'Tentar Novamente'}
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-muted-foreground text-center mb-4">
+                Nenhuma análise disponível no momento
+              </p>
+              <Button onClick={() => loadStockAnalysis()} className="mt-4">
+                Carregar Análise
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -144,10 +200,15 @@ export function StockIntelligence({ className }: StockIntelligenceProps) {
               size="sm" 
               variant="outline" 
               onClick={() => loadStockAnalysis()}
-              disabled={isLoading}
+              disabled={isLoading || isRateLimited}
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
+            {isRateLimited && (
+              <Badge variant="destructive">
+                Aguarde {retryAfter}s
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>

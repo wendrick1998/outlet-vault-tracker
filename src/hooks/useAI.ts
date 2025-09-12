@@ -89,6 +89,12 @@ export function useAI() {
       }
 
       if (response.error) {
+        // Handle rate limiting gracefully
+        if (response.status === 429) {
+          const errorData = response.error;
+          const retryAfter = errorData?.retryAfter || '30';
+          throw new Error(`Muitas solicitações. Tente novamente em ${retryAfter}s`);
+        }
         throw new Error(response.error.message || 'AI action failed');
       }
 
@@ -102,11 +108,14 @@ export function useAI() {
       console.error('AI action failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'AI action failed';
       
-      toast({
-        title: "Erro na IA",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Don't show toast for rate limiting - component will handle it
+      if (!errorMessage.includes('Muitas solicitações')) {
+        toast({
+          title: "Erro na IA",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
 
       return {
         success: false,
