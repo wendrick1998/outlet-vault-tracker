@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Edit, Trash, Phone, Mail, MapPin, CreditCard } from "lucide-react";
+import { Plus, Search, Edit, Trash, Phone, Mail, MapPin, CreditCard, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,17 @@ export const AdminCustomersTab = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [isClearTestModalOpen, setIsClearTestModalOpen] = useState(false);
 
   const { toast } = useToast();
-  const { customers = [], isLoading, deleteCustomer, isDeleting } = useCustomers();
+  const { 
+    customers = [], 
+    isLoading, 
+    deleteCustomer, 
+    isDeleting,
+    clearTestData,
+    isClearingTestData 
+  } = useCustomers();
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,6 +69,15 @@ export const AdminCustomersTab = () => {
     });
   };
 
+  const handleClearTestData = () => {
+    setIsClearTestModalOpen(true);
+  };
+
+  const confirmClearTestData = () => {
+    clearTestData();
+    setIsClearTestModalOpen(false);
+  };
+
   const formatCPF = (cpf: string | null) => {
     if (!cpf || cpf.length !== 11) return cpf;
     return `${cpf.slice(0,3)}.${cpf.slice(3,6)}.${cpf.slice(6,9)}-${cpf.slice(9)}`;
@@ -85,16 +102,27 @@ export const AdminCustomersTab = () => {
               Cadastre e gerencie clientes para empréstimos
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setSelectedCustomer(null);
-              setIsFormOpen(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Novo Cliente
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleClearTestData}
+              className="gap-2 text-destructive hover:text-destructive"
+              disabled={isClearingTestData}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              {isClearingTestData ? "Limpando..." : "Limpar Dados de Teste"}
+            </Button>
+            <Button
+              onClick={() => {
+                setSelectedCustomer(null);
+                setIsFormOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Novo Cliente
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
@@ -207,6 +235,17 @@ export const AdminCustomersTab = () => {
         title="Deletar Cliente"
         description={`Tem certeza que deseja deletar ${customerToDelete?.name}? Esta ação não pode ser desfeita.`}
         confirmText="Deletar"
+        variant="destructive"
+      />
+
+      {/* Clear Test Data Confirmation */}
+      <ConfirmModal
+        isOpen={isClearTestModalOpen}
+        onClose={() => setIsClearTestModalOpen(false)}
+        onConfirm={confirmClearTestData}
+        title="Limpar Dados de Teste"
+        description="Esta ação irá remover todos os clientes de teste que não possuem empréstimos ativos. Clientes com empréstimos serão preservados. Esta ação não pode ser desfeita."
+        confirmText="Limpar Dados"
         variant="destructive"
       />
     </div>

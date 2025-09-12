@@ -125,6 +125,31 @@ export function useCustomers() {
     },
   });
 
+  const clearTestDataMutation = useMutation({
+    mutationFn: CustomerService.clearTestData,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      
+      let message = `${result.deleted} clientes removidos`;
+      if (result.skipped > 0) {
+        message += `, ${result.skipped} mantidos (com empréstimos ativos)`;
+      }
+      
+      toast({
+        title: "Limpeza concluída",
+        description: message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao limpar dados de teste",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     // Data
     customers,
@@ -137,6 +162,7 @@ export function useCustomers() {
     deleteCustomer: deleteMutation.mutateAsync,
     registerCustomer: registerMutation.mutateAsync,
     unregisterCustomer: unregisterMutation.mutateAsync,
+    clearTestData: clearTestDataMutation.mutateAsync,
 
     // Status
     isCreating: createMutation.isPending,
@@ -144,6 +170,7 @@ export function useCustomers() {
     isDeleting: deleteMutation.isPending,
     isRegistering: registerMutation.isPending,
     isUnregistering: unregisterMutation.isPending,
+    isClearingTestData: clearTestDataMutation.isPending,
   };
 }
 

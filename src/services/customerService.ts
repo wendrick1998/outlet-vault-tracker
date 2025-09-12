@@ -110,4 +110,76 @@ export class CustomerService {
   static async unregister(id: string): Promise<Customer> {
     return this.update(id, { is_registered: false });
   }
+
+  static async clearTestData(): Promise<{
+    deleted: number;
+    skipped: number;
+    errors: string[];
+  }> {
+    const result = {
+      deleted: 0,
+      skipped: 0,
+      errors: [] as string[]
+    };
+
+    try {
+      // Verificar quais clientes têm empréstimos ativos
+      const { data: activeLoans, error: loansError } = await supabase
+        .from('loans')
+        .select('customer_id')
+        .eq('status', 'active');
+
+      if (loansError) {
+        result.errors.push(`Erro ao verificar empréstimos: ${loansError.message}`);
+        return result;
+      }
+
+      const customerIdsWithActiveLoans = new Set(
+        activeLoans?.map(loan => loan.customer_id).filter(Boolean) || []
+      );
+
+      // Buscar todos os clientes criados antes de hoje (dados de teste)
+      const { data: testCustomers, error: customersError } = await supabase
+        .from('customers')
+        .select('*')
+        .lt('created_at', new Date().toISOString().split('T')[0] + 'T23:59:59.999Z');
+
+      if (customersError) {
+        result.errors.push(`Erro ao buscar clientes: ${customersError.message}`);
+        return result;
+      }
+
+      if (!testCustomers || testCustomers.length === 0) {
+        return result;
+      }
+
+      // Separar clientes que podem ser deletados dos que não podem
+      const customersToDelete = testCustomers.filter(
+        customer => !customerIdsWithActiveLoans.has(customer.id)
+      );
+      
+      result.skipped = testCustomers.length - customersToDelete.length;
+
+      // Deletar clientes que não têm empréstimos ativos
+      if (customersToDelete.length > 0) {
+        const customerIds = customersToDelete.map(c => c.id);
+        
+        const { error: deleteError } = await supabase
+          .from('customers')
+          .delete()
+          .in('id', customerIds);
+
+        if (deleteError) {
+          result.errors.push(`Erro ao deletar clientes: ${deleteError.message}`);
+        } else {
+          result.deleted = customersToDelete.length;
+        }
+      }
+
+      return result;
+    } catch (error) {
+      result.errors.push(`Erro inesperado: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      return result;
+    }
+  }
 }
