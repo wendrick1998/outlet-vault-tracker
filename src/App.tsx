@@ -15,6 +15,7 @@ import { Settings } from "./pages/Settings";
 import { InventoryConferencePage } from "./pages/InventoryConferencePage";
 import { ConferenceReport } from "./pages/ConferenceReport";
 import HistoricalAudits from "@/pages/HistoricalAudits";
+import SystemMonitoring from "@/pages/SystemMonitoring";
 
 // Lazy load heavy pages for better performance
 const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
@@ -184,6 +185,13 @@ const AppContent = () => {
       <Route path="/historical-audits" element={
         <AppLayout>
           <HistoricalAudits />
+        </AppLayout>
+      } />
+      
+      
+      <Route path="/system-monitoring" element={
+        <AppLayout>
+          <SystemMonitoring />
         </AppLayout>
       } />
       

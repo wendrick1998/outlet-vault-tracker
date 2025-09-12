@@ -1238,12 +1238,20 @@ export type Database = {
         Args: { user_id: string }
         Returns: undefined
       }
+      get_audit_performance_metrics: {
+        Args: { audit_id: string }
+        Returns: Json
+      }
       get_customer_data_safe: {
         Args: { customer_id: string }
         Returns: Json
       }
       get_customer_safe: {
         Args: { customer_id: string }
+        Returns: Json
+      }
+      get_security_status: {
+        Args: Record<PropertyKey, never>
         Returns: Json
       }
       get_seller_safe: {
@@ -1261,26 +1269,6 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
-      }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
       }
       has_role: {
         Args: {
@@ -1325,18 +1313,6 @@ export type Database = {
       secure_get_system_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
       }
       user_has_permission: {
         Args: {

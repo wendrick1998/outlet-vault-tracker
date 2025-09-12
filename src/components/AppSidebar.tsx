@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Store,
   CheckSquare,
-  TrendingUp
+  TrendingUp,
+  Activity
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -77,6 +78,12 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
       title: "Histórico Conferências", 
       page: "historical-audits", 
       icon: TrendingUp, 
+      available: true 
+    },
+    { 
+      title: "Monitoramento", 
+      page: "system-monitoring", 
+      icon: Activity, 
       available: true 
     },
     { 
