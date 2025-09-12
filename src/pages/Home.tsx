@@ -145,28 +145,28 @@ export const Home = ({ onNavigate }: HomeProps) => {
             <>
               <StatsCard
                 title="Itens fora agora"
-                value={systemStats.loans.active}
+                value={systemStats.loans?.active || (systemStats as any).active_loans || 0}
                 icon={Clock}
-                variant={systemStats.loans.active > 0 ? "warning" : "default"}
+                variant={(systemStats.loans?.active || (systemStats as any).active_loans || 0) > 0 ? "warning" : "default"}
               />
               
               <StatsCard
                 title="Total de itens"
-                value={systemStats.inventory.total}
+                value={systemStats.inventory?.total || (systemStats as any).total_items || 0}
                 icon={Package}
                 variant="default"
               />
 
               <StatsCard
                 title="Itens em atraso"
-                value={systemStats.loans.overdue}
+                value={systemStats.loans?.overdue || 0}
                 icon={AlertTriangle}
-                variant={systemStats.loans.overdue > 0 ? "destructive" : "success"}
+                variant={(systemStats.loans?.overdue || 0) > 0 ? "destructive" : "success"}
               />
 
               <StatsCard
                 title="Disponíveis"
-                value={systemStats.inventory.available}
+                value={systemStats.inventory?.available || 0}
                 icon={Package}
                 variant="success"
               />

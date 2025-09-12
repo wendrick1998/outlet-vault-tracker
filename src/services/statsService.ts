@@ -31,7 +31,32 @@ export class StatsService {
     if (error) throw error;
     if (!data) throw new Error('No data returned from get_system_stats');
     
-    return data as unknown as SystemStats;
+    // Transform flat RPC response to expected nested structure
+    const flatData = data as any;
+    
+    return {
+      inventory: {
+        total: flatData.total_items || 0,
+        available: 0, // Not provided by RPC, would need separate query
+        loaned: flatData.active_loans || 0,
+        utilizationRate: 0,
+      },
+      loans: {
+        active: flatData.active_loans || 0,
+        overdue: 0, // Not provided by RPC, would need separate query
+        overdueRate: 0,
+        avgDurationDays: 0,
+      },
+      customers: {
+        total: flatData.total_customers || 0,
+        registered: 0,
+        registrationRate: 0,
+      },
+      sellers: {
+        total: flatData.total_sellers || 0,
+        active: 0,
+      },
+    };
   }
 
   static async getInventoryStats() {
