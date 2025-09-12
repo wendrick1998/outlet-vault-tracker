@@ -35,6 +35,11 @@ import { itemSchema, reasonSchema, sellerSchema, customerSchema } from "@/lib/va
 import { FeatureFlagsAdmin } from "@/components/FeatureFlagsAdmin";
 import { FeatureFlagWrapper } from "@/components/ui/feature-flag";
 import { FEATURE_FLAGS } from "@/lib/features";
+import { AdvancedSearch } from "@/components/AdvancedSearch";
+import { BatchOperations } from "@/components/BatchOperations";
+import { InventoryCategories } from "@/components/InventoryCategories";
+import { RoleManagement } from "@/components/RoleManagement";
+import { PermissionGuard, SystemFeaturesGuard } from "@/components/PermissionGuard";
 
 interface AdminProps {
   onBack: () => void;
@@ -229,7 +234,7 @@ export const Admin = ({ onBack }: AdminProps) => {
       
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="items" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="items" className="gap-2">
               <Package className="h-4 w-4" />
               Itens
@@ -246,70 +251,102 @@ export const Admin = ({ onBack }: AdminProps) => {
               <Users className="h-4 w-4" />
               Clientes
             </TabsTrigger>
+            <FeatureFlagWrapper flag={FEATURE_FLAGS.GRANULAR_PERMISSIONS}>
+              <TabsTrigger value="roles" className="gap-2">
+                <Users className="h-4 w-4" />
+                Papéis
+              </TabsTrigger>
+            </FeatureFlagWrapper>
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
               Config
             </TabsTrigger>
-            <TabsTrigger value="features" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Features
-            </TabsTrigger>
+            <SystemFeaturesGuard>
+              <TabsTrigger value="features" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Features
+              </TabsTrigger>
+            </SystemFeaturesGuard>
           </TabsList>
 
           {/* Items Tab */}
           <TabsContent value="items">
-            <Card>
-              <div className="p-6">
-                <FeatureFlagWrapper flag={FEATURE_FLAGS.ADVANCED_INVENTORY_SEARCH}>
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border">
-                    <h4 className="font-medium text-blue-900">🚀 Busca Avançada Ativada</h4>
-                    <p className="text-sm text-blue-700">Funcionalidade de busca avançada com filtros está disponível.</p>
+            <div className="space-y-6">
+              {/* Advanced Search */}
+              <AdvancedSearch onResults={(results) => console.log('Search results:', results)} />
+              
+              {/* Batch Operations */}
+              <BatchOperations items={items} onRefresh={() => window.location.reload()} />
+              
+              {/* Inventory Categories */}
+              <InventoryCategories />
+              
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold">Gestão de Itens</h2>
+                    <div className="flex gap-3">
+                      <input
+                        ref={csvInputRef}
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                      />
+                      <PermissionGuard permission="inventory.create">
+                        <Button variant="outline" className="gap-2">
+                          <Upload className="h-4 w-4" />
+                          Importar CSV
+                        </Button>
+                      </PermissionGuard>
+                      <PermissionGuard permission="inventory.create">
+                        <Button onClick={() => openModal("item")} className="gap-2">
+                          <Plus className="h-4 w-4" />
+                          Adicionar Item
+                        </Button>
+                      </PermissionGuard>
+                    </div>
                   </div>
-                </FeatureFlagWrapper>
 
-                <FeatureFlagWrapper flag={FEATURE_FLAGS.BATCH_OPERATIONS}>
-                  <div className="mb-4 p-4 bg-green-50 rounded-lg border">
-                    <h4 className="font-medium text-green-900">⚡ Operações em Lote Ativadas</h4>
-                    <p className="text-sm text-green-700">Selecione múltiplos itens para ações em lote.</p>
-                  </div>
-                </FeatureFlagWrapper>
-
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold">Gestão de Itens</h2>
-                  <div className="flex gap-3">
-                    <input
-                      ref={csvInputRef}
-                      type="file"
-                      accept=".csv"
-                      className="hidden"
-                    />
-                    <Button variant="outline" className="gap-2">
-                      <Upload className="h-4 w-4" />
-                      Importar CSV
-                    </Button>
-                    <Button onClick={() => openModal("item")} className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Adicionar Item
-                    </Button>
-                  </div>
+                  {inventoryLoading ? (
+                    <Loading />
+                  ) : (
+                    <div className="space-y-2">
+                      {items.map((item) => (
+                        <Card key={item.id} className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-mono text-sm">...{item.imei.slice(-5)}</span>
+                              <span className="ml-3 font-medium">{item.brand} {item.model}</span>
+                            </div>
+                            <Badge variant={
+                              item.status === "available" ? "default" : 
+                              item.status === "loaned" ? "secondary" : "destructive"
+                            }>
+                              {item.status === "available" ? "Disponível" : 
+                               item.status === "loaned" ? "Emprestado" : "Vendido"}
+                            </Badge>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {inventoryLoading ? (
-                  <Loading />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Funcionalidades avançadas de inventário em desenvolvimento.</p>
-                    <p className="text-sm">Use as feature flags para ativar funcionalidades.</p>
-                  </div>
-                )}
-              </div>
-            </Card>
+              </Card>
+            </div>
           </TabsContent>
+
+          {/* Roles Tab */}
+          <FeatureFlagWrapper flag={FEATURE_FLAGS.GRANULAR_PERMISSIONS}>
+            <TabsContent value="roles">
+              <RoleManagement />
+            </TabsContent>
+          </FeatureFlagWrapper>
 
           {/* Feature Flags Tab */}
           <TabsContent value="features">
-            <FeatureFlagsAdmin />
+            <SystemFeaturesGuard>
+              <FeatureFlagsAdmin />
+            </SystemFeaturesGuard>
           </TabsContent>
 
           {/* Config Tab */}
