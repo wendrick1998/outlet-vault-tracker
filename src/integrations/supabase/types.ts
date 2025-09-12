@@ -303,6 +303,30 @@ export type Database = {
           },
         ]
       }
+      password_security_events: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -559,6 +583,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: undefined
       }
+      get_customer_data_safe: {
+        Args: { customer_id: string }
+        Returns: Json
+      }
       get_customer_safe: {
         Args: { customer_id: string }
         Returns: Json
@@ -601,6 +629,10 @@ export type Database = {
           p_record_id?: string
           p_table_name?: string
         }
+        Returns: undefined
+      }
+      log_password_security_event: {
+        Args: { p_details?: Json; p_event_type: string; p_user_id: string }
         Returns: undefined
       }
       log_sensitive_access: {
