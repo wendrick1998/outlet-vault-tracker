@@ -500,6 +500,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      secure_get_system_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       validate_password_strength: {
         Args: { password: string }
         Returns: Json
