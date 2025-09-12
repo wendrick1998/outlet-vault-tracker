@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useInventory } from "@/hooks/useInventory";
+import { useDevicesAdmin } from "@/hooks/useDevicesAdmin";
 import { Loading } from "@/components/ui/loading";
 
 export const AdminDevicesTab = () => {
@@ -21,20 +21,20 @@ export const AdminDevicesTab = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
 
-  const { items, isLoading } = useInventory();
+  const { devices: items, isLoading, deleteDevice, isDeleting } = useDevicesAdmin();
 
-  const filteredItems = items?.filter(item => {
-    const matchesSearch = item.imei.includes(searchTerm) ||
-                         item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.model.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.imei?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.model?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBrand = brandFilter === "all" || item.brand === brandFilter;
     const matchesStatus = statusFilter === "all" || item.status === statusFilter;
-    const matchesCondition = conditionFilter === "all" || (item as any).condition === conditionFilter;
+    const matchesCondition = conditionFilter === "all" || item.condition === conditionFilter;
     
     return matchesSearch && matchesBrand && matchesStatus && matchesCondition;
-  }) || [];
+  });
 
-  const uniqueBrands = [...new Set(items?.map(item => item.brand) || [])];
+  const uniqueBrands = [...new Set(items.map(item => item.brand).filter(Boolean))];
 
   if (isLoading) {
     return <Loading />;
@@ -143,21 +143,18 @@ export const AdminDevicesTab = () => {
                       {item.brand} {item.model}
                     </TableCell>
                     <TableCell>{item.color || '-'}</TableCell>
-                    <TableCell>{item.storage || '-'}</TableCell>
+                    <TableCell>{item.storage || 'N/A'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {(item as any).condition || 'Novo'}
-                      </Badge>
+                      <Badge variant="outline">{item.condition || 'novo'}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={
-                        item.status === "available" ? "default" : 
-                        item.status === "loaned" ? "secondary" : 
-                        item.status === "sold" ? "outline" : "destructive"
-                      }>
-                        {item.status === "available" ? "Disponível" : 
-                         item.status === "loaned" ? "Emprestado" : 
-                         item.status === "sold" ? "Vendido" : "Danificado"}
+                      <Badge 
+                        variant={item.status === 'available' ? 'default' : 
+                               item.status === 'loaned' ? 'secondary' : 'destructive'}
+                      >
+                        {item.status === 'available' ? 'Disponível' :
+                         item.status === 'loaned' ? 'Emprestado' : 
+                         item.status === 'sold' ? 'Vendido' : item.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -165,7 +162,12 @@ export const AdminDevicesTab = () => {
                         <Button variant="outline" size="sm">
                           Editar
                         </Button>
-                        <Button variant="destructive" size="sm">
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => deleteDevice(item.id)}
+                          disabled={isDeleting}
+                        >
                           Remover
                         </Button>
                       </div>

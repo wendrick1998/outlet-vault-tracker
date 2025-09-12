@@ -12,37 +12,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-// Mock data for now - will be replaced with real hook
-const mockModels = [
-  {
-    id: '1',
-    brand: 'Apple',
-    model: 'iPhone 15',
-    variant: 'Pro Max',
-    storages: [128, 256, 512, 1024],
-    colors: ['Natural Titanium', 'Blue Titanium', 'White Titanium', 'Black Titanium'],
-    is_active: true,
-    created_at: '2024-01-15'
-  },
-  {
-    id: '2',
-    brand: 'Samsung',
-    model: 'Galaxy S24',
-    variant: 'Ultra',
-    storages: [256, 512, 1024],
-    colors: ['Titanium Black', 'Titanium Gray', 'Titanium Violet', 'Titanium Yellow'],
-    is_active: true,
-    created_at: '2024-02-01'
-  }
-];
+import { useDeviceModelsAdmin } from "@/hooks/useDeviceModelsAdmin";
+import { Loading } from "@/components/ui/loading";
 
 export const AdminModelsTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const filteredModels = mockModels.filter(model => {
+  const { models, isLoading, toggleModelStatus, isUpdating } = useDeviceModelsAdmin();
+
+  const filteredModels = models.filter(model => {
     const matchesSearch = model.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          model.model.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBrand = brandFilter === "all" || model.brand === brandFilter;
@@ -53,7 +33,11 @@ export const AdminModelsTab = () => {
     return matchesSearch && matchesBrand && matchesStatus;
   });
 
-  const uniqueBrands = [...new Set(mockModels.map(model => model.brand))];
+  const uniqueBrands = [...new Set(models.map(model => model.brand))];
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <Card>
@@ -136,24 +120,27 @@ export const AdminModelsTab = () => {
                     <TableCell>{model.variant || '-'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {model.storages.map(storage => (
+                        {model.supported_storage?.map(storage => (
                           <Badge key={storage} variant="outline" className="text-xs">
                             {storage}GB
                           </Badge>
-                        ))}
+                        )) || <span className="text-muted-foreground">N/A</span>}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {model.colors.slice(0, 3).map(color => (
+                        {model.available_colors?.slice(0, 3).map(color => (
                           <Badge key={color} variant="secondary" className="text-xs">
                             {color}
                           </Badge>
                         ))}
-                        {model.colors.length > 3 && (
+                        {(model.available_colors?.length || 0) > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{model.colors.length - 3}
+                            +{(model.available_colors?.length || 0) - 3}
                           </Badge>
+                        )}
+                        {(!model.available_colors || model.available_colors.length === 0) && (
+                          <span className="text-muted-foreground">N/A</span>
                         )}
                       </div>
                     </TableCell>
@@ -170,6 +157,8 @@ export const AdminModelsTab = () => {
                         <Button 
                           variant={model.is_active ? "destructive" : "default"} 
                           size="sm"
+                          onClick={() => toggleModelStatus(model.id, model.is_active)}
+                          disabled={isUpdating}
                         >
                           {model.is_active ? 'Desativar' : 'Ativar'}
                         </Button>

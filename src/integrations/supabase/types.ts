@@ -129,10 +129,50 @@ export type Database = {
         }
         Relationships: []
       }
+      device_models: {
+        Row: {
+          available_colors: string[] | null
+          brand: string
+          created_at: string
+          id: string
+          is_active: boolean
+          model: string
+          notes: string | null
+          supported_storage: number[] | null
+          updated_at: string
+          variant: string | null
+        }
+        Insert: {
+          available_colors?: string[] | null
+          brand: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model: string
+          notes?: string | null
+          supported_storage?: number[] | null
+          updated_at?: string
+          variant?: string | null
+        }
+        Update: {
+          available_colors?: string[] | null
+          brand?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model?: string
+          notes?: string | null
+          supported_storage?: number[] | null
+          updated_at?: string
+          variant?: string | null
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           brand: string
           color: string | null
+          condition: string | null
           created_at: string
           id: string
           imei: string
@@ -146,6 +186,7 @@ export type Database = {
         Insert: {
           brand: string
           color?: string | null
+          condition?: string | null
           created_at?: string
           id?: string
           imei: string
@@ -159,6 +200,7 @@ export type Database = {
         Update: {
           brand?: string
           color?: string | null
+          condition?: string | null
           created_at?: string
           id?: string
           imei?: string
