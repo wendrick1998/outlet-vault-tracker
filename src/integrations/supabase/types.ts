@@ -445,6 +445,219 @@ export type Database = {
           },
         ]
       }
+      inventory_audit_missing: {
+        Row: {
+          audit_id: string
+          created_at: string
+          id: string
+          item_id: string
+          reason: string | null
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+          reason?: string | null
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_audit_missing_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_missing_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_audit_scans: {
+        Row: {
+          audit_id: string
+          created_at: string
+          id: string
+          imei: string | null
+          item_id: string | null
+          raw_code: string
+          scan_result: string
+          serial: string | null
+          timestamp: string
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string
+          id?: string
+          imei?: string | null
+          item_id?: string | null
+          raw_code: string
+          scan_result: string
+          serial?: string | null
+          timestamp?: string
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string
+          id?: string
+          imei?: string | null
+          item_id?: string | null
+          raw_code?: string
+          scan_result?: string
+          serial?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_audit_scans_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_scans_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_audit_tasks: {
+        Row: {
+          assigned_to: string | null
+          audit_id: string
+          created_at: string
+          description: string | null
+          id: string
+          imei: string | null
+          item_id: string | null
+          priority: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          task_type: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          audit_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          imei?: string | null
+          item_id?: string | null
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          task_type: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          audit_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          imei?: string | null
+          item_id?: string | null
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          task_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_audit_tasks_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_tasks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_audits: {
+        Row: {
+          created_at: string
+          duplicate_count: number
+          filters: Json | null
+          finished_at: string | null
+          found_count: number
+          id: string
+          incongruent_count: number
+          location: string
+          missing_count: number
+          notes: string | null
+          snapshot_count: number
+          started_at: string
+          status: string
+          unexpected_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duplicate_count?: number
+          filters?: Json | null
+          finished_at?: string | null
+          found_count?: number
+          id?: string
+          incongruent_count?: number
+          location: string
+          missing_count?: number
+          notes?: string | null
+          snapshot_count?: number
+          started_at?: string
+          status?: string
+          unexpected_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duplicate_count?: number
+          filters?: Json | null
+          finished_at?: string | null
+          found_count?: number
+          id?: string
+          incongruent_count?: number
+          location?: string
+          missing_count?: number
+          notes?: string | null
+          snapshot_count?: number
+          started_at?: string
+          status?: string
+          unexpected_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       item_notes: {
         Row: {
           created_at: string
@@ -1094,6 +1307,10 @@ export type Database = {
           required_permission: Database["public"]["Enums"]["permission"]
           user_id: string
         }
+        Returns: boolean
+      }
+      validate_imei: {
+        Args: { imei_code: string }
         Returns: boolean
       }
       validate_password_security: {

@@ -66,6 +66,12 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
       available: true // Protegido pelo PermissionGuard do componente 
     },
     { 
+      title: "Conferência de Inventário", 
+      page: "conference", 
+      icon: Package, 
+      available: true 
+    },
+    { 
       title: "Itens Fora Agora", 
       page: "active-loans", 
       icon: Clock, 

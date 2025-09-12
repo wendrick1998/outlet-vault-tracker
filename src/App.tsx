@@ -11,6 +11,7 @@ import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
 import { Profile } from "./pages/Profile";
 import { Settings } from "./pages/Settings";
+import { InventoryConferencePage } from "./pages/InventoryConferencePage";
 
 // Lazy load heavy pages for better performance
 const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
@@ -18,7 +19,7 @@ const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m
 const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate').then(m => ({ default: m.SearchAndOperate })));
 
-type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions';
+type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference';
 
 const AppContent = () => {
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
@@ -63,6 +64,8 @@ const AppContent = () => {
         return <Profile onBack={handleBack} />;
       case 'settings':
         return <Settings onBack={handleBack} />;
+      case 'conference':
+        return <InventoryConferencePage />;
       // Placeholder pages for features not yet implemented
       case 'analytics':
       case 'ai-assistant':
