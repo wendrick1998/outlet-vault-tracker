@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Store, Eye, EyeOff } from "lucide-react";
+import { Store, Eye, EyeOff, Shield, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 interface AuthProps {
@@ -19,6 +19,7 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isForgot, setIsForgot] = useState(false);
   const [isReset, setIsReset] = useState(false);
@@ -73,6 +74,57 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
       if (key && key.startsWith('sb-')) keysToRemove.push(key);
     }
     keysToRemove.forEach((k) => localStorage.removeItem(k));
+  };
+
+  const handleBootstrapAdmin = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha email e senha",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBootstrapping(true);
+    
+    try {
+      const response = await fetch('https://lwbouxonjohqfdhnasvk.supabase.co/functions/v1/bootstrap-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar conta admin');
+      }
+
+      toast({
+        title: "Conta admin criada!",
+        description: "Agora você pode fazer login normalmente",
+      });
+
+      // Clear form and try login
+      setEmail('');
+      setPassword('');
+      
+    } catch (error: any) {
+      console.error('Bootstrap error:', error);
+      toast({
+        title: "Erro ao criar conta",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsBootstrapping(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -368,6 +420,26 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Processando..." : (isLogin ? "Entrar" : "Criar Conta")}
               </Button>
+
+              {/* Bootstrap Admin Button - Only show for the specific email */}
+              {isLogin && email === 'wendrick.1761998@gmail.com' && (
+                <div className="pt-4 border-t">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={handleBootstrapAdmin}
+                    disabled={isBootstrapping}
+                  >
+                    {isBootstrapping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Shield className="mr-2 h-4 w-4" />
+                    Criar Conta Admin
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Use este botão apenas se for o primeiro acesso
+                  </p>
+                </div>
+              )}
             </form>
 
             <div className="text-center">

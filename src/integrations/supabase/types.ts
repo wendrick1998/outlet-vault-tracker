@@ -440,6 +440,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bootstrap_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
