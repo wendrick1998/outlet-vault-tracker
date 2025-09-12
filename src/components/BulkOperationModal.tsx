@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { OutflowForm } from "@/components/OutflowForm";
+import { BatchOutflowForm } from "@/components/BatchOutflowForm";
 import { useInventory } from "@/hooks/useInventory";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
@@ -122,19 +122,10 @@ export const BulkOperationModal = ({
   };
 
   const handleOutflowComplete = () => {
-    setCurrentStep('results');
-    // Simular resultados de sucesso para todos os itens
-    const successResults = items.map(item => ({
-      itemId: item.id,
-      itemName: `${item.brand} ${item.model}`,
-      success: true
-    }));
-    setResults(successResults);
-    
-    toast({
-      title: "Saída em lote concluída",
-      description: `${items.length} item(s) processado(s) com sucesso`,
-    });
+    // O BatchOutflowForm já cria os empréstimos e mostra o toast
+    // Apenas fechamos o modal e executamos o callback de conclusão
+    onComplete();
+    handleClose();
   };
 
   const handleClose = () => {
@@ -209,29 +200,11 @@ export const BulkOperationModal = ({
   );
 
   const renderOutflowConfiguration = () => (
-    <div className="space-y-4">
-      <div className="text-center">
-        <h3 className="text-lg font-semibold mb-2">Configurar Saída em Lote</h3>
-        <Badge variant="secondary">
-          {items.length} item(s) selecionado(s)
-        </Badge>
-      </div>
-
-      {/* Para cada item, mostrar uma configuração separada ou usar BatchOutflowForm */}
-      <div className="text-center p-4">
-        <p className="text-muted-foreground">
-          Configuração de saída em lote será implementada aqui
-        </p>
-        <div className="flex gap-2 mt-4">
-          <Button variant="outline" onClick={() => setCurrentStep('select')}>
-            Voltar
-          </Button>
-          <Button onClick={handleOutflowComplete}>
-            Simular Conclusão
-          </Button>
-        </div>
-      </div>
-    </div>
+    <BatchOutflowForm
+      items={items}
+      onComplete={handleOutflowComplete}
+      onCancel={() => setCurrentStep('select')}
+    />
   );
 
   const renderResults = () => {
