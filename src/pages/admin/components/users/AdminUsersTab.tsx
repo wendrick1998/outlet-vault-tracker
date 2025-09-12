@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAllProfiles } from "@/hooks/useProfile";
+import { useUsersAdmin } from "@/hooks/useUsersAdmin";
 import { Loading } from "@/components/ui/loading";
 
 export const AdminUsersTab = () => {
@@ -22,9 +22,9 @@ export const AdminUsersTab = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [canWithdrawFilter, setCanWithdrawFilter] = useState<string>("all");
 
-  const { data: profiles, isLoading } = useAllProfiles();
+  const { users: profiles = [], isLoading, toggleUserStatus, toggleCanWithdraw, isUpdating } = useUsersAdmin();
 
-  const filteredProfiles = profiles?.filter(profile => {
+  const filteredProfiles = profiles.filter(profile => {
     const matchesSearch = profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          profile.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || profile.role === roleFilter;
@@ -36,7 +36,7 @@ export const AdminUsersTab = () => {
                               (canWithdrawFilter === "no" && !(profile as any).can_withdraw);
     
     return matchesSearch && matchesRole && matchesStatus && matchesCanWithdraw;
-  }) || [];
+  });
 
   if (isLoading) {
     return <Loading />;
@@ -144,8 +144,9 @@ export const AdminUsersTab = () => {
                     </TableCell>
                     <TableCell>
                       <Switch 
-                        checked={(profile as any).can_withdraw || false}
-                        disabled
+                        checked={profile.can_withdraw || false}
+                        onCheckedChange={() => toggleCanWithdraw(profile.id, profile.can_withdraw || false)}
+                        disabled={isUpdating}
                       />
                     </TableCell>
                     <TableCell>
@@ -167,6 +168,8 @@ export const AdminUsersTab = () => {
                         <Button 
                           variant={profile.is_active ? "destructive" : "default"} 
                           size="sm"
+                          onClick={() => toggleUserStatus(profile.id, profile.is_active)}
+                          disabled={isUpdating}
                         >
                           {profile.is_active ? 'Desativar' : 'Ativar'}
                         </Button>
