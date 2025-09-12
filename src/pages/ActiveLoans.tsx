@@ -1,10 +1,15 @@
+import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
-import { Clock, AlertTriangle, User, Tag } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Clock, AlertTriangle, User, Tag, Search, Filter } from "lucide-react";
 import { useActiveLoans, useLoans } from "@/hooks/useLoans";
+import { useActiveReasons } from "@/hooks/useReasons";
+import { useActiveSellers } from "@/hooks/useSellers";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -23,6 +28,57 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   const { toast } = useToast();
   const { data: loans = [], isLoading } = useActiveLoans();
   const { returnLoan } = useLoans();
+  const { data: reasons = [] } = useActiveReasons();
+  const { data: sellers = [] } = useActiveSellers();
+
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterReason, setFilterReason] = useState<string>("all");
+  const [filterSeller, setFilterSeller] = useState<string>("all");
+  const [filterOverdue, setFilterOverdue] = useState<string>("all");
+
+  // Filtered loans
+  const filteredLoans = useMemo(() => {
+    let filtered = [...loans];
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(loan =>
+        loan.inventory?.imei.includes(searchTerm) ||
+        loan.inventory?.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        loan.customer?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Reason filter
+    if (filterReason !== "all") {
+      filtered = filtered.filter(loan => loan.reason?.id === filterReason);
+    }
+
+    // Seller filter
+    if (filterSeller !== "all") {
+      filtered = filtered.filter(loan => loan.seller?.id === filterSeller);
+    }
+
+    // Overdue filter
+    if (filterOverdue !== "all") {
+      const now = new Date();
+      filtered = filtered.filter(loan => {
+        const dueAt = loan.due_at ? new Date(loan.due_at) : null;
+        const isOverdue = dueAt ? now > dueAt : false;
+        return filterOverdue === "overdue" ? isOverdue : !isOverdue;
+      });
+    }
+
+    return filtered.sort((a, b) => {
+      // Sort overdue items first
+      const aOverdue = a.due_at ? new Date() > new Date(a.due_at) : false;
+      const bOverdue = b.due_at ? new Date() > new Date(b.due_at) : false;
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      return new Date(b.issued_at).getTime() - new Date(a.issued_at).getTime();
+    });
+  }, [loans, searchTerm, filterReason, filterSeller, filterOverdue]);
 
   const handleReturn = async (loanId: string) => {
     try {
@@ -148,37 +204,109 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
       
       <main className="container mx-auto px-4 py-6">
         <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              Fora Agora ({loans.length})
-            </h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Fora Agora ({filteredLoans.length} de {loans.length})
+          </h1>
           <p className="text-muted-foreground">
             Itens que estão atualmente fora do cofre
           </p>
         </div>
 
+        {/* Filters */}
+        <Card className="p-4 mb-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar IMEI, modelo ou cliente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={filterReason} onValueChange={setFilterReason}>
+              <SelectTrigger>
+                <Tag className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Todos os motivos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os motivos</SelectItem>
+                {reasons.map(reason => (
+                  <SelectItem key={reason.id} value={reason.id}>
+                    {reason.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterSeller} onValueChange={setFilterSeller}>
+              <SelectTrigger>
+                <User className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Todos os vendedores" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os vendedores</SelectItem>
+                {sellers.map(seller => (
+                  <SelectItem key={seller.id} value={seller.id}>
+                    {seller.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterOverdue} onValueChange={setFilterOverdue}>
+              <SelectTrigger>
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="overdue">Apenas em atraso</SelectItem>
+                <SelectItem value="normal">Apenas no prazo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </Card>
+
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-card rounded-lg p-4 shadow-soft">
             <div className="text-2xl font-bold text-warning">
-              {loans.length}
+              {filteredLoans.length}
             </div>
-            <div className="text-muted-foreground text-sm">Itens fora</div>
+            <div className="text-muted-foreground text-sm">Filtrados</div>
           </div>
           
           <div className="bg-card rounded-lg p-4 shadow-soft">
             <div className="text-2xl font-bold text-destructive">
-              {loans.filter(loan => {
+              {filteredLoans.filter(loan => {
                 const dueAt = loan.due_at ? new Date(loan.due_at) : null;
                 return dueAt ? new Date() > dueAt : false;
               }).length}
             </div>
             <div className="text-muted-foreground text-sm">Em atraso</div>
           </div>
+
+          <div className="bg-card rounded-lg p-4 shadow-soft">
+            <div className="text-2xl font-bold text-primary">
+              {loans.length}
+            </div>
+            <div className="text-muted-foreground text-sm">Total fora</div>
+          </div>
         </div>
 
         {/* Loans list */}
         {isLoading ? (
           <Loading />
+        ) : filteredLoans.length === 0 && loans.length > 0 ? (
+          <Card className="p-8 text-center">
+            <Filter className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Nenhum resultado encontrado</h3>
+            <p className="text-muted-foreground">
+              Ajuste os filtros para ver mais resultados
+            </p>
+          </Card>
         ) : loans.length === 0 ? (
           <Card className="p-8 text-center">
             <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -189,7 +317,7 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {loans.map(renderLoanCard)}
+            {filteredLoans.map(renderLoanCard)}
           </div>
         )}
       </main>
