@@ -32,6 +32,9 @@ import {
   type Customer
 } from "@/types/admin";
 import { itemSchema, reasonSchema, sellerSchema, customerSchema } from "@/lib/validation";
+import { FeatureFlagsAdmin } from "@/components/FeatureFlagsAdmin";
+import { FeatureFlagWrapper } from "@/components/ui/feature-flag";
+import { FEATURE_FLAGS } from "@/lib/features";
 
 interface AdminProps {
   onBack: () => void;
@@ -332,7 +335,7 @@ export const Admin = ({ onBack }: AdminProps) => {
       
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="items" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="items" className="gap-2">
               <Package className="h-4 w-4" />
               Itens
@@ -352,6 +355,10 @@ export const Admin = ({ onBack }: AdminProps) => {
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
               Config
+            </TabsTrigger>
+            <TabsTrigger value="features" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Features
             </TabsTrigger>
           </TabsList>
 
@@ -661,6 +668,15 @@ export const Admin = ({ onBack }: AdminProps) => {
                   />
                 </div>
 
+                <FeatureFlagWrapper flag={FEATURE_FLAGS.ENHANCED_AUDIT_LOGGING}>
+                  <div className="pt-6 border-t">
+                    <h3 className="font-medium mb-2">Auditoria Avançada</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Sistema de auditoria com rastreamento detalhado ativado
+                    </p>
+                  </div>
+                </FeatureFlagWrapper>
+
                 <div className="pt-6 border-t">
                   <h3 className="font-medium mb-4">Backup e Restore</h3>
                   <div className="flex gap-3">
@@ -670,6 +686,11 @@ export const Admin = ({ onBack }: AdminProps) => {
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Feature Flags Tab */}
+          <TabsContent value="features">
+            <FeatureFlagsAdmin />
           </TabsContent>
         </Tabs>
       </main>
