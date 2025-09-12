@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.ai-analytics]
 verify_jwt = true
+
+[functions.ai-predictions]
+verify_jwt = true
+
+[functions.ai-smart-actions]
+verify_jwt = true

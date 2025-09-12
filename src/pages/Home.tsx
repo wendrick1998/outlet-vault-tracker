@@ -1,10 +1,13 @@
-import { Search, List, Clock, BarChart3, Package, AlertTriangle, Bot } from "lucide-react";
+import { Search, List, Clock, BarChart3, Package, AlertTriangle, Bot, Brain } from "lucide-react";
 import { ActionCard } from "@/components/ActionCard";
 import { StatsCard } from "@/components/ui/stats-card";
 import { useSystemStats } from "@/hooks/useStats";
 import { useActiveLoans } from "@/hooks/useLoans";
 import { AIAssistant } from "@/components/AIAssistant";
 import { SmartAnalytics } from "@/components/SmartAnalytics";
+import { PredictiveAlerts } from "@/components/PredictiveAlerts";
+import { SmartNotifications } from "@/components/SmartNotifications";
+import { VoiceCommands } from "@/components/VoiceCommands";
 import { useState } from "react";
 
 interface HomeProps {
@@ -16,6 +19,30 @@ export const Home = ({ onNavigate }: HomeProps) => {
   const { data: activeLoans, isLoading: loansLoading } = useActiveLoans();
   const [showAI, setShowAI] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const [showVoiceCommands, setShowVoiceCommands] = useState(false);
+
+  const handleVoiceCommand = (action: string, data?: any) => {
+    switch (action) {
+      case 'buscar_item':
+        onNavigate('search');
+        break;
+      case 'ver_historico':
+        onNavigate('history');
+        break;
+      case 'mostrar_estatisticas':
+        setShowAnalytics(true);
+        break;
+      case 'listar_emprestimos':
+        onNavigate('active-loans');
+        break;
+      case 'registrar_saida':
+        onNavigate('search');
+        break;
+      default:
+        console.log('Unknown voice command:', action, data);
+    }
+  };
 
   return (
     <main className="container mx-auto px-4 py-6">
@@ -62,13 +89,20 @@ export const Home = ({ onNavigate }: HomeProps) => {
             variant="primary"
           />
 
-          <ActionCard
-            title="📊 Análise Inteligente"
-            description="Insights e previsões com IA"
-            icon={BarChart3}
-            onClick={() => setShowAnalytics(!showAnalytics)}
-            variant="primary"
-          />
+            <ActionCard
+              title="🧠 Previsões IA"
+              description="Alertas preditivos e análise de tendências"
+              icon={Brain}
+              onClick={() => setShowPredictions(!showPredictions)}
+              variant="primary"
+            />
+            <ActionCard
+              title="📊 Análise Inteligente"
+              description="Insights e recomendações com IA"
+              icon={BarChart3}
+              onClick={() => setShowAnalytics(!showAnalytics)}
+              variant="primary"
+            />
 
           <ActionCard
             title="📚 Histórico"
@@ -79,12 +113,24 @@ export const Home = ({ onNavigate }: HomeProps) => {
           />
         </div>
 
-        {/* AI Analytics Panel */}
-        {showAnalytics && (
+          {/* Smart Notifications */}
           <div className="mt-8">
-            <SmartAnalytics />
+            <SmartNotifications />
           </div>
-        )}
+
+          {/* AI Analytics Panel */}
+          {showAnalytics && (
+            <div className="mt-8">
+              <SmartAnalytics />
+            </div>
+          )}
+
+          {/* AI Predictions Panel */}
+          {showPredictions && (
+            <div className="mt-8">
+              <PredictiveAlerts type="all" />
+            </div>
+          )}
 
         {/* Quick stats */}
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -136,6 +182,13 @@ export const Home = ({ onNavigate }: HomeProps) => {
         <AIAssistant 
           isMinimized={!showAI}
           onToggleMinimized={() => setShowAI(!showAI)}
+        />
+
+        {/* Voice Commands */}
+        <VoiceCommands
+          onCommand={handleVoiceCommand}
+          isVisible={showVoiceCommands}
+          onToggle={() => setShowVoiceCommands(!showVoiceCommands)}
         />
       </main>
   );

@@ -8,6 +8,7 @@ import { useSellers } from "@/hooks/useSellers";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useLoans } from "@/hooks/useLoans";
 import { useToast } from "@/hooks/use-toast";
+import { SmartFormHelper } from "@/components/SmartFormHelper";
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -41,6 +42,42 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     if (requiresCustomer && useGuestCustomer && !guestCustomer.trim()) return false;
     return true;
   };
+
+  const handleSuggestionApply = (field: string, value: any) => {
+    switch (field) {
+      case 'customer_id':
+        if (!useGuestCustomer) {
+          setSelectedCustomer(value);
+        }
+        break;
+      case 'seller_id':
+        setSelectedSeller(value);
+        break;
+      case 'reason_id':
+        setSelectedReason(value);
+        break;
+      case 'notes':
+        setQuickNote(value);
+        break;
+      case 'guest_customer':
+        if (useGuestCustomer) {
+          setGuestCustomer(value);
+        }
+        break;
+      default:
+        console.log('Unknown field:', field, value);
+    }
+  };
+
+  const getFormData = () => ({
+    reason_id: selectedReason,
+    seller_id: selectedSeller,
+    customer_id: useGuestCustomer ? null : selectedCustomer,
+    guest_customer: useGuestCustomer ? guestCustomer : null,
+    notes: quickNote,
+    requires_customer: requiresCustomer,
+    use_guest_customer: useGuestCustomer
+  });
 
   const handleSubmit = async () => {
     if (!isFormValid()) {
@@ -186,9 +223,17 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
             rows={3}
           />
         </div>
-      </Card>
+        </Card>
 
-      {/* Actions */}
+        {/* Smart Form Helper - IA Integration */}
+        <SmartFormHelper
+          item={item}
+          formData={getFormData()}
+          onSuggestionApply={handleSuggestionApply}
+          context="outflow_form"
+        />
+
+        {/* Actions */}
       <div className="flex gap-3">
         <Button 
           variant="outline" 
