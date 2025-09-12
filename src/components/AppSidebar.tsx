@@ -63,7 +63,7 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
       title: "Buscar & Operar", 
       page: "search-and-operate", 
       icon: Search, 
-      available: true 
+      available: true // Protegido pelo PermissionGuard do componente 
     },
     { 
       title: "Itens Fora Agora", 
