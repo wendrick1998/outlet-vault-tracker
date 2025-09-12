@@ -201,7 +201,12 @@ Para suggest_return_date:
     }
 
     const aiData = await aiResponse.json();
-    const smartAction = JSON.parse(aiData.choices[0].message.content);
+    let responseContent = aiData.choices[0].message.content;
+    
+    // Remove markdown code blocks if present
+    responseContent = responseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    const smartAction = JSON.parse(responseContent);
 
     console.log('Smart action generated successfully');
 

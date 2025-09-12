@@ -170,7 +170,12 @@ Responda em JSON com esta estrutura:
     }
 
     const aiData = await aiResponse.json();
-    const predictions = JSON.parse(aiData.choices[0].message.content);
+    let responseContent = aiData.choices[0].message.content;
+    
+    // Remove markdown code blocks if present
+    responseContent = responseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    const predictions = JSON.parse(responseContent);
 
     console.log('AI Predictions generated successfully');
 
