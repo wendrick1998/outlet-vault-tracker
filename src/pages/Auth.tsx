@@ -28,30 +28,17 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [hasExistingAdmin, setHasExistingAdmin] = useState<boolean | null>(null);
+  const [isFirstAccess, setIsFirstAccess] = useState(false);
+  const [firstAccessStep, setFirstAccessStep] = useState<'email' | 'password'>('email');
+  const [firstAccessEmail, setFirstAccessEmail] = useState('');
 
   useEffect(() => {
-    // Check if user is already authenticated and check for existing admins
+    // Check if user is already authenticated
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         onLoginSuccess();
         return;
-      }
-      
-      // Check if there are any existing admins
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('role', 'admin')
-          .limit(1);
-          
-        if (!error) {
-          setHasExistingAdmin(data && data.length > 0);
-        }
-      } catch (error) {
-        logger.error('Error checking for existing admins', { error });
-        setHasExistingAdmin(null);
       }
     };
     checkAuth();
@@ -95,11 +82,11 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
     keysToRemove.forEach((k) => localStorage.removeItem(k));
   };
 
-  const handleBootstrapAdmin = async () => {
-    if (!email || !password) {
+  const handleFirstAccess = async () => {
+    if (!firstAccessEmail) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha email e senha",
+        title: "Email obrigatório",
+        description: "Por favor, informe seu email",
         variant: "destructive",
       });
       return;
@@ -108,51 +95,116 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
     setIsBootstrapping(true);
     
     try {
-      logger.info('Calling bootstrap-admin function', { email });
+      logger.info('Calling first-access function - step 1', { email: firstAccessEmail });
       
-      const { data, error } = await supabase.functions.invoke('bootstrap-admin', {
+      const { data, error } = await supabase.functions.invoke('first-access', {
         body: {
-          email,
-          password
+          email: firstAccessEmail,
+          step: 'check_email'
         },
       });
 
       if (error) {
-        logger.error('Bootstrap function error', { error });
-        throw new Error(error.message || 'Erro ao criar conta admin');
+        logger.error('First access function error', { error });
+        throw new Error(error.message || 'Erro ao verificar email');
       }
 
-      logger.info('Bootstrap success', { data });
+      logger.info('First access step 1 success', { data });
+
+      if (data.can_set_password) {
+        toast({
+          title: "Email válido!",
+          description: "Agora defina sua senha de acesso",
+        });
+        setFirstAccessStep('password');
+      }
+      
+    } catch (error: any) {
+      logger.error('First access error', { error });
+      toast({
+        title: "Erro no primeiro acesso",
+        description: error.message || "Email não encontrado no sistema",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBootstrapping(false);
+    }
+  };
+
+  const handleSetFirstPassword = async () => {
+    if (!password || !confirmPassword) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha a senha e confirmação",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As senhas não coincidem",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBootstrapping(true);
+    
+    try {
+      logger.info('Calling first-access function - step 2', { email: firstAccessEmail });
+      
+      const { data, error } = await supabase.functions.invoke('first-access', {
+        body: {
+          email: firstAccessEmail,
+          password: password,
+          step: 'set_password'
+        },
+      });
+
+      if (error) {
+        logger.error('First access set password error', { error });
+        throw new Error(error.message || 'Erro ao definir senha');
+      }
+
+      logger.info('First access password set success', { data });
 
       toast({
-        title: "Conta admin criada!",
+        title: "Senha definida!",
         description: "Fazendo login automaticamente...",
       });
 
-      // Automatically sign in the user after successful bootstrap
+      // Automatically sign in the user after successful password set
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: firstAccessEmail,
         password,
       });
 
       if (signInError) {
         logger.error('Auto sign-in error', { error: signInError });
         toast({
-          title: "Conta criada com sucesso!",
+          title: "Senha definida com sucesso!",
           description: "Por favor, faça login normalmente",
         });
+        setIsFirstAccess(false);
+        setFirstAccessStep('email');
+        setFirstAccessEmail('');
+        setEmail(firstAccessEmail);
+        setPassword('');
+        setConfirmPassword('');
       } else {
         toast({
           title: "Sucesso!",
-          description: "Conta admin criada e login realizado",
+          description: "Senha definida e login realizado",
         });
         onLoginSuccess();
       }
       
     } catch (error: any) {
-      logger.error('Bootstrap error', { error });
+      logger.error('Set password error', { error });
       toast({
-        title: "Erro ao criar conta",
+        title: "Erro ao definir senha",
         description: error.message || "Erro desconhecido",
         variant: "destructive",
       });
@@ -319,6 +371,10 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
               ? "Defina sua nova senha"
               : isForgot
               ? "Informe seu email para recuperar a senha"
+              : isFirstAccess
+              ? firstAccessStep === 'email' 
+                ? "Informe seu email para definir sua senha"
+                : "Defina sua senha de acesso"
               : isLogin
               ? "Faça login para continuar"
               : "Crie sua conta"}
@@ -384,6 +440,100 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
               </Button>
             </div>
           </form>
+        ) : isFirstAccess ? (
+          /* PRIMEIRO ACESSO */
+          <>
+            {firstAccessStep === 'email' ? (
+              <form onSubmit={(e) => { e.preventDefault(); handleFirstAccess(); }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstAccessEmail">Email</Label>
+                  <Input
+                    id="firstAccessEmail"
+                    type="email"
+                    value={firstAccessEmail}
+                    onChange={(e) => setFirstAccessEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isBootstrapping}>
+                  {isBootstrapping ? "Verificando..." : "Continuar"}
+                </Button>
+                <div className="text-center">
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="text-sm" 
+                    onClick={() => {
+                      setIsFirstAccess(false);
+                      setFirstAccessStep('email');
+                      setFirstAccessEmail('');
+                    }}
+                  >
+                    Voltar ao login
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={(e) => { e.preventDefault(); handleSetFirstPassword(); }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstPassword">Nova Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="firstPassword"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Sua nova senha"
+                      required
+                      minLength={8}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-auto p-1"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirmFirstPassword">Confirmar Senha</Label>
+                  <Input
+                    id="confirmFirstPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirme sua nova senha"
+                    required
+                    minLength={8}
+                  />
+                </div>
+                
+                <Button type="submit" className="w-full" disabled={isBootstrapping}>
+                  {isBootstrapping ? "Definindo senha..." : "Definir Senha"}
+                </Button>
+                
+                <div className="text-center">
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="text-sm" 
+                    onClick={() => {
+                      setFirstAccessStep('email');
+                      setPassword('');
+                      setConfirmPassword('');
+                    }}
+                  >
+                    Voltar
+                  </Button>
+                </div>
+              </form>
+            )}
+          </>
         ) : (
           /* LOGIN / CADASTRO */
           <>
@@ -455,31 +605,20 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
                 {loading ? "Processando..." : (isLogin ? "Entrar" : "Criar Conta")}
               </Button>
 
-              {/* First Access Button - Only show if no admin exists */}
-              {isLogin && hasExistingAdmin === false && (
+              {/* First Access Button - Always show on login */}
+              {isLogin && !isFirstAccess && (
                 <div className="pt-4 border-t">
                   <Button 
                     type="button" 
                     variant="outline" 
                     className="w-full border-primary/50 hover:bg-primary/10" 
-                    onClick={handleBootstrapAdmin}
-                    disabled={isBootstrapping}
+                    onClick={() => setIsFirstAccess(true)}
                   >
-                    {isBootstrapping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <Shield className="mr-2 h-4 w-4" />
-                    Primeiro Acesso - Criar Administrador
+                    Primeiro Acesso
                   </Button>
                   <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Crie a primeira conta de administrador do sistema
-                  </p>
-                </div>
-              )}
-
-              {/* Info message when admin already exists */}
-              {isLogin && hasExistingAdmin === true && (
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Sistema já inicializado. Entre em contato com o administrador se precisar de acesso.
+                    Se você foi cadastrado pelo administrador, clique aqui para definir sua senha
                   </p>
                 </div>
               )}
