@@ -1226,6 +1226,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_old_audit_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       current_user_has_permission: {
         Args: { required_permission: Database["public"]["Enums"]["permission"] }
         Returns: boolean
@@ -1257,6 +1261,26 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
       }
       has_role: {
         Args: {
@@ -1301,6 +1325,18 @@ export type Database = {
       secure_get_system_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
       user_has_permission: {
         Args: {
