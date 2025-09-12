@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShieldX, User, Plus } from "lucide-react";
 import { useReasons } from "@/hooks/useReasons";
 import { useSellers } from "@/hooks/useSellers";
@@ -16,6 +17,7 @@ import { useDevicesLeftAtStore } from "@/hooks/useDevicesLeftAtStore";
 import { useHasPermission } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { SmartFormHelper } from "@/components/SmartFormHelper";
 import { QuickCustomerForm } from "@/components/QuickCustomerForm";
 import { CustomerSearchInput } from "@/components/CustomerSearchInput";
@@ -44,6 +46,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   
   const { toast } = useToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const { data: hasWithdrawPermission, isLoading: loadingPermission } = useHasPermission('movements.create');
   const { reasons = [] } = useReasons();
   const { sellers = [] } = useSellers();
@@ -312,38 +315,43 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         {/* Reason selection */}
         <div className="space-y-3">
           <label className="text-sm font-medium">Motivo da Saída *</label>
-          <div className="flex flex-wrap gap-2">
-            {reasons.filter(r => r.is_active).map((reason) => (
-              <Badge
-                key={reason.id}
-                variant={selectedReason === reason.id ? "default" : "outline"}
-                className={`
-                  cursor-pointer px-3 py-2 text-base hover:bg-primary hover:text-primary-foreground
-                  ${selectedReason === reason.id ? 'bg-primary text-primary-foreground' : ''}
-                `}
-                onClick={() => setSelectedReason(reason.id)}
-              >
-                {reason.name}
-              </Badge>
-            ))}
-          </div>
+          <ScrollArea className="h-auto max-h-24">
+            <div className="flex flex-wrap gap-2 p-1">
+              {reasons.filter(r => r.is_active).map((reason) => (
+                <Badge
+                  key={reason.id}
+                  variant={selectedReason === reason.id ? "default" : "outline"}
+                  className={`
+                    cursor-pointer px-3 py-2 text-base hover:bg-primary hover:text-primary-foreground transition-colors
+                    ${isMobile ? 'min-h-[48px] text-sm' : 'min-h-[40px]'}
+                    ${selectedReason === reason.id ? 'bg-primary text-primary-foreground' : ''}
+                  `}
+                  onClick={() => setSelectedReason(reason.id)}
+                >
+                  {reason.name}
+                </Badge>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
 
         {/* Seller selection */}
         <div className="space-y-3">
           <label className="text-sm font-medium">Vendedor Responsável *</label>
-          <div className="grid grid-cols-2 gap-2">
-            {sellers.filter(s => s.is_active).map((seller) => (
-              <Button
-                key={seller.id}
-                variant={selectedSeller === seller.id ? "default" : "outline"}
-                onClick={() => setSelectedSeller(seller.id)}
-                className="justify-start h-12"
-              >
-                {seller.name}
-              </Button>
-            ))}
-          </div>
+          <ScrollArea className="h-auto max-h-48">
+            <div className={`grid gap-2 p-1 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              {sellers.filter(s => s.is_active).map((seller) => (
+                <Button
+                  key={seller.id}
+                  variant={selectedSeller === seller.id ? "default" : "outline"}
+                  onClick={() => setSelectedSeller(seller.id)}
+                  className={`justify-start transition-colors ${isMobile ? 'h-14 text-base' : 'h-12'}`}
+                >
+                  {seller.name}
+                </Button>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
 
         {/* Customer selection (if required) */}
@@ -378,7 +386,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                   placeholder="Pesquisar por nome, CPF ou telefone..."
                 />
                 {selectedCustomer && (
-                  <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                  <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">
                     ✓ Cliente selecionado
                   </div>
                 )}
@@ -395,7 +403,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                 placeholder="Nome do cliente avulso..."
                 value={guestCustomer}
                 onChange={(e) => setGuestCustomer(e.target.value)}
-                className="w-full"
+                className={`w-full ${isMobile ? 'h-14 text-base' : 'h-12'}`}
               />
             )}
           </div>
@@ -483,11 +491,11 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       />
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className={`flex gap-3 ${isMobile ? 'flex-col' : ''}`}>
         <Button 
           variant="outline" 
           onClick={onCancel}
-          className="flex-1 h-12"
+          className={`${isMobile ? 'w-full h-14 text-base order-2' : 'flex-1 h-12'}`}
           disabled={isCreating}
         >
           Cancelar
@@ -500,7 +508,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
               handleSubmit();
             }
           }}
-          className="flex-1 h-12 bg-primary hover:bg-primary-hover"
+          className={`bg-primary hover:bg-primary-hover ${isMobile ? 'w-full h-14 text-base order-1' : 'flex-1 h-12'}`}
           disabled={isCreating || !isFormValid()}
         >
           {isCreating ? "Registrando..." : "Confirmar Saída"}

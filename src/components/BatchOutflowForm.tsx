@@ -3,12 +3,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Package, Users, FileText } from "lucide-react";
 import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useLoans } from "@/hooks/useLoans";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Database } from "@/integrations/supabase/types";
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -27,6 +29,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { data: reasons = [] } = useActiveReasons();
   const { data: sellers = [] } = useActiveSellers();
   const { customers } = useCustomers();
@@ -96,24 +99,26 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           </div>
         </div>
         
-        <div className="grid gap-2 max-h-48 overflow-y-auto">
-          {items.map((item, index) => (
-            <div
-              key={item.imei}
-              className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
-            >
-              <Badge variant="outline" className="text-xs">
-                #{index + 1}
-              </Badge>
-              <div>
-                <h4 className="font-medium">{item.model}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {item.color} • ...{item.imei.slice(-5)}
-                </p>
+        <ScrollArea className="h-auto max-h-48">
+          <div className="grid gap-2 p-1">
+            {items.map((item, index) => (
+              <div
+                key={item.imei}
+                className={`flex items-center gap-3 p-3 bg-muted/30 rounded-lg ${isMobile ? 'text-sm' : ''}`}
+              >
+                <Badge variant="outline" className={`text-xs ${isMobile ? 'min-w-[24px]' : ''}`}>
+                  #{index + 1}
+                </Badge>
+                <div className="flex-1 min-w-0">
+                  <h4 className={`font-medium truncate ${isMobile ? 'text-sm' : ''}`}>{item.model}</h4>
+                  <p className={`text-muted-foreground truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    {item.color} • ...{item.imei.slice(-5)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </ScrollArea>
       </Card>
 
       {/* Form */}
@@ -130,38 +135,43 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           {/* Reason selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Motivo da Saída *</label>
-            <div className="flex flex-wrap gap-2">
-              {reasons.map((reason) => (
-                <Badge
-                  key={reason.id}
-                  variant={selectedReason === reason.id ? "default" : "outline"}
-                  className={`
-                    cursor-pointer px-3 py-2 text-base hover:bg-primary hover:text-primary-foreground
-                    ${selectedReason === reason.id ? 'bg-primary text-primary-foreground' : ''}
-                  `}
-                  onClick={() => setSelectedReason(reason.id)}
-                >
-                  {reason.name}
-                </Badge>
-              ))}
-            </div>
+            <ScrollArea className="h-auto max-h-24">
+              <div className="flex flex-wrap gap-2 p-1">
+                {reasons.map((reason) => (
+                  <Badge
+                    key={reason.id}
+                    variant={selectedReason === reason.id ? "default" : "outline"}
+                    className={`
+                      cursor-pointer px-3 py-2 text-base hover:bg-primary hover:text-primary-foreground transition-colors
+                      ${isMobile ? 'min-h-[48px] text-sm' : 'min-h-[40px]'}
+                      ${selectedReason === reason.id ? 'bg-primary text-primary-foreground' : ''}
+                    `}
+                    onClick={() => setSelectedReason(reason.id)}
+                  >
+                    {reason.name}
+                  </Badge>
+                ))}
+              </div>
+            </ScrollArea>
           </div>
 
           {/* Seller selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Vendedor Responsável *</label>
-            <div className="grid grid-cols-2 gap-2">
-              {sellers.filter(s => s.is_active).map((seller) => (
-                <Button
-                  key={seller.id}
-                  variant={selectedSeller === seller.id ? "default" : "outline"}
-                  onClick={() => setSelectedSeller(seller.id)}
-                  className="justify-start h-12"
-                >
-                  {seller.name}
-                </Button>
-              ))}
-            </div>
+            <ScrollArea className="h-auto max-h-48">
+              <div className={`grid gap-2 p-1 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {sellers.filter(s => s.is_active).map((seller) => (
+                  <Button
+                    key={seller.id}
+                    variant={selectedSeller === seller.id ? "default" : "outline"}
+                    onClick={() => setSelectedSeller(seller.id)}
+                    className={`justify-start transition-colors ${isMobile ? 'h-14 text-base' : 'h-12'}`}
+                  >
+                    {seller.name}
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
           </div>
 
           {/* Customer selection (if required) */}
@@ -169,21 +179,23 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
             <div className="space-y-3">
               <label className="text-sm font-medium">Cliente *</label>
               
-              <div className="grid gap-2 max-h-48 overflow-y-auto">
-                {customers.map((customer) => (
-                  <Button
-                    key={customer.id}
-                    variant={selectedCustomer === customer.id ? "default" : "outline"}
-                    onClick={() => setSelectedCustomer(customer.id)}
-                    className="justify-between h-auto p-3"
-                  >
-                    <div className="text-left">
-                      <div className="font-medium">{customer.name}</div>
-                      <div className="text-sm text-muted-foreground">{customer.phone}</div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
+              <ScrollArea className="h-auto max-h-48">
+                <div className="grid gap-2 p-1">
+                  {customers.map((customer) => (
+                    <Button
+                      key={customer.id}
+                      variant={selectedCustomer === customer.id ? "default" : "outline"}
+                      onClick={() => setSelectedCustomer(customer.id)}
+                      className={`justify-between h-auto p-3 transition-colors ${isMobile ? 'min-h-[56px]' : ''}`}
+                    >
+                      <div className="text-left flex-1 min-w-0">
+                        <div className={`font-medium truncate ${isMobile ? 'text-sm' : ''}`}>{customer.name}</div>
+                        <div className={`text-muted-foreground truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{customer.phone}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
 
@@ -201,18 +213,18 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
       </Card>
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className={`flex gap-3 ${isMobile ? 'flex-col' : ''}`}>
         <Button 
           variant="outline" 
           onClick={onCancel}
-          className="flex-1 h-12"
+          className={`${isMobile ? 'w-full h-14 text-base order-2' : 'flex-1 h-12'}`}
           disabled={isSubmitting}
         >
           Voltar à Seleção
         </Button>
         <Button 
           onClick={handleSubmit}
-          className="flex-1 h-12 bg-primary hover:bg-primary-hover"
+          className={`bg-primary hover:bg-primary-hover ${isMobile ? 'w-full h-14 text-base order-1' : 'flex-1 h-12'}`}
           disabled={!isFormValid() || isSubmitting}
         >
           {isSubmitting ? "Registrando..." : `Confirmar Saída de ${items.length} ${items.length === 1 ? 'Item' : 'Itens'}`}
