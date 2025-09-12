@@ -32,11 +32,30 @@ import { toast } from "@/hooks/use-toast";
 import { useUsersAdmin } from "@/hooks/useUsersAdmin";
 
 const userSchema = z.object({
-  full_name: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().email("E-mail inválido"),
-  role: z.enum(['admin', 'manager', 'user'] as const),
-  can_withdraw: z.boolean(),
-  is_active: z.boolean(),
+  full_name: z.string().min(1, "Nome completo é obrigatório"),
+  email: z.string().email("Email inválido"),
+  role: z.enum(["admin", "manager", "user"]),
+  can_withdraw: z.boolean().default(false),
+  is_active: z.boolean().default(true),
+  set_password: z.boolean().default(false),
+  password: z.string().optional(),
+  confirm_password: z.string().optional(),
+}).refine((data) => {
+  if (data.set_password) {
+    return data.password && data.password.length >= 8;
+  }
+  return true;
+}, {
+  message: "Senha deve ter pelo menos 8 caracteres",
+  path: ["password"],
+}).refine((data) => {
+  if (data.set_password) {
+    return data.password === data.confirm_password;
+  }
+  return true;
+}, {
+  message: "Senhas não coincidem",
+  path: ["confirm_password"],
 });
 
 type UserFormData = z.infer<typeof userSchema>;
@@ -52,28 +71,49 @@ export const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      role: 'user',
-      can_withdraw: true,
+      full_name: "",
+      email: "",
+      role: "user",
+      can_withdraw: false,
       is_active: true,
+      set_password: false,
+      password: "",
+      confirm_password: "",
     },
   });
 
   const handleSubmit = async (data: UserFormData) => {
     try {
-      await createUser.mutateAsync(data);
+      const userData = {
+        full_name: data.full_name,
+        email: data.email,
+        role: data.role,
+        can_withdraw: data.can_withdraw,
+        is_active: data.is_active,
+        ...(data.set_password && data.password ? { password: data.password } : {})
+      };
       
-      setOpen(false);
+      const result = await createUser.mutateAsync(userData);
       form.reset();
+      setOpen(false);
       onUserAdded?.();
       
-      toast({
-        title: "Usuário criado com sucesso!",
-        description: `${data.full_name} foi adicionado ao sistema.`,
-      });
+      if (result.generated_password) {
+        toast({
+          title: "Usuário criado com sucesso!",
+          description: `Senha gerada: ${result.generated_password}`,
+          duration: 10000,
+        });
+      } else {
+        toast({
+          title: "Usuário criado com sucesso!",
+          description: "O usuário foi adicionado ao sistema.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao criar usuário",
-        description: error.message,
+        description: error.message || "Ocorreu um erro inesperado",
         variant: "destructive",
       });
     }
@@ -207,6 +247,69 @@ export const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
                 </FormItem>
               )}
             />
+
+            {/* Set Password */}
+            <FormField
+              control={form.control}
+              name="set_password"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Definir senha inicial</FormLabel>
+                    <div className="text-sm text-muted-foreground">
+                      Definir uma senha específica (caso contrário será gerada automaticamente)
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Password Fields - Show only if set_password is true */}
+            {form.watch("set_password") && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Senha</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="password"
+                          placeholder="Digite a senha"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="confirm_password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirmar Senha</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="password"
+                          placeholder="Confirme a senha"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
 
             <div className="flex justify-end gap-3">
               <Button

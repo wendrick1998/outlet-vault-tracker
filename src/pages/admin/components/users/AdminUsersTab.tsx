@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, UserX, Archive } from "lucide-react";
+import { Plus, Search, Filter, UserX, Archive, KeyRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useUsersAdmin } from "@/hooks/useUsersAdmin";
 import { Loading } from "@/components/ui/loading";
 import { AddUserDialog } from "@/components/AddUserDialog";
+import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useAnonymizeUser } from "@/hooks/useAnonymizeUser";
 
@@ -29,6 +30,8 @@ export const AdminUsersTab = () => {
     type: 'anonymize';
     user: any;
   }>({ isOpen: false, type: 'anonymize', user: null });
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
+  const [userToResetPassword, setUserToResetPassword] = useState<{ id: string; name: string } | null>(null);
 
   const { users: profiles = [], isLoading, toggleUserStatus, toggleCanWithdraw, isUpdating } = useUsersAdmin();
   const { anonymizeUser, isAnonymizing } = useAnonymizeUser();
@@ -55,6 +58,11 @@ export const AdminUsersTab = () => {
       });
       setConfirmModal({ isOpen: false, type: 'anonymize', user: null });
     }
+  };
+
+  const handleResetPassword = (user: { id: string; full_name: string }) => {
+    setUserToResetPassword({ id: user.id, name: user.full_name });
+    setShowResetPasswordDialog(true);
   };
 
   if (isLoading) {
@@ -182,6 +190,14 @@ export const AdminUsersTab = () => {
                           Editar
                         </Button>
                         <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleResetPassword(profile)}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button 
                           variant={profile.is_active ? "destructive" : "default"} 
                           size="sm"
                           onClick={() => toggleUserStatus(profile.id, profile.is_active)}
@@ -220,6 +236,14 @@ export const AdminUsersTab = () => {
           }
           variant="destructive"
           confirmText="Anonimizar Usuário"
+        />
+
+        {/* Reset Password Dialog */}
+        <ResetPasswordDialog
+          open={showResetPasswordDialog}
+          onOpenChange={setShowResetPasswordDialog}
+          userId={userToResetPassword?.id || ''}
+          userName={userToResetPassword?.name || ''}
         />
       </div>
     </Card>

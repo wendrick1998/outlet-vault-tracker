@@ -18,6 +18,8 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
   refetchProfile: () => Promise<void>;
+  mustChangePassword: boolean;
+  clearMustChangePassword: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,24 +42,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   const fetchProfile = async (userId: string) => {
+    setProfileLoading(true);
     try {
-      setProfileLoading(true);
-      const profile = await ProfileService.getProfileById(userId);
-      setProfile(profile);
+      const profileData = await ProfileService.getCurrentProfile();
+      setProfile(profileData);
+      setMustChangePassword(profileData?.must_change_password ?? false);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
+      setMustChangePassword(false);
     } finally {
       setProfileLoading(false);
     }
   };
 
   const refetchProfile = async () => {
-    if (user?.id) {
+    if (user) {
       await fetchProfile(user.id);
     }
+  };
+
+  const clearMustChangePassword = () => {
+    setMustChangePassword(false);
   };
 
   useEffect(() => {
@@ -163,7 +172,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isAuthenticated: !!user,
     hasRole,
     isAdmin,
-    refetchProfile
+    refetchProfile,
+    mustChangePassword,
+    clearMustChangePassword,
   };
 
   return (

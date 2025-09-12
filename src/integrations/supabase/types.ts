@@ -594,6 +594,7 @@ export type Database = {
           is_anonymized: boolean | null
           mfa_habilitado: boolean | null
           mfa_secret: string | null
+          must_change_password: boolean
           observacoes: string | null
           role: Database["public"]["Enums"]["app_role"]
           senha_alterada_em: string | null
@@ -622,6 +623,7 @@ export type Database = {
           is_anonymized?: boolean | null
           mfa_habilitado?: boolean | null
           mfa_secret?: string | null
+          must_change_password?: boolean
           observacoes?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           senha_alterada_em?: string | null
@@ -650,6 +652,7 @@ export type Database = {
           is_anonymized?: boolean | null
           mfa_habilitado?: boolean | null
           mfa_secret?: string | null
+          must_change_password?: boolean
           observacoes?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           senha_alterada_em?: string | null
