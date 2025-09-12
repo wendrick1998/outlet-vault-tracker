@@ -99,6 +99,117 @@ export type Database = {
           },
         ]
       }
+      brands: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_colors: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_conditions: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_storages: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          size_gb: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          size_gb: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          size_gb?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string
@@ -179,9 +290,13 @@ export type Database = {
       }
       inventory: {
         Row: {
+          battery_pct: number
           brand: string
+          brand_id: string | null
           color: string | null
+          color_id: string | null
           condition: string | null
+          condition_id: string | null
           created_at: string
           id: string
           imei: string
@@ -192,14 +307,19 @@ export type Database = {
           notes: string | null
           status: Database["public"]["Enums"]["inventory_status"]
           storage: string | null
+          storage_id: string | null
           suffix: string | null
           title_original: string | null
           updated_at: string
         }
         Insert: {
+          battery_pct?: number
           brand: string
+          brand_id?: string | null
           color?: string | null
+          color_id?: string | null
           condition?: string | null
+          condition_id?: string | null
           created_at?: string
           id?: string
           imei: string
@@ -210,14 +330,19 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
           storage?: string | null
+          storage_id?: string | null
           suffix?: string | null
           title_original?: string | null
           updated_at?: string
         }
         Update: {
+          battery_pct?: number
           brand?: string
+          brand_id?: string | null
           color?: string | null
+          color_id?: string | null
           condition?: string | null
+          condition_id?: string | null
           created_at?: string
           id?: string
           imei?: string
@@ -228,11 +353,41 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
           storage?: string | null
+          storage_id?: string | null
           suffix?: string | null
           title_original?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inventory_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_colors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_storage_id_fkey"
+            columns: ["storage_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_storages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       item_notes: {
         Row: {
@@ -262,6 +417,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       loans: {
         Row: {

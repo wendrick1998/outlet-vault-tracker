@@ -6,6 +6,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { AdminUsersTab } from "./components/users/AdminUsersTab";
 import { AdminModelsTab } from "./components/models/AdminModelsTab";
 import { AdminDevicesTab } from "./components/devices/AdminDevicesTab";
+import { AdminCatalogsTab } from "./components/catalogs/AdminCatalogsTab";
 
 export const AdminCadastros = () => {
   return (
@@ -21,7 +22,7 @@ export const AdminCadastros = () => {
         </Card>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               Usuários Autorizados
@@ -33,6 +34,10 @@ export const AdminCadastros = () => {
             <TabsTrigger value="devices" className="gap-2">
               <Smartphone className="h-4 w-4" />
               Aparelhos (Inventário)
+            </TabsTrigger>
+            <TabsTrigger value="catalogs" className="gap-2">
+              <UserCheck className="h-4 w-4" />
+              Entidades & Campos
             </TabsTrigger>
           </TabsList>
 
@@ -46,6 +51,10 @@ export const AdminCadastros = () => {
 
           <TabsContent value="devices">
             <AdminDevicesTab />
+          </TabsContent>
+
+          <TabsContent value="catalogs">
+            <AdminCatalogsTab />
           </TabsContent>
         </Tabs>
       </div>

@@ -136,7 +136,7 @@ export const useDevicesAdmin = (includeArchived: boolean = false) => {
     devices,
     isLoading,
     error,
-    createDevice: createDeviceMutation.mutate,
+    createDevice,
     updateDevice: updateDeviceMutation.mutate,
     deleteDevice: deleteDeviceMutation.mutate,
     isCreating: createDeviceMutation.isPending,
