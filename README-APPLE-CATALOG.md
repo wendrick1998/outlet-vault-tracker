@@ -304,31 +304,43 @@ if (match) {
 }
 ```
 
-## 🔁 Integração com Importador CSV
+## 🔁 Integração com Importador CSV/XLSX
 
-### Interface Integrada
+### Interface Administrativa Integrada
 
-O sistema está completamente integrado com o importador CSV em **Saída em Lote → Importar CSV**:
+O sistema está completamente integrado com o importador CSV/XLSX em **Admin → Aparelhos**:
 
-1. **Acesse:** Menu principal → "Saída em Lote"
-2. **Selecione:** Aba "Importar CSV" 
-3. **Use o modelo:** Baixe o template CSV para ver o formato correto
-4. **Faça upload:** Selecione seu arquivo CSV (máx. 10MB)
-5. **Acompanhe:** Veja o progresso em tempo real
-6. **Revise:** Analise o relatório de importação completo
+1. **Acesse:** Menu Admin → "Aparelhos"
+2. **Clique:** Botão "Importar CSV/XLSX"
+3. **Baixe modelo:** Template com formato correto
+4. **Faça upload:** Arquivo CSV ou XLSX (máx. 50MB)
+5. **Preview:** Analise normalização automática
+6. **Configure:** Condição padrão para itens
+7. **Importe:** Confirme importação dos válidos
 
-### Formato CSV Suportado
+### Formatos Suportados
 
+#### CSV (UTF-8)
 ```csv
-imei,modelo,marca,armazenamento,cor,condicao,observacoes
-123456789012345,iPhone 14 Pro Max,Apple,256GB,Dourado,novo,Em perfeito estado
-123456789012346,iPhone 13,Apple,128GB,Azul,seminovo,Pequeno risco na tela
-123456789012347,Galaxy S23,Samsung,256GB,Preto,usado,Funciona perfeitamente
+Título,IMEI 1,Serial,% Bateria
+iPhone 14 Pro Max 256GB Dourado Novo,123456789012345,F2LLXXXXXXX,100
+iPhone 13 128GB Azul Seminovo,123456789012346,F2LLXXXXXXY,85
+Samsung Galaxy S23 256GB Preto Usado,123456789012347,R58XXXXXXXX,78
 ```
 
-**Colunas aceitas** (case-insensitive):
-- `imei` (obrigatório)
-- `modelo`, `model` → Nome do modelo
+#### XLSX (Excel)
+- **Aba padrão:** "Worksheet" 
+- **Mesmas colunas** do CSV
+- **Auto-detect** separadores e formatos
+
+### Colunas Aceitas (Sinônimos Automáticos)
+
+| Coluna | Sinônimos Aceitos | Obrigatório |
+|--------|-------------------|-------------|
+| **Título** | Produto, Descrição, Nome | ✅ Sim |
+| **IMEI 1** | IMEI, IMEI1 | ✅ Sim |
+| **Serial** | Serial Number | ❌ Não |
+| **% Bateria** | Bateria, Battery | ❌ Não (0-100) |
 - `marca`, `brand` → Marca do aparelho  
 - `armazenamento`, `storage`, `capacidade`, `memory`, `memoria` → Capacidade
 - `cor`, `color`, `colour` → Cor do aparelho

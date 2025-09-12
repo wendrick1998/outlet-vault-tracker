@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Search, Filter, Upload } from "lucide-react";
+import { CSVXLSXImportDialog } from "@/components/CSVXLSXImportDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export const AdminDevicesTab = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [showArchived, setShowArchived] = useState<boolean>(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const { devices: items, isLoading, deleteDevice, isDeleting } = useDevicesAdmin(showArchived);
 
@@ -49,9 +51,13 @@ export const AdminDevicesTab = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold">Aparelhos (Inventário)</h2>
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setImportDialogOpen(true)}
+            >
               <Upload className="h-4 w-4" />
-              Importar CSV
+              Importar CSV/XLSX
             </Button>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -202,6 +208,16 @@ export const AdminDevicesTab = () => {
             </TableBody>
           </Table>
         </div>
+
+        {/* Import Dialog */}
+        <CSVXLSXImportDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onImportComplete={(summary) => {
+            // Atualizar dados após importação
+            window.location.reload(); // Refresh simples por enquanto
+          }}
+        />
       </div>
     </Card>
   );

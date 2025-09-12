@@ -185,12 +185,15 @@ export type Database = {
           created_at: string
           id: string
           imei: string
+          import_batch_id: string | null
+          import_confidence: number | null
           is_archived: boolean
           model: string
           notes: string | null
           status: Database["public"]["Enums"]["inventory_status"]
           storage: string | null
           suffix: string | null
+          title_original: string | null
           updated_at: string
         }
         Insert: {
@@ -200,12 +203,15 @@ export type Database = {
           created_at?: string
           id?: string
           imei: string
+          import_batch_id?: string | null
+          import_confidence?: number | null
           is_archived?: boolean
           model: string
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
           storage?: string | null
           suffix?: string | null
+          title_original?: string | null
           updated_at?: string
         }
         Update: {
@@ -215,12 +221,15 @@ export type Database = {
           created_at?: string
           id?: string
           imei?: string
+          import_batch_id?: string | null
+          import_confidence?: number | null
           is_archived?: boolean
           model?: string
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
           storage?: string | null
           suffix?: string | null
+          title_original?: string | null
           updated_at?: string
         }
         Relationships: []
