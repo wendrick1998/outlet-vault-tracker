@@ -18,6 +18,7 @@ interface InflowActionsProps {
   onCancel: () => void;
 }
 
+// InflowActions component for handling item returns and sales
 export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps) {
   const [actionType, setActionType] = useState<'return' | 'sold' | null>(null);
   const [saleNumber, setSaleNumber] = useState('');
