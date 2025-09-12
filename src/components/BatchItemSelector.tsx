@@ -220,7 +220,13 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
             <CSVXLSXImportDialog 
               open={isOpen}
               onOpenChange={setIsOpen}
-              onImportComplete={handleCSVImportComplete}
+              onImportComplete={(summary) => {
+                handleCSVImportComplete(summary);
+                toast({
+                  title: "Importação XLSX concluída",
+                  description: `${summary.created || 0} iPhones importados com sucesso para o inventário`,
+                });
+              }}
             />
           </TabsContent>
         </Tabs>

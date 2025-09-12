@@ -269,7 +269,11 @@ export const AdminDevicesTab = () => {
           onOpenChange={setImportDialogOpen}
           onImportComplete={(summary) => {
             // Atualizar dados após importação
-            window.location.reload(); // Refresh simples por enquanto
+            window.location.reload();
+            toast({
+              title: "Importação concluída",
+              description: `${summary.created || 0} itens importados com sucesso`,
+            });
           }}
         />
 

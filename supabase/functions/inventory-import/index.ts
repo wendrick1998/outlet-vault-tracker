@@ -59,34 +59,38 @@ function normalizeBrand(text: string): string {
   return 'Desconhecida';
 }
 
-// Normalização de modelo Apple com melhor suporte ao formato OutletPlus
-function normalizeAppleModel(text: string): string | null {
-  if (!text) return null;
+// Converter IMEI da notação científica para formato completo
+function convertScientificIMEI(imeiRaw: string): string {
+  if (!imeiRaw) return '';
   
-  const cleanText = text.toLowerCase().trim();
+  const str = imeiRaw.toString().trim();
   
-  // Enhanced iPhone patterns for OutletPlus format
-  const patterns = [
-    /iphone\s*(\d+)\s*pro\s*max/,
-    /iphone\s*(\d+)\s*pro/,
-    /iphone\s*(\d+)/,
-    /iphone\s*se/,
-  ];
-  
-  for (const pattern of patterns) {
-    const match = cleanText.match(pattern);
-    if (match) {
-      if (cleanText.includes('se')) return 'iPhone SE';
-      if (cleanText.includes('pro max')) return `iPhone ${match[1]} Pro Max`;
-      if (cleanText.includes('pro')) return `iPhone ${match[1]} Pro`;
-      return `iPhone ${match[1]}`;
-    }
+  // Se já está em formato normal, retorna como está
+  if (!/[eE][\+\-]?\d+/.test(str)) {
+    return str;
   }
   
-  return null;
+  try {
+    // Converter notação científica para número e depois para string
+    const num = parseFloat(str);
+    if (isNaN(num)) return str;
+    
+    // Converter para string sem notação científica
+    const imeiStr = num.toFixed(0);
+    
+    // Se ficou muito curto, pad com zeros à esquerda
+    if (imeiStr.length < 15) {
+      return imeiStr.padStart(15, '0');
+    }
+    
+    return imeiStr;
+  } catch (error) {
+    console.error('Erro ao converter IMEI científico:', error);
+    return str;
+  }
 }
 
-// Normalização de modelo Apple  
+// Normalização de modelo Apple com melhor suporte ao formato OutletPlus
 function normalizeAppleModel(text: string): string | null {
   if (!text) return null;
   
