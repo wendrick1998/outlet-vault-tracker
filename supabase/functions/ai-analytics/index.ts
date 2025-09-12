@@ -133,7 +133,12 @@ Seja preciso, actionável e baseado nos dados reais fornecidos.`
     }
 
     const aiData = await aiResponse.json();
-    const analysis = JSON.parse(aiData.choices[0].message.content);
+    let responseContent = aiData.choices[0].message.content;
+    
+    // Remove markdown code blocks if present
+    responseContent = responseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    const analysis = JSON.parse(responseContent);
 
     console.log('AI Analytics completed successfully');
 

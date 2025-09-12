@@ -444,6 +444,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      check_account_security_status: {
+        Args: { user_email: string }
+        Returns: Json
+      }
+      check_rate_limit: {
+        Args: {
+          identifier: string
+          max_requests?: number
+          window_minutes?: number
+        }
+        Returns: Json
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -502,6 +514,10 @@ export type Database = {
       }
       secure_get_system_stats: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      validate_password_security: {
+        Args: { password_text: string }
         Returns: Json
       }
       validate_password_strength: {
