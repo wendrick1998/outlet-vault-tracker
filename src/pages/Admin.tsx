@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Settings, Package, Users, UserCheck, Tag, Plus, Edit, Trash2, Upload, TrendingUp } from "lucide-react";
+import { Settings, Package, Users, UserCheck, Tag, Plus, Edit, Trash2, Upload, TrendingUp, Rocket } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,8 @@ import { ReasonWorkflowManager } from "@/components/ReasonWorkflowManager";
 import { SmartReporting } from "@/components/SmartReporting";
 import { RealTimeSync } from "@/components/RealTimeSync";
 import { OfflineQueue } from "@/components/OfflineQueue";
+import { CanaryDeploymentDashboard } from "@/components/CanaryDeploymentDashboard";
+import { CanaryMetricsCollector } from "@/components/CanaryMetricsCollector";
 
 interface AdminProps {
   onBack: () => void;
@@ -238,7 +240,7 @@ export const Admin = ({ onBack }: AdminProps) => {
       
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="items" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="items" className="gap-2">
               <Package className="h-4 w-4" />
               Itens
@@ -267,6 +269,12 @@ export const Admin = ({ onBack }: AdminProps) => {
                 Relatórios
               </TabsTrigger>
             </FeatureFlagWrapper>
+            <SystemFeaturesGuard>
+              <TabsTrigger value="deploy" className="gap-2">
+                <Rocket className="h-4 w-4" />
+                Deploy
+              </TabsTrigger>
+            </SystemFeaturesGuard>
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
               Config
@@ -418,6 +426,16 @@ export const Admin = ({ onBack }: AdminProps) => {
               </div>
             </TabsContent>
           </FeatureFlagWrapper>
+
+          {/* Deploy Canário Tab */}
+          <TabsContent value="deploy">
+            <SystemFeaturesGuard>
+              <div className="space-y-6">
+                <CanaryDeploymentDashboard />
+                <CanaryMetricsCollector />
+              </div>
+            </SystemFeaturesGuard>
+          </TabsContent>
 
           {/* Feature Flags Tab */}
           <TabsContent value="features">
