@@ -28,6 +28,8 @@ export const QuickCustomerForm = ({
     loan_reason: ""
   });
   
+  const [willCreatePendencies, setWillCreatePendencies] = useState(false);
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { toast } = useToast();
@@ -42,18 +44,20 @@ export const QuickCustomerForm = ({
   };
 
   const validateForm = () => {
-    try {
-      quickCustomerSchema.parse(formData);
-      setErrors({});
-      return true;
-    } catch (error: any) {
-      const newErrors: Record<string, string> = {};
-      error.errors?.forEach((err: any) => {
-        newErrors[err.path[0]] = err.message;
-      });
-      setErrors(newErrors);
+    // Only name is required, CPF and phone are optional but generate pendencies
+    if (!formData.name.trim()) {
+      setErrors({ name: "Nome é obrigatório" });
       return false;
     }
+    
+    setErrors({});
+    
+    // Check if CPF or phone is missing to show pendency warning
+    const missingCpf = !formData.cpf.trim();
+    const missingPhone = !formData.phone.trim();
+    setWillCreatePendencies(missingCpf || missingPhone);
+    
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,10 +67,16 @@ export const QuickCustomerForm = ({
 
     const customerData = {
       name: formData.name.trim(),
-      cpf: formData.cpf.trim(),
-      phone: formData.phone.trim(),
-      notes: `Motivo do empréstimo: ${formData.loan_reason.trim()}`,
-      is_registered: true
+      cpf: formData.cpf.trim() || null,
+      phone: formData.phone.trim() || null,
+      notes: formData.loan_reason.trim() ? `Motivo do empréstimo: ${formData.loan_reason.trim()}` : null,
+      is_registered: true,
+      // Add pending data to track missing fields
+      pending_data: willCreatePendencies ? {
+        missing_cpf: !formData.cpf.trim(),
+        missing_phone: !formData.phone.trim(),
+        created_during_loan: true
+      } : null
     };
 
     createCustomer(customerData, {
@@ -132,7 +142,7 @@ export const QuickCustomerForm = ({
 
           {/* CPF */}
           <div className="space-y-2">
-            <Label htmlFor="cpf">CPF *</Label>
+            <Label htmlFor="cpf">CPF (opcional)</Label>
             <Input
               id="cpf"
               value={formData.cpf}
@@ -141,11 +151,14 @@ export const QuickCustomerForm = ({
               maxLength={11}
             />
             {errors.cpf && <p className="text-sm text-destructive">{errors.cpf}</p>}
+            {!formData.cpf.trim() && (
+              <p className="text-xs text-amber-600">⚠️ CPF não preenchido gerará pendência</p>
+            )}
           </div>
 
           {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="phone">Telefone *</Label>
+            <Label htmlFor="phone">Telefone (opcional)</Label>
             <Input
               id="phone"
               value={formData.phone}
@@ -154,11 +167,14 @@ export const QuickCustomerForm = ({
               maxLength={11}
             />
             {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+            {!formData.phone.trim() && (
+              <p className="text-xs text-amber-600">⚠️ Telefone não preenchido gerará pendência</p>
+            )}
           </div>
 
           {/* Loan Reason */}
           <div className="space-y-2">
-            <Label htmlFor="loan_reason">Motivo do Empréstimo *</Label>
+            <Label htmlFor="loan_reason">Motivo do Empréstimo (opcional)</Label>
             <Textarea
               id="loan_reason"
               value={formData.loan_reason}
@@ -168,6 +184,21 @@ export const QuickCustomerForm = ({
             />
             {errors.loan_reason && <p className="text-sm text-destructive">{errors.loan_reason}</p>}
           </div>
+
+          {/* Pendency Warning */}
+          {willCreatePendencies && (
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+              <div className="flex items-start gap-2">
+                <span className="text-amber-600 font-medium">⚠️</span>
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">Dados incompletos</p>
+                  <p className="text-amber-700">
+                    Este cliente será cadastrado com pendências que precisarão ser resolvidas posteriormente.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col gap-2 pt-4">

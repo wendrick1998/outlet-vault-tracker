@@ -73,7 +73,10 @@ export class PendingLoansService {
   static async create(pendingLoan: PendingLoanInsert): Promise<PendingLoan> {
     const { data, error } = await supabase
       .from('pending_loans')
-      .insert(pendingLoan)
+      .insert({
+        ...pendingLoan,
+        created_by: pendingLoan.created_by || supabase.auth.getUser().then(u => u.data.user?.id) as any
+      })
       .select()
       .single();
 
@@ -191,6 +194,40 @@ export class PendingLoansService {
       .eq('id', id);
 
     if (error) throw error;
+  }
+
+  static async createCustomerContactPendency(
+    loanId: string,
+    customerId: string,
+    missingFields: { cpf?: boolean; phone?: boolean }
+  ): Promise<PendingLoan> {
+    const pendingData: PendingLoanInsert = {
+      loan_id: loanId,
+      item_id: '', // Will be populated by trigger or can be fetched from loan
+      pending_type: 'incomplete_customer_contact',
+      customer_name: null,
+      customer_cpf: missingFields.cpf ? null : undefined,
+      customer_phone: missingFields.phone ? null : undefined,
+      notes: `Dados de contato incompletos: ${Object.keys(missingFields).join(', ')}`,
+      created_by: (await supabase.auth.getUser()).data.user?.id as string
+    };
+
+    return this.create(pendingData);
+  }
+
+  static async createDeviceLeftPendency(
+    loanId: string,
+    missingFields: { model?: boolean; imei?: boolean; reason?: boolean }
+  ): Promise<PendingLoan> {
+    const pendingData: PendingLoanInsert = {
+      loan_id: loanId,
+      item_id: '', // Will be populated by trigger or can be fetched from loan
+      pending_type: 'missing_device_left_info',
+      notes: `Informações do aparelho deixado incompletas: ${Object.keys(missingFields).join(', ')}`,
+      created_by: (await supabase.auth.getUser()).data.user?.id as string
+    };
+
+    return this.create(pendingData);
   }
 
   static async getStats() {

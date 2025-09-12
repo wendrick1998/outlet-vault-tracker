@@ -3,14 +3,23 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ShieldX, User, Plus } from "lucide-react";
 import { useReasons } from "@/hooks/useReasons";
 import { useSellers } from "@/hooks/useSellers";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useLoans } from "@/hooks/useLoans";
 import { usePendingLoans } from "@/hooks/usePendingLoans";
+import { useDevicesLeftAtStore } from "@/hooks/useDevicesLeftAtStore";
+import { useHasPermission } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SmartFormHelper } from "@/components/SmartFormHelper";
 import { QuickCustomerForm } from "@/components/QuickCustomerForm";
+import { CustomerSearchInput } from "@/components/CustomerSearchInput";
+import { DeviceLeftAtStoreDialog } from "@/components/DeviceLeftAtStoreDialog";
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -28,19 +37,57 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const [guestCustomer, setGuestCustomer] = useState<string>("");
   const [useGuestCustomer, setUseGuestCustomer] = useState(false);
   const [showQuickForm, setShowQuickForm] = useState(false);
-  const [quickNote, setQuickNote] = useState<string>("");
+  const [justification, setJustification] = useState<string>(""); // Renamed from quickNote
+  const [deviceLeftQuestion, setDeviceLeftQuestion] = useState<boolean | null>(null);
+  const [showDeviceLeftDialog, setShowDeviceLeftDialog] = useState(false);
+  const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
   
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: hasWithdrawPermission, isLoading: loadingPermission } = useHasPermission('movements.create');
   const { reasons = [] } = useReasons();
   const { sellers = [] } = useSellers();
   const { customers = [] } = useCustomers();
   const { createLoan, isCreating } = useLoans();
   const { createPendingLoan } = usePendingLoans();
+  const { createDeviceLeft } = useDevicesLeftAtStore();
   
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
   const requiresCustomer = selectedReasonData?.requires_customer || false;
 
+  // Permission check
+  if (loadingPermission) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Verificando permissões...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasWithdrawPermission) {
+    return (
+      <Card className="p-6">
+        <Alert className="border-destructive bg-destructive/10">
+          <ShieldX className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive font-medium">
+            Acesso negado: Você não tem permissão para realizar retiradas de aparelhos.
+          </AlertDescription>
+        </Alert>
+        <div className="flex justify-center mt-4">
+          <Button variant="outline" onClick={onCancel}>
+            Voltar
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   const isFormValid = () => {
+    // Justification is always required
+    if (!justification.trim()) return false;
     if (!selectedReason || !selectedSeller) return false;
     if (requiresCustomer && !useGuestCustomer && !selectedCustomer && !showQuickForm) return false;
     if (requiresCustomer && useGuestCustomer && !guestCustomer.trim()) return false;
@@ -61,7 +108,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         setSelectedReason(value);
         break;
       case 'notes':
-        setQuickNote(value);
+        setJustification(value);
         break;
       case 'guest_customer':
         if (useGuestCustomer) {
@@ -78,7 +125,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     seller_id: selectedSeller,
     customer_id: useGuestCustomer ? null : selectedCustomer,
     guest_customer: useGuestCustomer ? guestCustomer : null,
-    notes: quickNote,
+    notes: justification,
     requires_customer: requiresCustomer,
     use_guest_customer: useGuestCustomer
   });
@@ -86,6 +133,16 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const handleCustomerCreated = (customerId: string) => {
     setSelectedCustomer(customerId);
     setShowQuickForm(false);
+    
+    // Check if customer has incomplete data for pendency creation later
+    const customer = customers.find(c => c.id === customerId);
+    if (customer?.pending_data) {
+      toast({
+        title: "Cliente cadastrado com pendências",
+        description: "Complete os dados do cliente posteriormente na seção de pendências.",
+        variant: "default"
+      });
+    }
   };
 
   const handleSkipCustomerRegistration = () => {
@@ -95,25 +152,38 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       reason_id: selectedReason,
       seller_id: selectedSeller,
       customer_id: null,
-      notes: quickNote.trim() || null,
+      notes: justification.trim() || null,
     };
 
     createLoan(loanData, {
       onSuccess: (loan) => {
+        setPendingLoanId(loan.id);
+        
         // Create pending loan entry
         const pendingData = {
           loan_id: loan.id,
           item_id: item.id,
           pending_type: 'incomplete_customer_data' as const,
-          created_by: loan.id, // This should be user ID, but using loan ID for now
+          created_by: user?.id || loan.id,
           notes: 'Cliente será cadastrado posteriormente'
         };
 
         createPendingLoan(pendingData);
         
+        // Ask about device left at store
+        if (deviceLeftQuestion === null) {
+          setDeviceLeftQuestion(true);
+          return;
+        }
+        
+        if (deviceLeftQuestion === true) {
+          setShowDeviceLeftDialog(true);
+          return;
+        }
+        
         toast({
           title: "Empréstimo registrado",
-          description: `${item.model} saiu do cofre. Cadastre o cliente posteriormente.`,
+          description: `${item.model} saiu do cofre. Complete as pendências posteriormente.`,
         });
         onComplete();
       },
@@ -128,6 +198,16 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   };
 
   const handleSubmit = async () => {
+    // Validation with improved messages
+    if (!justification.trim()) {
+      toast({
+        title: "Justificativa obrigatória",
+        description: "A justificativa da saída é sempre obrigatória",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!selectedReason || !selectedSeller) {
       toast({
         title: "Campos obrigatórios",
@@ -141,7 +221,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     if (requiresCustomer && !selectedCustomer && !useGuestCustomer && !showQuickForm) {
       toast({
         title: "Cliente obrigatório",
-        description: "Selecione um cliente, cadastre um novo ou use cliente avulso",
+        description: "Para empréstimos, selecione um cliente ou cadastre um novo",
         variant: "destructive"
       });
       return;
@@ -162,11 +242,28 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       reason_id: selectedReason,
       seller_id: selectedSeller,
       customer_id: useGuestCustomer ? null : (selectedCustomer || null),
-      notes: quickNote.trim() || null,
+      notes: justification.trim() || null,
     };
 
     createLoan(loanData, {
-      onSuccess: () => {
+      onSuccess: (loan) => {
+        setPendingLoanId(loan.id);
+        
+        // For loans with customers, ask about device left at store
+        if (requiresCustomer && (selectedCustomer || useGuestCustomer)) {
+          // Show device left question first
+          if (deviceLeftQuestion === null) {
+            setDeviceLeftQuestion(true);
+            return;
+          }
+        }
+        
+        // If answered yes to device left question, show dialog
+        if (deviceLeftQuestion === true) {
+          setShowDeviceLeftDialog(true);
+          return;
+        }
+        
         toast({
           title: "Saída registrada",
           description: `${item.model} saiu do cofre com sucesso`,
@@ -181,6 +278,24 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         });
       }
     });
+  };
+
+  const handleDeviceLeftRegistered = () => {
+    setShowDeviceLeftDialog(false);
+    toast({
+      title: "Saída registrada",
+      description: `${item.model} saiu do cofre com sucesso`,
+    });
+    onComplete();
+  };
+
+  const handleDeviceLeftSkip = () => {
+    setShowDeviceLeftDialog(false);
+    toast({
+      title: "Saída registrada", 
+      description: `${item.model} saiu do cofre com sucesso`,
+    });
+    onComplete();
   };
 
   return (
@@ -242,14 +357,8 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                 onClick={() => { setUseGuestCustomer(false); setShowQuickForm(false); }}
                 size="sm"
               >
-                Lista de Clientes
-              </Button>
-              <Button
-                variant={showQuickForm ? "default" : "outline"}
-                onClick={() => { setShowQuickForm(true); setUseGuestCustomer(false); }}
-                size="sm"
-              >
-                Cadastrar Novo Cliente
+                <User className="h-4 w-4 mr-2" />
+                Buscar Cliente
               </Button>
               <Button
                 variant={useGuestCustomer && !showQuickForm ? "default" : "outline"}
@@ -261,22 +370,18 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
             </div>
 
             {!useGuestCustomer && !showQuickForm ? (
-              <div className="grid gap-2 max-h-48 overflow-y-auto">
-                {customers.map((customer) => (
-                  <Button
-                    key={customer.id}
-                    variant={selectedCustomer === customer.id ? "default" : "outline"}
-                    onClick={() => setSelectedCustomer(customer.id)}
-                    className="justify-between h-auto p-3"
-                  >
-                    <div className="text-left">
-                      <div className="font-medium">{customer.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {customer.phone} {customer.cpf && `• CPF: ${customer.cpf}`}
-                      </div>
-                    </div>
-                  </Button>
-                ))}
+              <div className="space-y-2">
+                <CustomerSearchInput
+                  value={selectedCustomer}
+                  onChange={setSelectedCustomer}
+                  onNewCustomer={() => setShowQuickForm(true)}
+                  placeholder="Pesquisar por nome, CPF ou telefone..."
+                />
+                {selectedCustomer && (
+                  <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                    ✓ Cliente selecionado
+                  </div>
+                )}
               </div>
             ) : showQuickForm ? (
               <div className="p-4 border border-dashed rounded-lg bg-muted/30">
@@ -285,38 +390,99 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                 </p>
               </div>
             ) : (
-              <input
+              <Input
                 type="text"
                 placeholder="Nome do cliente avulso..."
                 value={guestCustomer}
                 onChange={(e) => setGuestCustomer(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-border bg-input focus:ring-2 focus:ring-ring focus:border-transparent"
+                className="w-full"
               />
             )}
           </div>
         )}
 
-        {/* Quick note */}
+        {/* Justification - Always required */}
         <div className="space-y-3">
-          <label className="text-sm font-medium">Observação Rápida (opcional)</label>
+          <Label htmlFor="justification" className="text-sm font-medium">
+            Justificativa *
+            <span className="text-xs text-muted-foreground ml-1">(sempre obrigatória)</span>
+          </Label>
           <Textarea
-            placeholder="Adicione uma observação sobre esta saída..."
-            value={quickNote}
-            onChange={(e) => setQuickNote(e.target.value)}
+            id="justification"
+            placeholder="Justifique a saída deste aparelho..."
+            value={justification}
+            onChange={(e) => setJustification(e.target.value)}
             rows={3}
+            className={!justification.trim() ? "border-amber-300 bg-amber-50" : ""}
           />
+          {!justification.trim() && (
+            <p className="text-xs text-amber-600">⚠️ Justificativa é obrigatória para todas as saídas</p>
+          )}
         </div>
-        </Card>
 
-        {/* Smart Form Helper - IA Integration */}
-        <SmartFormHelper
-          item={item}
-          formData={getFormData()}
-          onSuggestionApply={handleSuggestionApply}
-          context="outflow_form"
-        />
+        {/* Device left at store question */}
+        {requiresCustomer && (selectedCustomer || useGuestCustomer) && deviceLeftQuestion === null && (
+          <div className="space-y-3 p-4 border border-blue-200 bg-blue-50 rounded-lg">
+            <Label className="text-sm font-medium text-blue-800">
+              Verificação de Aparelho
+            </Label>
+            <p className="text-sm text-blue-700">
+              O cliente está deixando algum aparelho na loja?
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDeviceLeftQuestion(true)}
+                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                Sim
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDeviceLeftQuestion(false)}
+                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                Não
+              </Button>
+            </div>
+          </div>
+        )}
 
-        {/* Actions */}
+        {/* Show answer */}
+        {deviceLeftQuestion !== null && (
+          <div className="text-sm p-3 rounded-lg bg-muted/30">
+            <p>
+              <span className="font-medium">Aparelho deixado na loja:</span>{" "}
+              <span className={deviceLeftQuestion ? "text-blue-600" : "text-gray-600"}>
+                {deviceLeftQuestion ? "Sim" : "Não"}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeviceLeftQuestion(null)}
+                className="ml-2 h-6 px-2 text-xs"
+              >
+                Alterar
+              </Button>
+            </p>
+          </div>
+        )}
+      </Card>
+
+      {/* Smart Form Helper - IA Integration */}
+      <SmartFormHelper
+        item={item}
+        formData={getFormData()}
+        onSuggestionApply={handleSuggestionApply}
+        context="outflow_form"
+      />
+
+      {/* Actions */}
       <div className="flex gap-3">
         <Button 
           variant="outline" 
@@ -335,7 +501,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
             }
           }}
           className="flex-1 h-12 bg-primary hover:bg-primary-hover"
-          disabled={isCreating}
+          disabled={isCreating || !isFormValid()}
         >
           {isCreating ? "Registrando..." : "Confirmar Saída"}
         </Button>
@@ -348,6 +514,16 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         onCustomerCreated={handleCustomerCreated}
         onSkip={handleSkipCustomerRegistration}
       />
+
+      {/* Device Left At Store Dialog */}
+      {pendingLoanId && (
+        <DeviceLeftAtStoreDialog
+          open={showDeviceLeftDialog}
+          onOpenChange={setShowDeviceLeftDialog}
+          loanId={pendingLoanId}
+          onDeviceRegistered={handleDeviceLeftRegistered}
+        />
+      )}
     </div>
   );
 };

@@ -303,6 +303,47 @@ export type Database = {
         }
         Relationships: []
       }
+      devices_left_at_store: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          imei: string | null
+          loan_id: string
+          model: string | null
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          imei?: string | null
+          loan_id: string
+          model?: string | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          imei?: string | null
+          loan_id?: string
+          model?: string | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_left_at_store_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory: {
         Row: {
           battery_pct: number | null
@@ -1079,6 +1120,8 @@ export type Database = {
         | "incomplete_customer_data"
         | "missing_cpf"
         | "missing_contact"
+        | "missing_device_left_info"
+        | "incomplete_customer_contact"
       pending_sale_status: "pending" | "resolved"
       permission:
         | "inventory.view"
@@ -1253,6 +1296,8 @@ export const Constants = {
         "incomplete_customer_data",
         "missing_cpf",
         "missing_contact",
+        "missing_device_left_info",
+        "incomplete_customer_contact",
       ],
       pending_sale_status: ["pending", "resolved"],
       permission: [
