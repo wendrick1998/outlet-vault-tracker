@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Smartphone, UserCheck } from "lucide-react";
+import { Users, Smartphone, UserCheck, UserPlus, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -7,6 +7,7 @@ import { AdminUsersTab } from "./components/users/AdminUsersTab";
 import { AdminModelsTab } from "./components/models/AdminModelsTab";
 import { AdminDevicesTab } from "./components/devices/AdminDevicesTab";
 import { AdminCatalogsTab } from "./components/catalogs/AdminCatalogsTab";
+import { AdminCustomersTab } from "./components/customers/AdminCustomersTab";
 
 export const AdminCadastros = () => {
   return (
@@ -22,27 +23,35 @@ export const AdminCadastros = () => {
         </Card>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
-              Usuários Autorizados
+              Usuários
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Clientes
             </TabsTrigger>
             <TabsTrigger value="models" className="gap-2">
               <UserCheck className="h-4 w-4" />
-              Modelos de Aparelhos
+              Modelos
             </TabsTrigger>
             <TabsTrigger value="devices" className="gap-2">
               <Smartphone className="h-4 w-4" />
-              Aparelhos (Inventário)
+              Inventário
             </TabsTrigger>
             <TabsTrigger value="catalogs" className="gap-2">
-              <UserCheck className="h-4 w-4" />
-              Entidades & Campos
+              <Settings className="h-4 w-4" />
+              Catálogos
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
             <AdminUsersTab />
+          </TabsContent>
+
+          <TabsContent value="customers">
+            <AdminCustomersTab />
           </TabsContent>
 
           <TabsContent value="models">

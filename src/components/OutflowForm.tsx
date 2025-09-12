@@ -7,8 +7,10 @@ import { useReasons } from "@/hooks/useReasons";
 import { useSellers } from "@/hooks/useSellers";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useLoans } from "@/hooks/useLoans";
+import { usePendingLoans } from "@/hooks/usePendingLoans";
 import { useToast } from "@/hooks/use-toast";
 import { SmartFormHelper } from "@/components/SmartFormHelper";
+import { QuickCustomerForm } from "@/components/QuickCustomerForm";
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -25,6 +27,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [guestCustomer, setGuestCustomer] = useState<string>("");
   const [useGuestCustomer, setUseGuestCustomer] = useState(false);
+  const [showQuickForm, setShowQuickForm] = useState(false);
   const [quickNote, setQuickNote] = useState<string>("");
   
   const { toast } = useToast();
@@ -32,13 +35,14 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const { sellers = [] } = useSellers();
   const { customers = [] } = useCustomers();
   const { createLoan, isCreating } = useLoans();
+  const { createPendingLoan } = usePendingLoans();
   
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
   const requiresCustomer = selectedReasonData?.requires_customer || false;
 
   const isFormValid = () => {
     if (!selectedReason || !selectedSeller) return false;
-    if (requiresCustomer && !useGuestCustomer && !selectedCustomer) return false;
+    if (requiresCustomer && !useGuestCustomer && !selectedCustomer && !showQuickForm) return false;
     if (requiresCustomer && useGuestCustomer && !guestCustomer.trim()) return false;
     return true;
   };
@@ -79,11 +83,75 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     use_guest_customer: useGuestCustomer
   });
 
+  const handleCustomerCreated = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    setShowQuickForm(false);
+  };
+
+  const handleSkipCustomerRegistration = () => {
+    // Create loan without customer but create a pending entry
+    const loanData = {
+      item_id: item.id,
+      reason_id: selectedReason,
+      seller_id: selectedSeller,
+      customer_id: null,
+      notes: quickNote.trim() || null,
+    };
+
+    createLoan(loanData, {
+      onSuccess: (loan) => {
+        // Create pending loan entry
+        const pendingData = {
+          loan_id: loan.id,
+          item_id: item.id,
+          pending_type: 'incomplete_customer_data' as const,
+          created_by: loan.id, // This should be user ID, but using loan ID for now
+          notes: 'Cliente será cadastrado posteriormente'
+        };
+
+        createPendingLoan(pendingData);
+        
+        toast({
+          title: "Empréstimo registrado",
+          description: `${item.model} saiu do cofre. Cadastre o cliente posteriormente.`,
+        });
+        onComplete();
+      },
+      onError: () => {
+        toast({
+          title: "Erro ao registrar saída",
+          description: "Ocorreu um erro. Tente novamente.",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+
   const handleSubmit = async () => {
-    if (!isFormValid()) {
+    if (!selectedReason || !selectedSeller) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Selecione o motivo e o vendedor responsável",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // If requires customer but none selected and not using quick form
+    if (requiresCustomer && !selectedCustomer && !useGuestCustomer && !showQuickForm) {
+      toast({
+        title: "Cliente obrigatório",
+        description: "Selecione um cliente, cadastre um novo ou use cliente avulso",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // If using guest customer but no name provided
+    if (requiresCustomer && useGuestCustomer && !guestCustomer.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Informe o nome do cliente avulso",
         variant: "destructive"
       });
       return;
@@ -170,22 +238,29 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
             
             <div className="flex gap-2 mb-3">
               <Button
-                variant={!useGuestCustomer ? "default" : "outline"}
-                onClick={() => setUseGuestCustomer(false)}
+                variant={!useGuestCustomer && !showQuickForm ? "default" : "outline"}
+                onClick={() => { setUseGuestCustomer(false); setShowQuickForm(false); }}
                 size="sm"
               >
                 Lista de Clientes
               </Button>
               <Button
-                variant={useGuestCustomer ? "default" : "outline"}
-                onClick={() => setUseGuestCustomer(true)}
+                variant={showQuickForm ? "default" : "outline"}
+                onClick={() => { setShowQuickForm(true); setUseGuestCustomer(false); }}
+                size="sm"
+              >
+                Cadastrar Novo Cliente
+              </Button>
+              <Button
+                variant={useGuestCustomer && !showQuickForm ? "default" : "outline"}
+                onClick={() => { setUseGuestCustomer(true); setShowQuickForm(false); }}
                 size="sm"
               >
                 Cliente Avulso
               </Button>
             </div>
 
-            {!useGuestCustomer ? (
+            {!useGuestCustomer && !showQuickForm ? (
               <div className="grid gap-2 max-h-48 overflow-y-auto">
                 {customers.map((customer) => (
                   <Button
@@ -196,10 +271,18 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                   >
                     <div className="text-left">
                       <div className="font-medium">{customer.name}</div>
-                      <div className="text-sm text-muted-foreground">{customer.phone}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {customer.phone} {customer.cpf && `• CPF: ${customer.cpf}`}
+                      </div>
                     </div>
                   </Button>
                 ))}
+              </div>
+            ) : showQuickForm ? (
+              <div className="p-4 border border-dashed rounded-lg bg-muted/30">
+                <p className="text-sm text-muted-foreground text-center">
+                  Clique no botão "Confirmar Saída" para abrir o formulário de cadastro rápido
+                </p>
               </div>
             ) : (
               <input
@@ -244,13 +327,27 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
           Cancelar
         </Button>
         <Button 
-          onClick={handleSubmit}
+          onClick={() => {
+            if (requiresCustomer && showQuickForm) {
+              setShowQuickForm(true);
+            } else {
+              handleSubmit();
+            }
+          }}
           className="flex-1 h-12 bg-primary hover:bg-primary-hover"
-          disabled={!isFormValid() || isCreating}
+          disabled={isCreating}
         >
           {isCreating ? "Registrando..." : "Confirmar Saída"}
         </Button>
       </div>
+
+      {/* Quick Customer Form */}
+      <QuickCustomerForm
+        open={showQuickForm && requiresCustomer}
+        onOpenChange={setShowQuickForm}
+        onCustomerCreated={handleCustomerCreated}
+        onSkip={handleSkipCustomerRegistration}
+      />
     </div>
   );
 };

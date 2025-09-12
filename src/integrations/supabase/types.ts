@@ -212,29 +212,44 @@ export type Database = {
       }
       customers: {
         Row: {
+          address: string | null
+          cpf: string | null
           created_at: string
           email: string | null
           id: string
           is_registered: boolean
+          loan_limit: number | null
           name: string
+          notes: string | null
+          pending_data: Json | null
           phone: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_registered?: boolean
+          loan_limit?: number | null
           name: string
+          notes?: string | null
+          pending_data?: Json | null
           phone?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_registered?: boolean
+          loan_limit?: number | null
           name?: string
+          notes?: string | null
+          pending_data?: Json | null
           phone?: string | null
           updated_at?: string
         }
@@ -574,6 +589,72 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pending_loans: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_cpf: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          item_id: string
+          loan_id: string
+          notes: string | null
+          pending_type: Database["public"]["Enums"]["pending_loan_type"]
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          customer_cpf?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          item_id: string
+          loan_id: string
+          notes?: string | null
+          pending_type?: Database["public"]["Enums"]["pending_loan_type"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_cpf?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          item_id?: string
+          loan_id?: string
+          notes?: string | null
+          pending_type?: Database["public"]["Enums"]["pending_loan_type"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_loans_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_loans_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pending_sales: {
         Row: {
@@ -994,6 +1075,10 @@ export type Database = {
         | "viewer"
       inventory_status: "available" | "loaned" | "sold" | "maintenance"
       loan_status: "active" | "returned" | "overdue"
+      pending_loan_type:
+        | "incomplete_customer_data"
+        | "missing_cpf"
+        | "missing_contact"
       pending_sale_status: "pending" | "resolved"
       permission:
         | "inventory.view"
@@ -1164,6 +1249,11 @@ export const Constants = {
       ],
       inventory_status: ["available", "loaned", "sold", "maintenance"],
       loan_status: ["active", "returned", "overdue"],
+      pending_loan_type: [
+        "incomplete_customer_data",
+        "missing_cpf",
+        "missing_contact",
+      ],
       pending_sale_status: ["pending", "resolved"],
       permission: [
         "inventory.view",
