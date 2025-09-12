@@ -405,6 +405,27 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission: Database["public"]["Enums"]["permission"]
+          role: Database["public"]["Enums"]["granular_role"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission: Database["public"]["Enums"]["permission"]
+          role: Database["public"]["Enums"]["granular_role"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["permission"]
+          role?: Database["public"]["Enums"]["granular_role"]
+        }
+        Relationships: []
+      }
       sellers: {
         Row: {
           created_at: string
@@ -435,6 +456,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_role_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          role: Database["public"]["Enums"]["granular_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          role: Database["public"]["Enums"]["granular_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          role?: Database["public"]["Enums"]["granular_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_role_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -460,6 +535,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      current_user_has_permission: {
+        Args: { required_permission: Database["public"]["Enums"]["permission"] }
+        Returns: boolean
+      }
       ensure_profile_exists: {
         Args: { user_id: string }
         Returns: undefined
@@ -475,6 +554,10 @@ export type Database = {
       get_system_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_user_permissions: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["permission"][]
       }
       get_user_role: {
         Args: { user_id: string }
@@ -512,9 +595,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      migrate_existing_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       secure_get_system_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      user_has_permission: {
+        Args: {
+          required_permission: Database["public"]["Enums"]["permission"]
+          user_id: string
+        }
+        Returns: boolean
       }
       validate_password_security: {
         Args: { password_text: string }
@@ -527,8 +621,35 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "user" | "auditor"
+      granular_role:
+        | "admin"
+        | "manager"
+        | "supervisor"
+        | "operator"
+        | "auditor"
+        | "viewer"
       inventory_status: "available" | "loaned" | "sold" | "maintenance"
       loan_status: "active" | "returned" | "overdue"
+      permission:
+        | "inventory.view"
+        | "inventory.create"
+        | "inventory.update"
+        | "inventory.delete"
+        | "inventory.bulk_operations"
+        | "movements.view"
+        | "movements.create"
+        | "movements.approve"
+        | "movements.cancel"
+        | "users.view"
+        | "users.create"
+        | "users.update"
+        | "users.delete"
+        | "users.manage_roles"
+        | "audit.view"
+        | "audit.export"
+        | "system.config"
+        | "system.backup"
+        | "system.features"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -657,8 +778,37 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "user", "auditor"],
+      granular_role: [
+        "admin",
+        "manager",
+        "supervisor",
+        "operator",
+        "auditor",
+        "viewer",
+      ],
       inventory_status: ["available", "loaned", "sold", "maintenance"],
       loan_status: ["active", "returned", "overdue"],
+      permission: [
+        "inventory.view",
+        "inventory.create",
+        "inventory.update",
+        "inventory.delete",
+        "inventory.bulk_operations",
+        "movements.view",
+        "movements.create",
+        "movements.approve",
+        "movements.cancel",
+        "users.view",
+        "users.create",
+        "users.update",
+        "users.delete",
+        "users.manage_roles",
+        "audit.view",
+        "audit.export",
+        "system.config",
+        "system.backup",
+        "system.features",
+      ],
     },
   },
 } as const
