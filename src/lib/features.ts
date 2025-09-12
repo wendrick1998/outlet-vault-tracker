@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 
 // Available feature flags
 export const FEATURE_FLAGS = {
-  // Phase F0 - Infrastructure
+  // Phase F0 - Infrastructure & Security
   ENHANCED_AUDIT_LOGGING: 'enhanced_audit_logging',
+  LEAKED_PASSWORD_PROTECTION: 'leaked_password_protection',
+  STREAMING_AI_ANALYTICS: 'streaming_ai_analytics',
   
   // Phase F1 - Advanced Inventory
   ADVANCED_INVENTORY_SEARCH: 'advanced_inventory_search',
@@ -31,6 +33,8 @@ export type FeatureFlag = typeof FEATURE_FLAGS[keyof typeof FEATURE_FLAGS];
 // Default feature states (can be overridden by localStorage or admin)
 const DEFAULT_FEATURES: Record<FeatureFlag, boolean> = {
   [FEATURE_FLAGS.ENHANCED_AUDIT_LOGGING]: true,
+  [FEATURE_FLAGS.LEAKED_PASSWORD_PROTECTION]: true, // Nova funcionalidade de segurança
+  [FEATURE_FLAGS.STREAMING_AI_ANALYTICS]: false, // Streaming em beta
   [FEATURE_FLAGS.ADVANCED_INVENTORY_SEARCH]: true,
   [FEATURE_FLAGS.BATCH_OPERATIONS]: true,
   [FEATURE_FLAGS.INVENTORY_CATEGORIES]: true,

@@ -12,6 +12,16 @@ const FEATURE_DESCRIPTIONS: Record<keyof typeof FEATURE_FLAGS, { name: string; d
     description: 'Sistema completo de logs de auditoria com rastreamento detalhado',
     phase: 'F0'
   },
+  LEAKED_PASSWORD_PROTECTION: {
+    name: 'Proteção contra Senhas Vazadas',
+    description: 'Verificação de senhas contra base de dados de vazamentos conhecidos',
+    phase: 'F0'
+  },
+  STREAMING_AI_ANALYTICS: {
+    name: 'Analytics IA em Streaming',
+    description: 'Análises de IA com resposta progressiva e tempo real',
+    phase: 'F0'
+  },
   ADVANCED_INVENTORY_SEARCH: {
     name: 'Busca Avançada de Inventário',
     description: 'Filtros avançados e busca por múltiplos critérios',

@@ -535,6 +535,10 @@ export type Database = {
         Args: { user_email: string }
         Returns: Json
       }
+      check_password_leaked_status: {
+        Args: { password_hash: string }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: {
           identifier: string

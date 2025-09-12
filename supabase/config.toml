@@ -20,3 +20,9 @@ verify_jwt = true
 
 [functions.ai-smart-actions]
 verify_jwt = true
+
+[functions.check-leaked-passwords]
+verify_jwt = true
+
+[functions.ai-analytics-stream]
+verify_jwt = true
