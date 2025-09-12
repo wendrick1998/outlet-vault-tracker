@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserPlus, Settings, Shield, Clock, Users } from 'lucide-react';
 import { AdminOnly } from '@/components/RoleGuard';
+import { CreateUserDialog } from '@/components/CreateUserDialog';
 import type { Database } from '@/integrations/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -39,6 +40,7 @@ export const UserManagement = () => {
   
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [formData, setFormData] = useState<UserFormData>({
     full_name: '',
     email: '',
@@ -136,7 +138,7 @@ export const UserManagement = () => {
         </h2>
         
         <AdminOnly showMessage={false}>
-          <Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
             Novo Usuário
           </Button>
@@ -272,6 +274,16 @@ export const UserManagement = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de Criação */}
+      <CreateUserDialog 
+        open={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={() => {
+          // Refetch profiles when a new user is created
+          window.location.reload();
+        }}
+      />
 
       {/* Dialog de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
