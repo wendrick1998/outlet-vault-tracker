@@ -6,11 +6,37 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import type { ImportedItem, ImportSummary, ValidCondition } from '@/lib/inventory-import-utils';
-import { VALID_CONDITIONS, formatImportSummary, exportErrorsToCSV, maskIMEI } from '@/lib/inventory-import-utils';
+import type { Database } from "@/integrations/supabase/types";
+
+interface ParsedItem {
+  brand: string;
+  model: string;
+  storage_gb: number | null;
+  color: string | null;
+  condition: string;
+  imei1: string;
+  imei2: string | null;
+  serial: string | null;
+  battery_pct: number | null;
+  title_original: string;
+  parse_confidence: number;
+  import_batch_id: string;
+  status: 'READY' | 'REVIEW_REQUIRED' | 'DUPLICATE';
+  device_model_id: string | null;
+}
+
+interface ImportSummary {
+  total: number;
+  preview_count?: number;
+  ready?: number;
+  review_required?: number;
+  duplicates: number;
+  created?: number;
+  updated?: number;
+  errors?: number;
+}
 
 interface CSVXLSXImportDialogProps {
   open: boolean;
@@ -27,11 +53,11 @@ export const CSVXLSXImportDialog = ({
 }: CSVXLSXImportDialogProps) => {
   const [step, setStep] = useState<ImportStep>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewItems, setPreviewItems] = useState<ImportedItem[]>([]);
+  const [previewItems, setPreviewItems] = useState<ParsedItem[]>([]);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [batchId, setBatchId] = useState<string>('');
   const [progress, setProgress] = useState(0);
-  const [defaultCondition, setDefaultCondition] = useState<ValidCondition>('Seminovo');
+  const [defaultCondition, setDefaultCondition] = useState<string>('seminovo');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -104,13 +130,13 @@ export const CSVXLSXImportDialog = ({
       setStep('processing');
       setProgress(0);
 
-      // Aplicar condição padrão aos itens que não têm condição definida
-      const itemsWithDefaults = previewItems
-        .filter(item => item.status === 'READY')
-        .map(item => ({
-          ...item,
-          condition: item.condition || defaultCondition
-        }));
+              // Aplicar condição padrão aos itens que não têm condição definida
+              const itemsWithDefaults = previewItems
+                .filter(item => item.status === 'READY')
+                .map(item => ({
+                  ...item,
+                  condition: item.condition || defaultCondition
+                }));
 
       // Simular progresso
       for (let i = 0; i <= 100; i += 10) {
@@ -128,11 +154,11 @@ export const CSVXLSXImportDialog = ({
       setStep('complete');
       onImportComplete?.(data.summary);
 
-      toast({
-        title: "Importação concluída",
-        description: formatImportSummary(data.summary),
-        variant: data.summary.errors > 0 ? "destructive" : "default"
-      });
+        toast({
+          title: "Importação concluída",
+          description: `${data.summary.created || 0} itens criados`,
+          variant: (data.summary.errors || 0) > 0 ? "destructive" : "default"
+        });
 
     } catch (error) {
       console.error('Import error:', error);
@@ -158,8 +184,20 @@ export const CSVXLSXImportDialog = ({
   };
 
   const downloadErrorReport = () => {
-    const csv = exportErrorsToCSV(previewItems);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const errorItems = previewItems.filter(item => item.status === 'REVIEW_REQUIRED');
+    if (errorItems.length === 0) return;
+
+    const csvContent = [
+      'Título,IMEI,Status,Problema',
+      ...errorItems.map(item => [
+        item.title_original,
+        item.imei1,
+        item.status,
+        'Dados incompletos ou IMEI inválido'
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -287,16 +325,15 @@ Samsung Galaxy S23 256GB Preto Usado,123456789012347,R58XXXXXXXX,78`;
               {/* Default Condition Selector */}
               <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
                 <span className="text-sm font-medium">Condição padrão para itens sem condição:</span>
-                <Select value={defaultCondition} onValueChange={(value: ValidCondition) => setDefaultCondition(value)}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VALID_CONDITIONS.map(condition => (
-                      <SelectItem key={condition} value={condition}>{condition}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select 
+                  value={defaultCondition} 
+                  onChange={(e) => setDefaultCondition(e.target.value)}
+                  className="px-3 py-2 border rounded-md bg-background"
+                >
+                  <option value="novo">Novo</option>
+                  <option value="seminovo">Seminovo</option>
+                  <option value="usado">Usado</option>
+                </select>
               </div>
 
               {/* Preview Table */}
@@ -329,18 +366,21 @@ Samsung Galaxy S23 256GB Preto Usado,123456789012347,R58XXXXXXXX,78`;
                              'Duplicado'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {maskIMEI(item.imei1)}
-                        </TableCell>
-                        <TableCell>{item.brand} {item.model}</TableCell>
-                        <TableCell>{item.storage_gb ? `${item.storage_gb}GB` : '-'}</TableCell>
-                        <TableCell>{item.color || '-'}</TableCell>
-                        <TableCell>{item.condition || defaultCondition}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {(item.parse_confidence * 100).toFixed(0)}%
-                          </Badge>
-                        </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {item.imei1 && item.imei1.length >= 4 
+                      ? `***********${item.imei1.slice(-4)}`
+                      : item.imei1
+                    }
+                  </TableCell>
+                  <TableCell>{item.brand} {item.model}</TableCell>
+                  <TableCell>{item.storage_gb ? `${item.storage_gb}GB` : '-'}</TableCell>
+                  <TableCell>{item.color || '-'}</TableCell>
+                  <TableCell>{item.condition || defaultCondition}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {(item.parse_confidence * 100).toFixed(0)}%
+                    </Badge>
+                  </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

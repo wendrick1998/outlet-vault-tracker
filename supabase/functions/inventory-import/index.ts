@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import * as XLSX from "https://deno.land/x/sheetjs@v0.18.3/xlsx.mjs";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,7 +43,7 @@ function validateIMEI(imei: string): boolean {
   return checkDigit === parseInt(cleanIMEI[14]);
 }
 
-// Normalização de marca
+// Normalização de marca  
 function normalizeBrand(text: string): string {
   const lowerText = text.toLowerCase();
   
@@ -58,23 +59,54 @@ function normalizeBrand(text: string): string {
   return 'Desconhecida';
 }
 
-// Normalização de modelo Apple
+// Normalização de modelo Apple com melhor suporte ao formato OutletPlus
 function normalizeAppleModel(text: string): string | null {
+  if (!text) return null;
+  
+  const cleanText = text.toLowerCase().trim();
+  
+  // Enhanced iPhone patterns for OutletPlus format
   const patterns = [
-    /iphone\s*(se|[0-9]{1,2})(\s*plus|\s*pro\s*max|\s*pro)?/i,
+    /iphone\s*(\d+)\s*pro\s*max/,
+    /iphone\s*(\d+)\s*pro/,
+    /iphone\s*(\d+)/,
+    /iphone\s*se/,
   ];
   
   for (const pattern of patterns) {
-    const match = text.match(pattern);
+    const match = cleanText.match(pattern);
     if (match) {
-      let model = `iPhone ${match[1]}`;
-      if (match[2]) {
-        const suffix = match[2].trim().toLowerCase();
-        if (suffix === 'plus') model += ' Plus';
-        else if (suffix === 'pro max') model += ' Pro Max';
-        else if (suffix === 'pro') model += ' Pro';
-      }
-      return model;
+      if (cleanText.includes('se')) return 'iPhone SE';
+      if (cleanText.includes('pro max')) return `iPhone ${match[1]} Pro Max`;
+      if (cleanText.includes('pro')) return `iPhone ${match[1]} Pro`;
+      return `iPhone ${match[1]}`;
+    }
+  }
+  
+  return null;
+}
+
+// Normalização de modelo Apple  
+function normalizeAppleModel(text: string): string | null {
+  if (!text) return null;
+  
+  const cleanText = text.toLowerCase().trim();
+  
+  // Enhanced iPhone patterns for OutletPlus format
+  const patterns = [
+    /iphone\s*(\d+)\s*pro\s*max/,
+    /iphone\s*(\d+)\s*pro/,
+    /iphone\s*(\d+)/,
+    /iphone\s*se/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = cleanText.match(pattern);
+    if (match) {
+      if (cleanText.includes('se')) return 'iPhone SE';
+      if (cleanText.includes('pro max')) return `iPhone ${match[1]} Pro Max`;
+      if (cleanText.includes('pro')) return `iPhone ${match[1]} Pro`;
+      return `iPhone ${match[1]}`;
     }
   }
   
@@ -135,37 +167,45 @@ function normalizeAppleColor(text: string): string | null {
   return null;
 }
 
-// Normalização de condição
+// Normalização de condição com suporte ao formato OutletPlus
 function normalizeCondition(text: string): string {
+  if (!text) return 'seminovo';
+  
   const lowerText = text.toLowerCase();
   
-  if (lowerText.includes('lacrado') || lowerText.includes('novo')) return 'Novo';
-  if (lowerText.includes('seminovo') || lowerText.includes('usado')) return 'Seminovo';
-  if (lowerText.includes('recondicionado') || lowerText.includes('refurb')) return 'Recondicionado';
-  if (lowerText.includes('grade a') || lowerText.includes('a+')) return 'Grade_A';
-  if (lowerText.includes('grade b')) return 'Grade_B';
-  if (lowerText.includes('grade c')) return 'Grade_C';
-  if (lowerText.includes('quebrado') || lowerText.includes('sucata') || lowerText.includes('defeituoso')) return 'Defeituoso';
+  // OutletPlus specific patterns
+  if (lowerText.includes('novo') && !lowerText.includes('semi')) return 'novo';
+  if (lowerText.includes('seminovo') || lowerText.includes('semi-novo')) return 'seminovo';
+  if (lowerText.includes('usado') || lowerText.includes('used')) return 'usado';
   
-  return 'Seminovo'; // padrão
+  // Default patterns
+  if (lowerText.includes('new')) return 'novo';
+  if (lowerText.includes('refurb')) return 'seminovo';
+  if (lowerText.includes('recondicionado')) return 'seminovo';
+  if (lowerText.includes('lacrado')) return 'novo';
+  
+  return 'seminovo';
 }
 
-// Parser principal
+// Parser principal otimizado para OutletPlus
 function parseItem(row: any, batchId: string): ParsedItem {
   const title = (row.Título || row.Produto || row.Descricao || row.Nome || '').toString().trim();
-  const imei1Raw = (row['IMEI 1'] || row.IMEI || row.IMEI1 || '').toString().replace(/\D/g, '');
+  const imeiRaw = (row['IMEI 1'] || row.IMEI || row.IMEI1 || '').toString();
   const serial = (row.Serial || '').toString().trim() || null;
   const batteryRaw = (row['% Bateria'] || row.Bateria || row.Battery || '').toString();
+  
+  // Convert IMEI from scientific notation if needed
+  const convertedIMEI = convertScientificIMEI(imeiRaw);
+  const imei1 = convertedIMEI.replace(/\D/g, '');
   
   let confidence = 0;
   const scores: number[] = [];
   
   // Validar IMEI
-  let imei1 = '';
   let imeiValid = false;
-  if (imei1Raw.length >= 14 && imei1Raw.length <= 16) {
-    imei1 = imei1Raw.slice(0, 15);
-    imeiValid = validateIMEI(imei1);
+  if (imei1.length >= 14 && imei1.length <= 16) {
+    const cleanIMEI = imei1.slice(0, 15);
+    imeiValid = validateIMEI(cleanIMEI);
     scores.push(imeiValid ? 1.0 : 0.3);
   } else {
     scores.push(0.0);
@@ -208,7 +248,7 @@ function parseItem(row: any, batchId: string): ParsedItem {
   
   // Extrair condição
   const condition = normalizeCondition(title);
-  scores.push(0.8); // sempre consegue extrair condição
+  scores.push(0.9); // sempre consegue extrair condição
   
   // Bateria
   let battery_pct = null;
@@ -221,7 +261,8 @@ function parseItem(row: any, batchId: string): ParsedItem {
       scores.push(0.0);
     }
   } else {
-    scores.push(0.5);
+    battery_pct = 100; // Default for new items
+    scores.push(0.8);
   }
   
   // Calcular confiança média
@@ -241,15 +282,15 @@ function parseItem(row: any, batchId: string): ParsedItem {
     storage_gb,
     color,
     condition,
-    imei1,
-    imei2: null, // TODO: implementar extração de IMEI2
+    imei1: imei1.slice(0, 15),
+    imei2: null,
     serial,
     battery_pct,
     title_original: title,
     parse_confidence: parseFloat(confidence.toFixed(2)),
     import_batch_id: batchId,
     status,
-    device_model_id: null // será preenchido na verificação do catálogo
+    device_model_id: null
   };
 }
 
@@ -328,23 +369,113 @@ serve(async (req) => {
       const body = await req.json();
       const { items, batch_id } = body;
       
-      // TODO: Implementar inserção no banco
-      // 1. Verificar duplicatas por IMEI
-      // 2. Inserir em lotes de 100
-      // 3. Registrar auditoria
-      
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Importação concluída com sucesso',
-        summary: {
-          created: items.length,
-          updated: 0,
-          duplicates: 0,
-          errors: 0
+      // Initialize Supabase client
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      let created = 0;
+      let errors = 0;
+      let duplicates = 0;
+      const errorDetails: any[] = [];
+
+      try {
+        // Check for duplicates by IMEI first
+        const imeis = items.map((item: ParsedItem) => item.imei1).filter(Boolean);
+        const { data: existingItems } = await supabase
+          .from('inventory')
+          .select('imei')
+          .in('imei', imeis);
+
+        const existingIMEIs = new Set(existingItems?.map(item => item.imei) || []);
+
+        // Process items for insertion
+        const validItems = [];
+        
+        for (const item of items) {
+          if (item.status === 'DUPLICATE' || existingIMEIs.has(item.imei1)) {
+            duplicates++;
+            continue;
+          }
+
+          if (item.status === 'REVIEW_REQUIRED' && !item.imei1) {
+            errors++;
+            errorDetails.push({ item, error: 'IMEI inválido' });
+            continue;
+          }
+
+          // Prepare item for database insertion
+          const inventoryItem = {
+            imei: item.imei1,
+            brand: item.brand,
+            model: item.model,
+            color: item.color || 'Desconhecido',
+            storage: item.storage_gb ? `${item.storage_gb}GB` : null,
+            condition: item.condition,
+            battery_pct: item.battery_pct || 100,
+            status: 'available' as const,
+            import_batch_id: batch_id,
+            import_confidence: item.parse_confidence,
+            title_original: item.title_original,
+            notes: item.title_original !== item.model ? `Título original: ${item.title_original}` : null
+          };
+
+          validItems.push(inventoryItem);
         }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+
+        // Batch insert valid items
+        if (validItems.length > 0) {
+          const { data: insertedItems, error: insertError } = await supabase
+            .from('inventory')
+            .insert(validItems)
+            .select();
+
+          if (insertError) {
+            console.error('Insert error:', insertError);
+            throw insertError;
+          }
+
+          created = insertedItems?.length || 0;
+
+          // Log audit event
+          await supabase.rpc('log_audit_event', {
+            p_action: 'inventory_batch_import',
+            p_details: {
+              batch_id: batch_id,
+              total_items: items.length,
+              created: created,
+              duplicates: duplicates,
+              errors: errors
+            }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Importação concluída com sucesso',
+          summary: {
+            total: items.length,
+            created: created,
+            updated: 0,
+            duplicates: duplicates,
+            errors: errors,
+            error_details: errorDetails
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (error) {
+        console.error('Database error:', error);
+        return new Response(JSON.stringify({ 
+          error: 'Erro ao inserir itens no banco de dados',
+          details: error.message
+        }), { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
     }
     
     return new Response(JSON.stringify({ error: 'Endpoint não encontrado' }), {

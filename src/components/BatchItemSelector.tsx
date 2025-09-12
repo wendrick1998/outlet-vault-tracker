@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIMEISearch } from "@/hooks/useSearch";
 import { useToast } from "@/hooks/use-toast";
-import { CSVImporter } from "./CSVImporter";
+import { CSVXLSXImportDialog } from "./CSVXLSXImportDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -19,6 +19,7 @@ interface BatchItemSelectorProps {
 export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSelectorProps) => {
   const [imeiInput, setImeiInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -209,7 +210,18 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
           </TabsContent>
 
           <TabsContent value="csv">
-            <CSVImporter onImportComplete={handleCSVImportComplete} />
+            <div className="p-4 text-center">
+              <Button onClick={() => setIsOpen(true)} className="w-full" size="lg">
+                <Upload className="h-5 w-5 mr-2" />
+                Importar Inventário XLSX/CSV
+              </Button>
+            </div>
+            
+            <CSVXLSXImportDialog 
+              open={isOpen}
+              onOpenChange={setIsOpen}
+              onImportComplete={handleCSVImportComplete}
+            />
           </TabsContent>
         </Tabs>
       </div>
