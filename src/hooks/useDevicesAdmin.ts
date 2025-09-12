@@ -132,6 +132,12 @@ export const useDevicesAdmin = (includeArchived: boolean = false) => {
     },
   });
 
+  // Create the createDevice object with proper structure
+  const createDevice = {
+    mutateAsync: createDeviceMutation.mutateAsync,
+    isPending: createDeviceMutation.isPending,
+  };
+
   return {
     devices,
     isLoading,

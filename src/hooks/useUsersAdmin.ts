@@ -67,6 +67,38 @@ export const useUsersAdmin = () => {
     });
   };
 
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: { 
+      full_name: string; 
+      email: string; 
+      role: 'admin' | 'manager' | 'user'; 
+      can_withdraw: boolean; 
+      is_active: boolean 
+    }) => {
+      // Call Supabase function to create user with auth and profile
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: userData
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast({
+        title: "Usuário criado com sucesso!",
+        description: "O usuário foi adicionado ao sistema.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao criar usuário",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     users,
     isLoading,
@@ -74,6 +106,11 @@ export const useUsersAdmin = () => {
     updateUser: updateUserMutation.mutate,
     toggleUserStatus,
     toggleCanWithdraw,
+    createUser: {
+      mutateAsync: createUserMutation.mutateAsync,
+      isPending: createUserMutation.isPending,
+    },
     isUpdating: updateUserMutation.isPending,
+    isCreating: createUserMutation.isPending,
   };
 };
