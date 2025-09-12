@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useFeatureFlag } from '@/lib/features';
+import { trackPasswordValidation, trackHIBPCall, metrics, METRIC_NAMES } from '@/lib/metrics';
 
 export interface PasswordSecurityResult {
   isValid: boolean;
@@ -15,11 +16,12 @@ export class PasswordSecurityService {
    * Validação completa de segurança de senha
    */
   static async validatePasswordSecurity(password: string): Promise<PasswordSecurityResult> {
-    const warnings: string[] = [];
-    let isValid = true;
-    let message = 'Senha aprovada nas verificações de segurança.';
+    return await trackPasswordValidation(async () => {
+      const warnings: string[] = [];
+      let isValid = true;
+      let message = 'Senha aprovada nas verificações de segurança.';
 
-    try {
+      try {
       // 1. Validação de força da senha (local)
       const strengthResult = await this.validatePasswordStrength(password);
       
@@ -81,6 +83,7 @@ export class PasswordSecurityService {
         warnings: ['Algumas verificações de segurança falharam, mas a senha foi aceita.']
       };
     }
+    });
   }
 
   /**
@@ -118,29 +121,39 @@ export class PasswordSecurityService {
     message: string;
     fallback?: boolean;
   }> {
-    try {
-      const { data, error } = await supabase.functions.invoke('check-leaked-passwords', {
-        body: { password }
-      });
+    return await trackHIBPCall(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('check-leaked-passwords', {
+          body: { password }
+        });
 
-      if (error) {
-        console.warn('Erro na verificação de vazamentos:', error);
-        return {
+        if (error) {
+          console.warn('Erro na verificação de vazamentos:', error);
+          const fallbackResult = {
+            isLeaked: false,
+            message: 'Verificação de vazamentos temporariamente indisponível.',
+            fallback: true
+          };
+          // Track as fallback
+          await trackHIBPCall(() => Promise.resolve(fallbackResult), true);
+          return fallbackResult;
+        }
+
+        // Track successful call
+        metrics.record(METRIC_NAMES.PASSWORD_LEAK_CHECK_SUCCESS, 1);
+        return data;
+      } catch (error) {
+        console.warn('Erro na comunicação com serviço de verificação:', error);
+        const fallbackResult = {
           isLeaked: false,
           message: 'Verificação de vazamentos temporariamente indisponível.',
           fallback: true
         };
+        // Track as fallback
+        await trackHIBPCall(() => Promise.resolve(fallbackResult), true);
+        return fallbackResult;
       }
-
-      return data;
-    } catch (error) {
-      console.warn('Erro na comunicação com serviço de verificação:', error);
-      return {
-        isLeaked: false,
-        message: 'Verificação de vazamentos temporariamente indisponível.',
-        fallback: true
-      };
-    }
+    });
   }
 
   /**
