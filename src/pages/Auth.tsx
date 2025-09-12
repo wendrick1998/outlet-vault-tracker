@@ -89,37 +89,52 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
     setIsBootstrapping(true);
     
     try {
-      const response = await fetch('https://lwbouxonjohqfdhnasvk.supabase.co/functions/v1/bootstrap-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      console.log('Calling bootstrap-admin function...', { email });
+      
+      const { data, error } = await supabase.functions.invoke('bootstrap-admin', {
+        body: {
           email,
           password
-        }),
+        },
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao criar conta admin');
+      if (error) {
+        console.error('Bootstrap function error:', error);
+        throw new Error(error.message || 'Erro ao criar conta admin');
       }
+
+      console.log('Bootstrap success:', data);
 
       toast({
         title: "Conta admin criada!",
-        description: "Agora você pode fazer login normalmente",
+        description: "Fazendo login automaticamente...",
       });
 
-      // Clear form and try login
-      setEmail('');
-      setPassword('');
+      // Automatically sign in the user after successful bootstrap
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        console.error('Auto sign-in error:', signInError);
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Por favor, faça login normalmente",
+        });
+      } else {
+        toast({
+          title: "Sucesso!",
+          description: "Conta admin criada e login realizado",
+        });
+        onLoginSuccess();
+      }
       
     } catch (error: any) {
       console.error('Bootstrap error:', error);
       toast({
         title: "Erro ao criar conta",
-        description: error.message,
+        description: error.message || "Erro desconhecido",
         variant: "destructive",
       });
     } finally {
