@@ -4,7 +4,7 @@ project_id = "lwbouxonjohqfdhnasvk"
 verify_jwt = false
 
 [functions.admin-create-user]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-search-assistant]
 verify_jwt = true

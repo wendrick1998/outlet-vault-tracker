@@ -30,6 +30,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { useUsersAdmin } from "@/hooks/useUsersAdmin";
+import { supabase } from "@/integrations/supabase/client";
 
 const userSchema = z.object({
   full_name: z.string().min(1, "Nome completo é obrigatório"),
@@ -84,6 +85,32 @@ export const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
 
   const handleSubmit = async (data: UserFormData) => {
     try {
+      // Validate password strength before sending if password is provided
+      if (data.set_password && data.password) {
+        const { data: validationResult, error: validationError } = await supabase
+          .rpc('validate_password_security', { password_text: data.password });
+        
+        if (validationError) {
+          toast({
+            title: "Erro na validação",
+            description: "Não foi possível validar a senha. Tente novamente.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Type cast the validation result
+        const result = validationResult as { valid: boolean; errors?: string[] };
+        if (!result.valid) {
+          toast({
+            title: "Senha não atende aos critérios",
+            description: result.errors?.join(", ") || "Senha muito fraca",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       const userData = {
         full_name: data.full_name,
         email: data.email,
@@ -111,9 +138,29 @@ export const AddUserDialog = ({ onUserAdded }: AddUserDialogProps) => {
         });
       }
     } catch (error: any) {
+      let errorMessage = "Ocorreu um erro inesperado";
+      
+      // Handle FunctionsHttpError with better error messages
+      if (error?.context?.json) {
+        try {
+          const errorData = await error.context.json();
+          errorMessage = errorData.error || errorMessage;
+          
+          // If there are validation details, show them
+          if (errorData.details && Array.isArray(errorData.details)) {
+            errorMessage += ": " + errorData.details.join(", ");
+          }
+        } catch (e) {
+          // Fallback to original error message
+          errorMessage = error.message || errorMessage;
+        }
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+      
       toast({
         title: "Erro ao criar usuário",
-        description: error.message || "Ocorreu um erro inesperado",
+        description: errorMessage,
         variant: "destructive",
       });
     }

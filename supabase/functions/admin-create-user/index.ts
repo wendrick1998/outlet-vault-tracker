@@ -115,6 +115,17 @@ serve(async (req) => {
 
     if (authError) {
       console.error('Auth user creation error:', authError);
+      
+      // Check for duplicate email error
+      if (authError.message.toLowerCase().includes('already') || 
+          authError.message.toLowerCase().includes('exists') ||
+          authError.message.toLowerCase().includes('duplicate')) {
+        return new Response(
+          JSON.stringify({ error: 'E-mail já cadastrado no sistema' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: authError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

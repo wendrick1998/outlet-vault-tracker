@@ -73,7 +73,8 @@ export const useUsersAdmin = () => {
       email: string; 
       role: 'admin' | 'manager' | 'user'; 
       can_withdraw: boolean; 
-      is_active: boolean 
+      is_active: boolean;
+      password?: string;
     }) => {
       // Call Supabase function to create user with auth and profile
       const { data, error } = await supabase.functions.invoke('admin-create-user', {
@@ -90,10 +91,30 @@ export const useUsersAdmin = () => {
         description: "O usuário foi adicionado ao sistema.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      let errorMessage = "Ocorreu um erro inesperado";
+      
+      // Handle FunctionsHttpError with better error messages
+      if (error?.context?.json) {
+        try {
+          const errorData = error.context.json();
+          errorMessage = errorData.error || errorMessage;
+          
+          // If there are validation details, show them
+          if (errorData.details && Array.isArray(errorData.details)) {
+            errorMessage += ": " + errorData.details.join(", ");
+          }
+        } catch (e) {
+          // Fallback to original error message
+          errorMessage = error.message || errorMessage;
+        }
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+      
       toast({
         title: "Erro ao criar usuário",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
