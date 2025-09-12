@@ -1,9 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 import { ProfileService } from '@/services/profileService';
-import { logger } from '@/lib/logger';
 import type { Database } from '@/integrations/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -63,10 +61,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        logger.info('Auth state change', { event, userId: session?.user?.id });
+        if (!mounted) return;
+
+        console.log('Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -75,51 +77,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (event === 'SIGNED_IN' && session?.user) {
           // Ensure user profile exists first
           setTimeout(async () => {
-              try {
-                await supabase.rpc('ensure_profile_exists', { 
-                  user_id: session.user.id 
-                });
-                logger.info('Profile ensured for user', { userId: session.user.id });
-                await fetchProfile(session.user.id);
-              } catch (error) {
-                logger.error('Error ensuring profile', { error, userId: session.user.id });
-                // Fallback: still try to fetch profile
-                await fetchProfile(session.user.id);
+            if (!mounted) return;
+            
+            try {
+              await supabase.rpc('ensure_profile_exists', { 
+                user_id: session.user.id 
+              });
+              if (mounted) {
+                fetchProfile(session.user.id);
               }
-          }, 0);
-          
-          toast({
-            title: "Login realizado",
-            description: "Bem-vindo de volta!"
-          });
+            } catch (error) {
+              console.error('Error ensuring profile:', error);
+              if (mounted) {
+                fetchProfile(session.user.id);
+              }
+            }
+          }, 100);
         } else if (event === 'SIGNED_OUT') {
-          setProfile(null);
-          toast({
-            title: "Logout realizado",
-            description: "Você foi desconectado com sucesso"
-          });
-        } else if (event === 'TOKEN_REFRESHED') {
-          logger.debug('Token refreshed successfully');
+          if (mounted) {
+            setProfile(null);
+          }
         } else if (session?.user && !profile) {
           // Fetch profile for existing sessions
           setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
+            if (mounted) {
+              fetchProfile(session.user.id);
+            }
+          }, 100);
         } else if (!session?.user) {
-          setProfile(null);
+          if (mounted) {
+            setProfile(null);
+          }
         }
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return;
+      
       if (error) {
-        logger.error('Error getting session', { error });
-        toast({
-          title: "Erro de autenticação",
-          description: "Erro ao verificar sessão",
-          variant: "destructive"
-        });
+        console.error('Error getting session:', error);
       }
       setSession(session);
       setUser(session?.user ?? null);
@@ -131,7 +129,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
@@ -141,11 +142,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error) throw error;
     } catch (error) {
       console.error('Error signing out:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao fazer logout",
-        variant: "destructive"
-      });
     } finally {
       setLoading(false);
     }
