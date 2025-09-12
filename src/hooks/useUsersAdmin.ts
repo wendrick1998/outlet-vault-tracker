@@ -86,37 +86,10 @@ export const useUsersAdmin = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      toast({
-        title: "Usuário criado com sucesso!",
-        description: "O usuário foi adicionado ao sistema.",
-      });
+      // Don't show toast here - let AddUserDialog handle success messages
     },
-    onError: (error: any) => {
-      let errorMessage = "Ocorreu um erro inesperado";
-      
-      // Handle FunctionsHttpError with better error messages
-      if (error?.context?.json) {
-        try {
-          const errorData = error.context.json();
-          errorMessage = errorData.error || errorMessage;
-          
-          // If there are validation details, show them
-          if (errorData.details && Array.isArray(errorData.details)) {
-            errorMessage += ": " + errorData.details.join(", ");
-          }
-        } catch (e) {
-          // Fallback to original error message
-          errorMessage = error.message || errorMessage;
-        }
-      } else {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      toast({
-        title: "Erro ao criar usuário",
-        description: errorMessage,
-        variant: "destructive",
-      });
+    onError: () => {
+      // Don't show toast here - let AddUserDialog handle error messages
     },
   });
 

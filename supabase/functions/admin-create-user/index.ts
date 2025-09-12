@@ -139,10 +139,10 @@ serve(async (req) => {
       );
     }
 
-    // Create profile
+    // Create or update profile (using upsert to handle trigger conflicts)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
+      .upsert({
         id: newUser.user.id,
         email: email,
         full_name: full_name,
@@ -150,6 +150,8 @@ serve(async (req) => {
         is_active: is_active ?? true,
         can_withdraw: can_withdraw ?? false,
         must_change_password: true // Always require password change for admin-created users
+      }, {
+        onConflict: 'id'
       });
 
     if (profileError) {
@@ -157,8 +159,8 @@ serve(async (req) => {
       // If profile creation fails, clean up the auth user
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
-        JSON.stringify({ error: profileError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Erro ao criar perfil do usuário' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
