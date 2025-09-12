@@ -53,45 +53,55 @@ serve(async (req) => {
       console.log('Error during cleanup (this is ok):', deleteError)
     }
 
-    // Create new user
+    // Create or locate user
     console.log('Creating new admin user...')
+    let userId: string | null = null;
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: {
-        full_name: 'Wendrick Admin'
-      }
+      user_metadata: { full_name: 'Wendrick Admin' }
     })
 
     if (authError) {
-      console.error('Auth error:', authError)
-      throw authError
+      console.error('Auth error while creating user:', authError)
+      // If user already exists, find their ID and reset password
+      try {
+        const { data: usersList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+        const existing = usersList.users?.find((u: any) => u.email === email)
+        if (!existing) throw authError
+        userId = existing.id
+        console.log(`Existing user found: ${userId}, updating password and confirming email`)
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: 'Wendrick Admin' }
+        })
+        if (updateError) throw updateError
+      } catch (fallbackError) {
+        console.error('Fallback user lookup/update failed:', fallbackError)
+        throw authError
+      }
+    } else {
+      if (!authData.user) throw new Error('Failed to create user')
+      userId = authData.user.id
+      console.log(`User created with ID: ${userId}`)
     }
 
-    if (!authData.user) {
-      throw new Error('Failed to create user')
-    }
-
-    console.log(`User created with ID: ${authData.user.id}`)
-
-    // Create admin profile
+    // Upsert admin profile to avoid duplicates if a trigger already created it
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: authData.user.id,
+      .upsert({
+        id: userId as string,
         email: email,
         full_name: 'Wendrick Admin',
         role: 'admin',
         is_active: true,
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      })
+      }, { onConflict: 'id' })
 
     if (profileError) {
       console.error('Profile error:', profileError)
-      // If profile creation fails, delete the auth user
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       throw profileError
     }
 
@@ -101,7 +111,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         message: 'Admin user created successfully',
-        user_id: authData.user.id
+        user_id: userId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
