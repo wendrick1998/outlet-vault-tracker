@@ -182,6 +182,36 @@ const AppContent = () => {
         } 
       />
       <Route 
+        path="/admin/ui-inventory" 
+        element={
+          <AppLayout>
+            <Suspense fallback={<Loading />}>
+              <LazyAdmin onBack={() => navigate('/')} />
+            </Suspense>
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/admin/design" 
+        element={
+          <AppLayout>
+            <Suspense fallback={<Loading />}>
+              <LazyAdmin onBack={() => navigate('/')} />
+            </Suspense>
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/admin/ui-kit" 
+        element={
+          <AppLayout>
+            <Suspense fallback={<Loading />}>
+              <LazyAdmin onBack={() => navigate('/')} />
+            </Suspense>
+          </AppLayout>
+        } 
+      />
+      <Route 
         path="/conference/:auditId/report" 
         element={
           <AppLayout>
