@@ -127,10 +127,18 @@ export const PinConfirmationModal = ({
                   onChange={handlePinChange}
                 >
                   <InputOTPGroup>
-                    <InputOTPSlot index={0} className="w-12 h-12 text-lg" />
-                    <InputOTPSlot index={1} className="w-12 h-12 text-lg" />
-                    <InputOTPSlot index={2} className="w-12 h-12 text-lg" />
-                    <InputOTPSlot index={3} className="w-12 h-12 text-lg" />
+                    <InputOTPSlot index={0} className="w-12 h-12 text-lg">
+                      {pin[0] ? '●' : ''}
+                    </InputOTPSlot>
+                    <InputOTPSlot index={1} className="w-12 h-12 text-lg">
+                      {pin[1] ? '●' : ''}
+                    </InputOTPSlot>
+                    <InputOTPSlot index={2} className="w-12 h-12 text-lg">
+                      {pin[2] ? '●' : ''}
+                    </InputOTPSlot>
+                    <InputOTPSlot index={3} className="w-12 h-12 text-lg">
+                      {pin[3] ? '●' : ''}
+                    </InputOTPSlot>
                   </InputOTPGroup>
                 </InputOTP>
               </div>
