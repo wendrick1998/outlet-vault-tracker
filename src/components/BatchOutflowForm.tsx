@@ -5,10 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Package, Users, FileText } from "lucide-react";
+import { CustomerSearchInput } from "@/components/CustomerSearchInput";
+import { QuickCustomerForm } from "@/components/QuickCustomerForm";
 import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useLoans } from "@/hooks/useLoans";
+import { usePendingLoans } from "@/hooks/usePendingLoans";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Database } from "@/integrations/supabase/types";
@@ -27,6 +30,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [quickNote, setQuickNote] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showQuickForm, setShowQuickForm] = useState(false);
   
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -34,21 +38,41 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const { data: sellers = [] } = useActiveSellers();
   const { customers } = useCustomers();
   const { createLoan } = useLoans();
+  const { createPendingLoan } = usePendingLoans();
   
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
   const requiresCustomer = selectedReasonData?.requires_customer || false;
 
   const isFormValid = () => {
-    if (!selectedReason || !selectedSeller) return false;
-    if (requiresCustomer && !selectedCustomer) return false;
+    // Reason is always mandatory, seller is mandatory, customer is mandatory
+    if (!selectedReason || !selectedSeller || !selectedCustomer) return false;
     return true;
+  };
+
+  const handleCustomerCreated = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    setShowQuickForm(false);
+  };
+
+  const handleSkipCustomer = () => {
+    // For now, we don't allow skipping - customer is always required
+    setShowQuickForm(false);
+    toast({
+      title: "Cliente obrigatório",
+      description: "É necessário selecionar ou cadastrar um cliente para continuar",
+      variant: "destructive"
+    });
+  };
+
+  const handleNewCustomer = () => {
+    setShowQuickForm(true);
   };
 
   const handleSubmit = async () => {
     if (!isFormValid()) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Preencha motivo, vendedor e cliente para continuar",
         variant: "destructive"
       });
       return;
@@ -58,26 +82,47 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
     
     try {
       // Create loans for all items
-      await Promise.all(items.map(item => 
-        createLoan({
+      const loanPromises = items.map(async (item) => {
+        const loan = await createLoan({
           item_id: item.id,
           reason_id: selectedReason,
           seller_id: selectedSeller,
-          customer_id: selectedCustomer || undefined,
+          customer_id: selectedCustomer,
           notes: quickNote || undefined,
-        })
-      ));
+        });
+
+        // Check if customer has pending data and create pending loan if needed
+        const customer = customers.find(c => c.id === selectedCustomer);
+        if (customer?.pending_data) {
+          // Create pending loan for incomplete customer data
+          await createPendingLoan({
+            loan_id: loan.id,
+            item_id: item.id,
+            pending_type: 'incomplete_customer_data' as any,
+            customer_name: customer.name,
+            customer_cpf: customer.cpf || undefined,
+            customer_phone: customer.phone || undefined,
+            notes: `Cliente cadastrado com dados incompletos durante empréstimo em lote`,
+            created_by: loan.seller_id // Use seller as creator
+          });
+        }
+
+        return loan;
+      });
+
+      await Promise.all(loanPromises);
 
       toast({
-        title: "Saída em lote registrada",
-        description: `${items.length} ${items.length === 1 ? 'item saiu' : 'itens saíram'} do cofre com sucesso`,
+        title: "Empréstimos registrados",
+        description: `${items.length} ${items.length === 1 ? 'empréstimo registrado' : 'empréstimos registrados'} com sucesso`,
       });
       
       onComplete();
     } catch (error) {
+      console.error('Error creating batch loans:', error);
       toast({
-        title: "Erro ao registrar saída",
-        description: "Não foi possível registrar a saída em lote",
+        title: "Erro ao registrar empréstimos",
+        description: "Não foi possível registrar os empréstimos em lote",
         variant: "destructive"
       });
     } finally {
@@ -126,15 +171,15 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
         <div className="flex items-center gap-3 mb-6">
           <FileText className="h-6 w-6 text-primary" />
           <div>
-            <h3 className="text-lg font-semibold">Dados da Saída</h3>
+            <h3 className="text-lg font-semibold">Dados do Empréstimo</h3>
             <p className="text-muted-foreground">Estes dados serão aplicados a todos os itens</p>
           </div>
         </div>
 
         <div className="space-y-6">
-          {/* Reason selection */}
+          {/* Reason selection - Always mandatory */}
           <div className="space-y-3">
-            <label className="text-sm font-medium">Motivo da Saída *</label>
+            <label className="text-sm font-medium">Motivo do Empréstimo *</label>
             <div className="max-h-24 overflow-y-auto">
               <div className="flex flex-wrap gap-2 p-1">
                 {reasons.map((reason) => (
@@ -174,30 +219,62 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
             </div>
           </div>
 
-          {/* Customer selection (if required) */}
-          {requiresCustomer && (
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Cliente *</label>
-              
-              <div className="max-h-48 overflow-y-auto">
-                <div className="grid gap-2 p-1">
-                  {customers.map((customer) => (
-                    <Button
-                      key={customer.id}
-                      variant={selectedCustomer === customer.id ? "default" : "outline"}
-                      onClick={() => setSelectedCustomer(customer.id)}
-                      className={`justify-between h-auto p-3 transition-colors ${isMobile ? 'min-h-[56px]' : ''}`}
-                    >
-                      <div className="text-left flex-1 min-w-0">
-                        <div className={`font-medium truncate ${isMobile ? 'text-sm' : ''}`}>{customer.name}</div>
-                        <div className={`text-muted-foreground truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{customer.phone}</div>
-                      </div>
-                    </Button>
-                  ))}
+          {/* Customer selection - Always mandatory */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Cliente *</label>
+            <CustomerSearchInput
+              value={selectedCustomer}
+              onChange={setSelectedCustomer}
+              onNewCustomer={handleNewCustomer}
+              placeholder="Buscar cliente por nome, CPF ou telefone..."
+              disabled={isSubmitting}
+            />
+            
+            {/* Show selected customer info */}
+            {selectedCustomer && (
+              <div className="mt-2 p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    {(() => {
+                      const customer = customers.find(c => c.id === selectedCustomer);
+                      if (!customer) return null;
+                      
+                      return (
+                        <div>
+                          <p className="font-medium text-sm">{customer.name}</p>
+                          <div className="flex gap-2 mt-1">
+                            {customer.phone && (
+                              <Badge variant="outline" className="text-xs">
+                                {customer.phone}
+                              </Badge>
+                            )}
+                            {customer.cpf && (
+                              <Badge variant="outline" className="text-xs">
+                                CPF: {customer.cpf}
+                              </Badge>
+                            )}
+                            {customer.pending_data && (
+                              <Badge variant="secondary" className="text-xs">
+                                ⚠️ Dados incompletos
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedCustomer("")}
+                  >
+                    Remover
+                  </Button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Quick note */}
           <div className="space-y-3">
@@ -211,6 +288,14 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           </div>
         </div>
       </Card>
+
+      {/* Quick Customer Form */}
+      <QuickCustomerForm
+        open={showQuickForm}
+        onOpenChange={setShowQuickForm}
+        onCustomerCreated={handleCustomerCreated}
+        onSkip={handleSkipCustomer}
+      />
 
       {/* Actions */}
       <div className={`flex gap-3 ${isMobile ? 'flex-col' : ''}`}>
@@ -227,7 +312,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           className={`bg-primary hover:bg-primary-hover ${isMobile ? 'w-full h-14 text-base order-1' : 'flex-1 h-12'}`}
           disabled={!isFormValid() || isSubmitting}
         >
-          {isSubmitting ? "Registrando..." : `Confirmar Saída de ${items.length} ${items.length === 1 ? 'Item' : 'Itens'}`}
+          {isSubmitting ? "Registrando..." : `Confirmar Empréstimo de ${items.length} ${items.length === 1 ? 'Item' : 'Itens'}`}
         </Button>
       </div>
     </div>
