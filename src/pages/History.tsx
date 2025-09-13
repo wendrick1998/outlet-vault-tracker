@@ -20,7 +20,7 @@ interface HistoryProps {
 }
 
 type FilterPeriod = "all" | "today" | "7d" | "30d";
-type FilterStatus = "all" | "active" | "returned";
+type FilterStatus = "all" | "active" | "returned" | "sold";
 
 type LoanWithDetails = Database['public']['Tables']['loans']['Row'] & {
   inventory?: Database['public']['Tables']['inventory']['Row'];
@@ -80,6 +80,9 @@ export const History = ({ onBack }: HistoryProps) => {
         case "returned":
           filtered = filtered.filter(loan => loan.status === 'returned');
           break;
+        case "sold":
+          filtered = filtered.filter(loan => (loan.status as any) === 'sold');
+          break;
       }
     }
 
@@ -97,9 +100,12 @@ export const History = ({ onBack }: HistoryProps) => {
   }, [loans, searchTerm, filterPeriod, filterStatus, filterReason, filterSeller]);
 
   const getStatusBadge = (loan: LoanWithDetails) => {
-    switch (loan.status) {
+    const status = loan.status as any;
+    switch (status) {
       case 'returned':
         return <Badge variant="secondary">Devolvido</Badge>;
+      case 'sold':
+        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Vendido</Badge>;
       case 'overdue':
         return <Badge variant="destructive">Em Atraso</Badge>;
       case 'active':
@@ -121,7 +127,9 @@ export const History = ({ onBack }: HistoryProps) => {
       loan.reason?.name || "N/A",
       loan.seller?.name || "N/A",
       loan.customer?.name || "N/A",
-      loan.status === 'returned' ? "Devolvido" : loan.status === 'overdue' ? "Em Atraso" : "Em aberto",
+      (loan.status as any) === 'returned' ? "Devolvido" : 
+      (loan.status as any) === 'sold' ? "Vendido" :
+      loan.status === 'overdue' ? "Em Atraso" : "Em aberto",
       loan.returned_at ? formatDate(loan.returned_at) : "N/A"
     ]);
 
@@ -189,6 +197,7 @@ export const History = ({ onBack }: HistoryProps) => {
                 <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="active">Em aberto</SelectItem>
                 <SelectItem value="returned">Devolvidos</SelectItem>
+                <SelectItem value="sold">Vendidos</SelectItem>
               </SelectContent>
             </Select>
 

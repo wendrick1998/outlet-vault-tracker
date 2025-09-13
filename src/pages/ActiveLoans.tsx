@@ -10,9 +10,7 @@ import { Clock, AlertTriangle, User, Tag, Search, Filter, ShoppingCart } from "l
 import { useActiveLoans, useLoans } from "@/hooks/useLoans";
 import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
-import { usePendingSales } from "@/hooks/usePendingSales";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 
 interface ActiveLoansProps {
@@ -28,10 +26,8 @@ type LoanWithDetails = Database['public']['Tables']['loans']['Row'] & {
 
 export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const { data: loans = [], isLoading } = useActiveLoans();
-  const { returnLoan } = useLoans();
-  const { createPendingSale, isCreating } = usePendingSales();
+  const { returnLoan, sellLoan } = useLoans();
   const { data: reasons = [] } = useActiveReasons();
   const { data: sellers = [] } = useActiveSellers();
 
@@ -106,31 +102,20 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
     }
   };
 
-  const handleSale = async (loanId: string, itemId: string) => {
-    if (!user?.id) {
-      toast({
-        title: "Erro de autenticação",
-        description: "Usuário não encontrado",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleSale = async (loanId: string) => {
     const saleNumber = prompt("Número da venda (opcional):");
     
     setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], selling: true } }));
     try {
-      createPendingSale({
-        loan_id: loanId,
-        item_id: itemId,
-        created_by: user.id,
-        sale_number: saleNumber || undefined,
-        status: 'pending'
+      await sellLoan({ 
+        id: loanId, 
+        saleNumber: saleNumber || undefined,
+        notes: saleNumber ? `Venda registrada com número: ${saleNumber}` : "Venda registrada sem número"
       });
       
       toast({
         title: "Venda registrada",
-        description: "A venda foi registrada como pendente de regularização",
+        description: "O item foi marcado como vendido e removido do estoque.",
       });
     } catch (error) {
       toast({
@@ -237,7 +222,7 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
               {loadingStates[loan.id]?.returning ? "Devolvendo..." : "Devolver"}
             </Button>
             <Button
-              onClick={() => handleSale(loan.id, item.id)}
+              onClick={() => handleSale(loan.id)}
               disabled={loadingStates[loan.id]?.returning || loadingStates[loan.id]?.selling}
               className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
             >

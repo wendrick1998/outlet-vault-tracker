@@ -108,6 +108,27 @@ export function useLoans() {
     },
   });
 
+  const sellMutation = useMutation({
+    mutationFn: ({ id, saleNumber, notes }: { id: string; saleNumber?: string; notes?: string }) =>
+      LoanService.sellLoan(id, saleNumber, notes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      toast({
+        title: "Venda registrada",
+        description: "O item foi marcado como vendido definitivamente.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao registrar venda",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     // Data
     loans,
@@ -119,12 +140,14 @@ export function useLoans() {
     updateLoan: updateMutation.mutateAsync,
     returnLoan: returnMutation.mutateAsync,
     extendLoan: extendMutation.mutateAsync,
+    sellLoan: sellMutation.mutateAsync,
 
     // Status
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isReturning: returnMutation.isPending,
     isExtending: extendMutation.isPending,
+    isSelling: sellMutation.isPending,
   };
 }
 

@@ -129,6 +129,20 @@ export class LoanService {
     return this.update(id, updates);
   }
 
+  static async sellLoan(id: string, saleNumber?: string, notes?: string): Promise<Loan> {
+    const updates: LoanUpdate = {
+      status: 'sold' as any, // Type cast needed since the enum might not be updated yet
+      returned_at: new Date().toISOString(),
+    };
+
+    if (notes) {
+      updates.notes = notes;
+    }
+
+    // The trigger will automatically update inventory status to 'sold'
+    return this.update(id, updates);
+  }
+
   static async getHistory(limit = 50): Promise<LoanWithDetails[]> {
     const { data, error } = await supabase
       .from('loans')
@@ -139,7 +153,7 @@ export class LoanService {
         seller:sellers(*),
         reason:reasons(*)
       `)
-      .eq('status', 'returned')
+      .in('status', ['returned', 'sold'] as any)
       .order('returned_at', { ascending: false })
       .limit(limit);
 
