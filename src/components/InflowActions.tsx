@@ -351,6 +351,22 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
           </div>
         </CardContent>
       </Card>
+
+      <PinConfirmationModal
+        isOpen={showPinModal}
+        onClose={() => {
+          setShowPinModal(false);
+          setPendingAction(null);
+        }}
+        onConfirm={executeAction}
+        title={pendingAction === 'return' ? 'Confirmar Devolução' : 'Confirmar Venda'}
+        description={
+          pendingAction === 'return' 
+            ? 'Digite seu PIN operacional para confirmar a devolução do aparelho.'
+            : 'Digite seu PIN operacional para confirmar que o aparelho foi vendido.'
+        }
+        actionType={pendingAction === 'return' ? 'return' : 'operation'}
+      />
     </div>
   );
 }
