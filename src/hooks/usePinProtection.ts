@@ -1,0 +1,139 @@
+import { useState, useCallback } from 'react';
+import { PinService, PinValidationResult, PinSetupResult } from '@/services/pinService';
+import { useToast } from '@/hooks/use-toast';
+
+interface UsePinProtectionReturn {
+  isValidating: boolean;
+  isSettingUp: boolean;
+  hasPinConfigured: boolean | null;
+  validatePin: (pin: string) => Promise<boolean>;
+  setupPin: (pin: string) => Promise<boolean>;
+  checkPinConfiguration: () => Promise<void>;
+}
+
+export function usePinProtection(): UsePinProtectionReturn {
+  const [isValidating, setIsValidating] = useState(false);
+  const [isSettingUp, setIsSettingUp] = useState(false);
+  const [hasPinConfigured, setHasPinConfigured] = useState<boolean | null>(null);
+  const { toast } = useToast();
+
+  const validatePin = useCallback(async (pin: string): Promise<boolean> => {
+    setIsValidating(true);
+    try {
+      // Validar formato primeiro
+      const formatValidation = PinService.validatePinFormat(pin);
+      if (!formatValidation.valid) {
+        toast({
+          title: "PIN inválido",
+          description: formatValidation.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Validar no backend
+      const result: PinValidationResult = await PinService.validatePin(pin);
+      
+      if (result.blocked) {
+        toast({
+          title: "Acesso bloqueado",
+          description: result.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (result.not_configured) {
+        toast({
+          title: "PIN não configurado",
+          description: "Configure seu PIN operacional nas configurações do perfil.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      if (!result.valid) {
+        toast({
+          title: "PIN incorreto",
+          description: result.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao validar PIN. Tente novamente.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsValidating(false);
+    }
+  }, [toast]);
+
+  const setupPin = useCallback(async (pin: string): Promise<boolean> => {
+    setIsSettingUp(true);
+    try {
+      // Validar formato primeiro
+      const formatValidation = PinService.validatePinFormat(pin);
+      if (!formatValidation.valid) {
+        toast({
+          title: "PIN inválido",
+          description: formatValidation.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Configurar no backend
+      const result: PinSetupResult = await PinService.setupPin(pin);
+      
+      if (result.success) {
+        toast({
+          title: "PIN configurado",
+          description: result.message,
+        });
+        setHasPinConfigured(true);
+        return true;
+      } else {
+        toast({
+          title: "Erro ao configurar PIN",
+          description: result.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao configurar PIN. Tente novamente.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsSettingUp(false);
+    }
+  }, [toast]);
+
+  const checkPinConfiguration = useCallback(async () => {
+    try {
+      const hasPin = await PinService.hasPinConfigured();
+      setHasPinConfigured(hasPin);
+    } catch (error) {
+      console.error('Erro ao verificar configuração do PIN:', error);
+      setHasPinConfigured(false);
+    }
+  }, []);
+
+  return {
+    isValidating,
+    isSettingUp,
+    hasPinConfigured,
+    validatePin,
+    setupPin,
+    checkPinConfiguration,
+  };
+}

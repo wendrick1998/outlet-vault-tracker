@@ -37,9 +37,26 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const { data: reasons = [] } = useActiveReasons();
   const { data: sellers = [] } = useActiveSellers();
   const { customers } = useCustomers();
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+
+  const { user } = useAuth();
   const { createLoan } = useLoans();
   const { createPendingLoan } = usePendingLoans();
+  const { customers } = useCustomers();
+  const { reasons } = useReasons();
+  const { sellers } = useSellers();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
+  const { toast } = useToast();
   
+  // Verificar configuração do PIN ao montar componente
+  useEffect(() => {
+    checkPinConfiguration();
+  }, [checkPinConfiguration]);
+
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
   const requiresCustomer = selectedReasonData?.requires_customer || false;
 
@@ -72,6 +89,19 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   };
 
   const handleSubmit = async () => {
+    if (!hasPinConfigured) {
+      toast({
+        title: "PIN não configurado",
+        description: "Configure seu PIN operacional nas configurações do perfil antes de prosseguir.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowPinModal(true);
+  };
+
+  const executeOutflow = async () => {
     if (!isFormValid()) {
       const missingFields = [];
       if (!selectedReason) missingFields.push("motivo");

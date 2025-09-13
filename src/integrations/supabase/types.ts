@@ -973,6 +973,7 @@ export type Database = {
           mfa_secret: string | null
           must_change_password: boolean
           observacoes: string | null
+          operation_pin_hash: string | null
           role: Database["public"]["Enums"]["app_role"]
           senha_alterada_em: string | null
           sessao_unica_token: string | null
@@ -1002,6 +1003,7 @@ export type Database = {
           mfa_secret?: string | null
           must_change_password?: boolean
           observacoes?: string | null
+          operation_pin_hash?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           senha_alterada_em?: string | null
           sessao_unica_token?: string | null
@@ -1031,6 +1033,7 @@ export type Database = {
           mfa_secret?: string | null
           must_change_password?: boolean
           observacoes?: string | null
+          operation_pin_hash?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           senha_alterada_em?: string | null
           sessao_unica_token?: string | null
@@ -1314,6 +1317,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      set_operation_pin: {
+        Args: { pin: string; user_id: string }
+        Returns: Json
+      }
       user_has_permission: {
         Args: {
           required_permission: Database["public"]["Enums"]["permission"]
@@ -1324,6 +1331,10 @@ export type Database = {
       validate_imei: {
         Args: { imei_code: string }
         Returns: boolean
+      }
+      validate_operation_pin: {
+        Args: { pin: string; user_id: string }
+        Returns: Json
       }
       validate_password_security: {
         Args: { password_text: string }

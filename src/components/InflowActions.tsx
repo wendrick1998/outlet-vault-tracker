@@ -3,13 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Package, CreditCard, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Package, CreditCard, AlertTriangle, Shield } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useLoans } from "@/hooks/useLoans";
 import { usePendingSales } from "@/hooks/usePendingSales";
+import { usePinProtection } from "@/hooks/usePinProtection";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { PinConfirmationModal } from "@/components/PinConfirmationModal";
 import type { LoanWithDetails } from "@/services/loanService";
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -27,13 +29,22 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   const [canFinishWithoutNumber, setCanFinishWithoutNumber] = useState(false);
   const [activeLoan, setActiveLoan] = useState<LoanWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'return' | 'sold' | null>(null);
+  
   const { returnLoan, isReturning } = useLoans();
   const { createPendingSale, isCreating } = usePendingSales();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
 
   // Debug log para confirmar renderização
   console.log('🔄 InflowActions renderizado para item:', item.imei);
+
+  // Verificar configuração do PIN ao montar componente
+  useEffect(() => {
+    checkPinConfiguration();
+  }, [checkPinConfiguration]);
 
   // Find the active loan for this item
   useEffect(() => {
@@ -77,14 +88,31 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   const handleSubmit = async () => {
     if (!actionType || !activeLoan) return;
 
-    try {
-      if (actionType === 'sold' && !saleNumber && !canFinishWithoutNumber) {
-        // Mostrar opção de finalizar sem número
-        setCanFinishWithoutNumber(true);
-        return;
-      }
+    if (!hasPinConfigured) {
+      toast({
+        title: "PIN não configurado",
+        description: "Configure seu PIN operacional nas configurações do perfil antes de prosseguir.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (actionType === 'sold' && !saleNumber) {
+    if (actionType === 'sold' && !saleNumber && !canFinishWithoutNumber) {
+      // Mostrar opção de finalizar sem número
+      setCanFinishWithoutNumber(true);
+      return;
+    }
+
+    // Preparar ação e abrir modal de PIN
+    setPendingAction(actionType);
+    setShowPinModal(true);
+  };
+
+  const executeAction = async () => {
+    if (!pendingAction || !activeLoan) return;
+
+    try {
+      if (pendingAction === 'sold' && !saleNumber) {
         // Criar pendência e finalizar empréstimo
         await createPendingSale({
           loan_id: activeLoan.id,
@@ -109,7 +137,7 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
         });
       } else {
         // Fluxo normal
-        const notes = actionType === 'sold' 
+        const notes = pendingAction === 'sold' 
           ? `Vendido - Venda: ${saleNumber}`
           : 'Devolvido ao cofre';
 
@@ -117,15 +145,15 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
         await returnLoan({ id: activeLoan.id, notes });
 
         // Atualizar status no inventário
-        const newStatus = actionType === 'sold' ? 'sold' : 'available';
+        const newStatus = pendingAction === 'sold' ? 'sold' : 'available';
         await supabase
           .from('inventory')
           .update({ status: newStatus })
           .eq('id', item.id);
 
         toast({
-          title: actionType === 'sold' ? "Item marcado como vendido" : "Item devolvido",
-          description: `${item.imei} foi ${actionType === 'sold' ? 'marcado como vendido' : 'devolvido ao cofre'}.`,
+          title: pendingAction === 'sold' ? "Item marcado como vendido" : "Item devolvido",
+          description: `${item.imei} foi ${pendingAction === 'sold' ? 'marcado como vendido' : 'devolvido ao cofre'}.`,
         });
       }
 
@@ -137,6 +165,10 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
         description: "Erro ao processar a ação.",
         variant: "destructive",
       });
+    } finally {
+      // Reset states
+      setPendingAction(null);
+      setShowPinModal(false);
     }
   };
 

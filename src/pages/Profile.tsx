@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpdateCurrentProfile } from '@/hooks/useProfile';
+import { usePinProtection } from '@/hooks/usePinProtection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, User, Mail, Calendar, Shield } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, User, Mail, Calendar, Shield, Lock, Settings } from 'lucide-react';
+import { PinConfigurationDialog } from '@/components/PinConfigurationDialog';
 
 interface ProfileProps {
   onBack: () => void;
@@ -16,11 +19,18 @@ interface ProfileProps {
 export const Profile = ({ onBack }: ProfileProps) => {
   const { profile, profileLoading } = useAuth();
   const updateProfile = useUpdateCurrentProfile();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
   
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || '',
     avatar_url: profile?.avatar_url || ''
   });
+  const [showPinDialog, setShowPinDialog] = useState(false);
+
+  // Verificar se PIN está configurado ao carregar o componente
+  useEffect(() => {
+    checkPinConfiguration();
+  }, [checkPinConfiguration]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +119,40 @@ export const Profile = ({ onBack }: ProfileProps) => {
                 {profile.is_active ? 'Ativo' : 'Inativo'}
               </Badge>
             </div>
+
+            <Separator />
+
+            {/* Seção de Segurança - PIN Operacional */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Lock className="h-4 w-4" />
+                PIN Operacional
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <p className="text-muted-foreground">
+                    {hasPinConfigured ? 'PIN configurado' : 'PIN não configurado'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Necessário para confirmar operações
+                  </p>
+                </div>
+                <Badge variant={hasPinConfigured ? 'default' : 'destructive'}>
+                  {hasPinConfigured ? 'Ativo' : 'Inativo'}
+                </Badge>
+              </div>
+
+              <Button
+                onClick={() => setShowPinDialog(true)}
+                variant={hasPinConfigured ? 'outline' : 'default'}
+                size="sm"
+                className="w-full"
+              >
+                <Settings className="mr-2 h-3 w-3" />
+                {hasPinConfigured ? 'Alterar PIN' : 'Configurar PIN'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -168,6 +212,15 @@ export const Profile = ({ onBack }: ProfileProps) => {
           </form>
         </Card>
       </div>
+
+      {/* PIN Configuration Dialog */}
+      <PinConfigurationDialog
+        isOpen={showPinDialog}
+        onClose={() => setShowPinDialog(false)}
+        onSuccess={() => {
+          checkPinConfiguration();
+        }}
+      />
     </div>
   );
 };
