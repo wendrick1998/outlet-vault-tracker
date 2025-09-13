@@ -189,7 +189,14 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
             src="/cofre-tracker-logo.svg" 
             alt="Cofre Tracker" 
             className="h-6 w-6"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }}
           />
+          <div className="h-6 w-6 bg-primary/10 rounded-md flex items-center justify-center hidden">
+            <Store className="h-4 w-4 text-primary" />
+          </div>
           {state !== "collapsed" && (
             <div className="flex flex-col">
               <span className="font-semibold text-sm">Cofre Tracker</span>

@@ -64,7 +64,13 @@ export const UserMenu = ({ userEmail, onProfileClick, onSettingsClick }: UserMen
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || "/cofre-tracker-logo.svg"} alt="Avatar" />
+            <AvatarImage 
+              src={profile?.avatar_url || "/cofre-tracker-logo.svg"} 
+              alt="Avatar"
+              onError={(e) => {
+                e.currentTarget.src = "/cofre-tracker-logo.svg";
+              }}
+            />
             <AvatarFallback>{getInitials(displayEmail, profile?.full_name)}</AvatarFallback>
           </Avatar>
         </Button>

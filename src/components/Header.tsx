@@ -28,7 +28,14 @@ export const Header = ({
           src="/cofre-tracker-logo.svg" 
           alt="Cofre Tracker Logo" 
           className="h-8 w-8"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+          }}
         />
+        <div className="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center hidden">
+          <Store className="h-5 w-5 text-primary" />
+        </div>
         <span className="font-semibold text-lg">{title}</span>
       </div>
       

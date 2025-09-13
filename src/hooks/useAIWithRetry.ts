@@ -229,7 +229,7 @@ export function useAIWithRetry() {
     setIsLoading(false);
     
     const errorMessage = lastError?.message || 'AI action failed after retries';
-    console.error('AI action failed after retries:', lastError);
+    console.warn('AI action failed after retries (service temporarily unavailable):', lastError);
     
     // Show toast for non-rate-limit errors
     if (!errorMessage.includes('Limite de uso') && !errorMessage.includes('Muitas solicitações')) {
