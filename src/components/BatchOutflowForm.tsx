@@ -165,18 +165,18 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
       await Promise.all(loanPromises);
 
       toast({
-        title: requiresCustomer ? "Empréstimos registrados" : "Saídas registradas",
+        title: requiresCustomer ? "✅ Empréstimos Concluídos" : "✅ Saídas Registradas",
         description: `${items.length} ${items.length === 1 ? 
-          (requiresCustomer ? 'empréstimo registrado' : 'saída registrada') : 
-          (requiresCustomer ? 'empréstimos registrados' : 'saídas registradas')
+          (requiresCustomer ? 'empréstimo processado' : 'saída processada') : 
+          (requiresCustomer ? 'empréstimos processados' : 'saídas processadas')
         } com sucesso`,
       });
       
       onComplete();
     } catch (error) {
       toast({
-        title: requiresCustomer ? "Erro ao registrar empréstimos" : "Erro ao registrar saídas",
-        description: requiresCustomer ? "Não foi possível registrar os empréstimos em lote" : "Não foi possível registrar as saídas em lote",
+        title: requiresCustomer ? "❌ Erro nos Empréstimos" : "❌ Erro nas Saídas",
+        description: requiresCustomer ? "Falha ao processar empréstimos. Tente novamente." : "Falha ao processar saídas. Tente novamente.",
         variant: "destructive"
       });
     } finally {

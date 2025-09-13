@@ -67,17 +67,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     checkPinConfiguration();
   }, [checkPinConfiguration]);
   
-  // Debug da lógica de cliente obrigatório
-  useEffect(() => {
-    if (selectedReasonData) {
-      console.log('OutflowForm - Reason selected:', {
-        id: selectedReasonData.id,
-        name: selectedReasonData.name,
-        requiresCustomer: selectedReasonData.requires_customer,
-        calculated: requiresCustomer
-      });
-    }
-  }, [selectedReasonData, requiresCustomer]);
+  // Lógica de cliente obrigatório baseada no motivo selecionado
 
   if (loadingPermission) {
     return (
@@ -302,15 +292,15 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         }
         
         toast({
-          title: "Saída registrada",
+          title: "✅ Saída Registrada",
           description: `${item.model} saiu do cofre com sucesso`,
         });
         onComplete();
       },
       onError: () => {
         toast({
-          title: "Erro ao registrar saída",
-          description: "Ocorreu um erro. Tente novamente.",
+          title: "❌ Erro na Saída",
+          description: "Falha ao processar saída. Tente novamente.",
           variant: "destructive"
         });
       }

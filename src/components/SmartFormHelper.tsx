@@ -131,10 +131,9 @@ export function SmartFormHelper({ item, formData, onSuggestionApply, context }: 
       }
 
     } catch (error) {
-      console.error('Error loading smart suggestions:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar sugestões inteligentes",
+        title: "Assistente IA Indisponível",
+        description: "As sugestões inteligentes não estão disponíveis no momento",
         variant: "destructive",
       });
     } finally {
@@ -170,10 +169,9 @@ export function SmartFormHelper({ item, formData, onSuggestionApply, context }: 
         });
       }
     } catch (error) {
-      console.error('Error validating loan:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível validar o empréstimo",
+        title: "Validação IA Indisponível",
+        description: "A validação inteligente não está disponível no momento",
         variant: "destructive",
       });
     } finally {
@@ -187,8 +185,8 @@ export function SmartFormHelper({ item, formData, onSuggestionApply, context }: 
     });
     
     toast({
-      title: "✨ Preenchimento automático aplicado",
-      description: `${Object.keys(autoFillFields).length} campos preenchidos`,
+      title: "✨ Preenchimento Automático",
+      description: `${Object.keys(autoFillFields).length} campos preenchidos com sugestões da IA`,
     });
   };
 
