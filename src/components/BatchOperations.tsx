@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { FeatureFlagWrapper } from '@/components/ui/feature-flag';
+import { PinConfirmationModal } from '@/components/PinConfirmationModal';
 import { FEATURE_FLAGS } from '@/lib/features';
 import { useToast } from '@/hooks/use-toast';
+import { usePinProtection } from '@/hooks/usePinProtection';
 import { useInventory } from '@/hooks/useInventory';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -24,8 +26,12 @@ export const BatchOperations = ({ items, onRefresh }: BatchOperationsProps) => {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [batchAction, setBatchAction] = useState<string>('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string>('');
+  
   const { toast } = useToast();
   const { updateItem, deleteItem } = useInventory();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
 
   const handleSelectAll = () => {
     if (selectedItems.size === items.length) {
@@ -47,6 +53,23 @@ export const BatchOperations = ({ items, onRefresh }: BatchOperationsProps) => {
 
   const handleBatchAction = async (action: string) => {
     setBatchAction(action);
+    
+    // Para operações críticas, verificar PIN primeiro
+    if (!hasPinConfigured) {
+      toast({
+        title: "PIN não configurado",
+        description: "Configure seu PIN operacional nas configurações do perfil antes de prosseguir.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setPendingAction(action);
+    setShowPinModal(true);
+  };
+
+  const confirmWithPin = () => {
+    setShowPinModal(false);
     setShowConfirmDialog(true);
   };
 
@@ -85,6 +108,7 @@ export const BatchOperations = ({ items, onRefresh }: BatchOperationsProps) => {
     } finally {
       setShowConfirmDialog(false);
       setBatchAction('');
+      setPendingAction('');
     }
   };
 
@@ -236,6 +260,18 @@ export const BatchOperations = ({ items, onRefresh }: BatchOperationsProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PinConfirmationModal
+        isOpen={showPinModal}
+        onClose={() => {
+          setShowPinModal(false);
+          setPendingAction('');
+        }}
+        onConfirm={confirmWithPin}
+        title="Confirmar Operação em Lote"
+        description={`Digite seu PIN para confirmar a operação em ${selectedItems.size} aparelho(s).`}
+        actionType="operation"
+      />
     </FeatureFlagWrapper>
   );
 };

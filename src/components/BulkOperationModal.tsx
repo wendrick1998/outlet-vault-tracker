@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Package, RotateCcw, Archive, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { BatchOutflowForm } from "@/components/BatchOutflowForm";
+import { PinConfirmationModal } from "@/components/PinConfirmationModal";
 import { useInventory } from "@/hooks/useInventory";
+import { usePinProtection } from "@/hooks/usePinProtection";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -41,17 +43,37 @@ export const BulkOperationModal = ({
   const [results, setResults] = useState<OperationResult[]>([]);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<'select' | 'configure' | 'results'>('select');
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingOperation, setPendingOperation] = useState<OperationType>(null);
   
   const { updateItem, updateStatus } = useInventory();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
   const { toast } = useToast();
+
+  // Verificar configuração do PIN ao montar componente
+  useEffect(() => {
+    if (isOpen) {
+      checkPinConfiguration();
+    }
+  }, [isOpen, checkPinConfiguration]);
 
   const handleOperationSelect = (operation: OperationType) => {
     setSelectedOperation(operation);
     if (operation === 'outflow') {
       setCurrentStep('configure');
     } else {
-      // Para outras operações, executar diretamente
-      handleExecuteOperation(operation);
+      // Para outras operações críticas, verificar PIN primeiro
+      if (!hasPinConfigured) {
+        toast({
+          title: "PIN não configurado",
+          description: "Configure seu PIN operacional nas configurações do perfil antes de prosseguir.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setPendingOperation(operation);
+      setShowPinModal(true);
     }
   };
 
@@ -128,11 +150,20 @@ export const BulkOperationModal = ({
     handleClose();
   };
 
+  const executePendingOperation = async () => {
+    if (!pendingOperation) return;
+    await handleExecuteOperation(pendingOperation);
+    setPendingOperation(null);
+    setShowPinModal(false);
+  };
+
   const handleClose = () => {
     setSelectedOperation(null);
     setCurrentStep('select');
     setResults([]);
     setProgress(0);
+    setPendingOperation(null);
+    setShowPinModal(false);
     onClose();
   };
 
@@ -299,6 +330,28 @@ export const BulkOperationModal = ({
         <div className="flex-1 overflow-y-auto">
           {getCurrentContent()}
         </div>
+        
+        <PinConfirmationModal
+          isOpen={showPinModal}
+          onClose={() => {
+            setShowPinModal(false);
+            setPendingOperation(null);
+          }}
+          onConfirm={executePendingOperation}
+          title={
+            pendingOperation === 'return' ? 'Confirmar Devolução em Lote' : 
+            pendingOperation === 'archive' ? 'Confirmar Arquivamento em Lote' : 
+            'Confirmar Operação em Lote'
+          }
+          description={
+            pendingOperation === 'return' 
+              ? `Digite seu PIN para confirmar a devolução de ${items.length} aparelho(s).`
+              : pendingOperation === 'archive'
+              ? `Digite seu PIN para confirmar o arquivamento de ${items.length} aparelho(s).`
+              : `Digite seu PIN para confirmar a operação em ${items.length} aparelho(s).`
+          }
+          actionType={pendingOperation === 'return' ? 'return' : 'operation'}
+        />
       </DialogContent>
     </Dialog>
   );
