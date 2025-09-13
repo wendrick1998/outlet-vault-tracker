@@ -291,12 +291,14 @@ export const BulkOperationModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Operações em Lote</DialogTitle>
         </DialogHeader>
         
-        {getCurrentContent()}
+        <div className="flex-1 overflow-y-auto">
+          {getCurrentContent()}
+        </div>
       </DialogContent>
     </Dialog>
   );

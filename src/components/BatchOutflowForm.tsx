@@ -99,7 +99,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           </div>
         </div>
         
-        <ScrollArea className="h-auto max-h-48">
+        <div className="max-h-48 overflow-y-auto">
           <div className="grid gap-2 p-1">
             {items.map((item, index) => (
               <div
@@ -118,7 +118,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </Card>
 
       {/* Form */}
@@ -135,7 +135,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           {/* Reason selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Motivo da Saída *</label>
-            <ScrollArea className="h-auto max-h-24">
+            <div className="max-h-24 overflow-y-auto">
               <div className="flex flex-wrap gap-2 p-1">
                 {reasons.map((reason) => (
                   <Badge
@@ -152,13 +152,13 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
                   </Badge>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Seller selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Vendedor Responsável *</label>
-            <ScrollArea className="h-auto max-h-48">
+            <div className="max-h-48 overflow-y-auto">
               <div className={`grid gap-2 p-1 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {sellers.filter(s => s.is_active).map((seller) => (
                   <Button
@@ -171,7 +171,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
                   </Button>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Customer selection (if required) */}
@@ -179,7 +179,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
             <div className="space-y-3">
               <label className="text-sm font-medium">Cliente *</label>
               
-              <ScrollArea className="h-auto max-h-48">
+              <div className="max-h-48 overflow-y-auto">
                 <div className="grid gap-2 p-1">
                   {customers.map((customer) => (
                     <Button
@@ -195,7 +195,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
                     </Button>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           )}
 
