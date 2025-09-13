@@ -23,7 +23,7 @@ export const UIInventory = ({ onBack }: UIInventoryProps) => {
 
   const filteredComponents = COMPONENTS_INVENTORY.filter(component =>
     component.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    component.filePath.toLowerCase().includes(searchTerm.toLowerCase())
+    component.file.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleOpenFile = (filePath: string) => {
@@ -137,7 +137,7 @@ export const UIInventory = ({ onBack }: UIInventoryProps) => {
                             <h4 className="font-medium mb-2">Dependências</h4>
                             <div className="flex flex-wrap gap-1">
                               {screen.dependencies.map((dep) => (
-                                <Badge key={dep} variant="success" className="text-xs">
+                                <Badge key={dep} variant="secondary" className="text-xs">
                                   {dep}
                                 </Badge>
                               ))}
@@ -169,11 +169,11 @@ export const UIInventory = ({ onBack }: UIInventoryProps) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleOpenFile(component.filePath)}
+                          onClick={() => handleOpenFile(component.file)}
                           className="h-6 px-2 text-xs"
                         >
                           <ExternalLink className="h-3 w-3 mr-1" />
-                          {component.filePath}
+                          {component.file}
                         </Button>
                       </div>
                     </div>
