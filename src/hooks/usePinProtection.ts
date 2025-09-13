@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { PinService, PinValidationResult, PinSetupResult } from '@/services/pinService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,6 +16,12 @@ export function usePinProtection(): UsePinProtectionReturn {
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [hasPinConfigured, setHasPinConfigured] = useState<boolean | null>(null);
   const { toast } = useToast();
+  
+  // Cache para evitar múltiplas verificações de configuração de PIN
+  const pinConfigCache = useRef<{ checked: boolean; hasPin: boolean | null }>({
+    checked: false,
+    hasPin: null
+  });
 
   const validatePin = useCallback(async (pin: string): Promise<boolean> => {
     setIsValidating(true);
@@ -92,11 +98,14 @@ export function usePinProtection(): UsePinProtectionReturn {
       const result: PinSetupResult = await PinService.setupPin(pin);
       
       if (result.success) {
+        // PIN configurado com sucesso, atualizar cache e estado
+        pinConfigCache.current = { checked: true, hasPin: true };
+        setHasPinConfigured(true);
+        
         toast({
           title: "PIN configurado",
           description: result.message,
         });
-        setHasPinConfigured(true);
         return true;
       } else {
         toast({
@@ -119,11 +128,22 @@ export function usePinProtection(): UsePinProtectionReturn {
   }, [toast]);
 
   const checkPinConfiguration = useCallback(async () => {
+    // Se já verificamos antes, usar o cache
+    if (pinConfigCache.current.checked) {
+      setHasPinConfigured(pinConfigCache.current.hasPin);
+      return;
+    }
+
     try {
       const hasPin = await PinService.hasPinConfigured();
+      
+      // Atualizar cache e estado
+      pinConfigCache.current = { checked: true, hasPin };
       setHasPinConfigured(hasPin);
     } catch (error) {
       console.error('Erro ao verificar configuração do PIN:', error);
+      // Se der erro, assumir que não tem PIN configurado
+      pinConfigCache.current = { checked: true, hasPin: false };
       setHasPinConfigured(false);
     }
   }, []);

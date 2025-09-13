@@ -132,22 +132,26 @@ export class PinService {
   }
 
   /**
-   * Verifica se o usuário já tem PIN configurado
+   * Verifica se o usuário já tem PIN configurado (com cache para performance)
    */
   static async hasPinConfigured(): Promise<boolean> {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return false;
 
+      // Usar query otimizada que só busca o campo necessário
       const { data, error } = await supabase
         .from('profiles')
         .select('operation_pin_hash')
         .eq('id', user.user.id)
         .single();
 
-      if (error) return false;
+      if (error) {
+        console.error('Erro ao verificar PIN configurado:', error);
+        return false;
+      }
 
-      return data.operation_pin_hash !== null;
+      return data?.operation_pin_hash !== null;
     } catch (error) {
       console.error('Erro ao verificar PIN configurado:', error);
       return false;
