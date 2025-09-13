@@ -46,7 +46,9 @@ import { RealTimeSync } from "@/components/RealTimeSync";
 import { OfflineQueue } from "@/components/OfflineQueue";
 import { CanaryDeploymentDashboard } from "@/components/CanaryDeploymentDashboard";
 import { CanaryMetricsCollector } from "@/components/CanaryMetricsCollector";
-import { useFeatureFlag } from "@/lib/features";
+import { UIInventory } from "./admin/UIInventory";
+import DesignPanel from "./admin/DesignPanel";
+import { UIKit } from "./admin/UIKit";
 
 interface AdminProps {
   onBack: () => void;
@@ -54,6 +56,7 @@ interface AdminProps {
 
 export const Admin = ({ onBack }: AdminProps) => {
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<"main" | "ui-inventory" | "design-panel" | "ui-kit">("main");
   const { toast } = useToast();
   
   const [activeModal, setActiveModal] = useState<AdminModal>("none");
@@ -222,7 +225,15 @@ export const Admin = ({ onBack }: AdminProps) => {
           ? "As alterações foram salvas com sucesso" 
           : "Novo item foi adicionado com sucesso"
       });
-      closeModal();
+      if (activeTab !== "main") {
+        return (
+          <>
+            {activeTab === "ui-inventory" && <UIInventory onBack={() => setActiveTab("main")} />}
+            {activeTab === "design-panel" && <DesignPanel onBack={() => setActiveTab("main")} />}
+            {activeTab === "ui-kit" && <UIKit onBack={() => setActiveTab("main")} />}
+          </>
+        );
+      }
     } catch (error) {
       toast({
         title: "Erro",
@@ -242,10 +253,19 @@ export const Admin = ({ onBack }: AdminProps) => {
       
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="items" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-12">
             <TabsTrigger value="items" className="gap-2">
               <Package className="h-4 w-4" />
               Itens
+            </TabsTrigger>
+            <TabsTrigger value="ui-inventory" onClick={() => setActiveTab("ui-inventory")}>
+              UI Inventory
+            </TabsTrigger>
+            <TabsTrigger value="design-panel" onClick={() => setActiveTab("design-panel")}>
+              Design Panel
+            </TabsTrigger>
+            <TabsTrigger value="ui-kit" onClick={() => setActiveTab("ui-kit")}>
+              UI Kit
             </TabsTrigger>
             <TabsTrigger value="reasons" className="gap-2">
               <Tag className="h-4 w-4" />
