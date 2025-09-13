@@ -38,6 +38,11 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('src/services')) return 'services';
         },
         chunkFileNames: (chunkInfo) => {
+          // More stable chunk naming to prevent 404s
+          if (chunkInfo.name && chunkInfo.name !== 'index') {
+            return `assets/${chunkInfo.name}-[hash].js`;
+          }
+          
           const facadeModuleId = chunkInfo.facadeModuleId 
             ? chunkInfo.facadeModuleId.split('/').pop()?.replace('.tsx', '').replace('.ts', '') || 'chunk'
             : 'chunk';
