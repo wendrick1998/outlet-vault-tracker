@@ -8,7 +8,7 @@ interface UsePinProtectionReturn {
   hasPinConfigured: boolean | null;
   validatePin: (pin: string) => Promise<boolean>;
   setupPin: (pin: string) => Promise<boolean>;
-  checkPinConfiguration: () => Promise<void>;
+  checkPinConfiguration: (forceRefresh?: boolean) => Promise<void>;
 }
 
 export function usePinProtection(): UsePinProtectionReturn {
@@ -127,9 +127,9 @@ export function usePinProtection(): UsePinProtectionReturn {
     }
   }, [toast]);
 
-  const checkPinConfiguration = useCallback(async () => {
-    // Se já verificamos antes, usar o cache
-    if (pinConfigCache.current.checked) {
+  const checkPinConfiguration = useCallback(async (forceRefresh = false) => {
+    // Se já verificamos antes e não é refresh forçado, usar o cache
+    if (pinConfigCache.current.checked && !forceRefresh) {
       setHasPinConfigured(pinConfigCache.current.hasPin);
       return;
     }
