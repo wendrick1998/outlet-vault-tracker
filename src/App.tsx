@@ -69,7 +69,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 <SidebarTrigger className="-ml-1" />
                 <div className="flex-1">
                   <Header 
-                    title=""
+                    title="Cofre Tracker"
+                    onProfileClick={() => navigate('/profile')}
+                    onSettingsClick={() => navigate('/settings')}
                   />
                 </div>
               </header>

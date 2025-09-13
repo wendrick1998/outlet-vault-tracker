@@ -18,6 +18,7 @@ import {
   Activity,
   User
 } from "lucide-react";
+import cofreTrackerLogo from "@/assets/cofre-tracker-logo.svg";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFeatureFlag } from "@/lib/features";
@@ -184,11 +185,15 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
-          <Store className="h-6 w-6 text-primary" />
+          <img 
+            src={cofreTrackerLogo} 
+            alt="Cofre Tracker" 
+            className="h-6 w-6"
+          />
           {state !== "collapsed" && (
             <div className="flex flex-col">
-              <span className="font-semibold text-sm">Outlet Store</span>
-              <span className="text-xs text-muted-foreground">Plus</span>
+              <span className="font-semibold text-sm">Cofre Tracker</span>
+              <span className="text-xs text-muted-foreground">Sistema de Inventário</span>
             </div>
           )}
         </div>

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { User, Settings, LogOut, Shield } from 'lucide-react';
+import cofreTrackerLogo from "@/assets/cofre-tracker-logo.svg";
 
 interface UserMenuProps {
   userEmail?: string;
@@ -63,7 +64,7 @@ export const UserMenu = ({ userEmail, onProfileClick, onSettingsClick }: UserMen
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt="Avatar" />
+            <AvatarImage src={profile?.avatar_url || cofreTrackerLogo} alt="Avatar" />
             <AvatarFallback>{getInitials(displayEmail, profile?.full_name)}</AvatarFallback>
           </Avatar>
         </Button>

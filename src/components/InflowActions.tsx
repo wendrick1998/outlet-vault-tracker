@@ -38,9 +38,6 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   const { toast } = useToast();
   const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
 
-  // Debug log para confirmar renderização
-  console.log('🔄 InflowActions renderizado para item:', item.imei);
-
   // Verificar configuração do PIN ao montar componente
   useEffect(() => {
     checkPinConfiguration();
@@ -81,7 +78,6 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   }, [item.id, toast]);
 
   const handleAction = (type: 'return' | 'sold') => {
-    console.log('🔄 Ação selecionada:', type);
     setActionType(type);
   };
 

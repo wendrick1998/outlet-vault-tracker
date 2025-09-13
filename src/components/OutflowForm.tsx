@@ -317,7 +317,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     });
   };
 
-  const handleDeviceLeftSubmit = (data: any) => {
+  const handleDeviceLeftSubmit = (data: { deviceInfo: string; imei?: string; notes: string }) => {
     if (!pendingLoanId) return;
     
     createDeviceLeft({
