@@ -1,152 +1,161 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { metrics, METRIC_NAMES } from '@/lib/metrics';
-import { Shield, Clock, Zap, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, AlertTriangle, CheckCircle, Activity } from 'lucide-react';
+import { SecurityService } from '@/services/securityService';
+
+interface SecurityMetrics {
+  active_sessions: number;
+  failed_logins_24h: number;
+  recent_audits_7d: number;
+  security_check_time: string;
+  system_health: 'OK' | 'WARNING' | 'ALERT';
+}
 
 export const SecurityMetrics: React.FC = () => {
-  const [stats, setStats] = useState<any>({});
-  const [isVisible, setIsVisible] = useState(false);
+  const [metrics, setMetrics] = useState<SecurityMetrics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only show metrics in development or when explicitly enabled
-    const showMetrics = localStorage.getItem('debug_metrics') === 'true' || 
-                       import.meta.env.DEV;
-    setIsVisible(showMetrics);
-
-    if (!showMetrics) return;
-
-    const updateStats = () => {
-      const now = Date.now();
-      const oneHourAgo = now - 60 * 60 * 1000;
-      
-      setStats({
-        passwordValidation: metrics.getStats(METRIC_NAMES.PASSWORD_VALIDATION_TIME, oneHourAgo),
-        hibpResponse: metrics.getStats(METRIC_NAMES.HIBP_RESPONSE_TIME, oneHourAgo),
-        hibpFallbacks: metrics.getMetrics(METRIC_NAMES.HIBP_FALLBACK_RATE, oneHourAgo).length,
-        sseConnections: metrics.getStats(METRIC_NAMES.SSE_TTV, oneHourAgo),
-        errors: metrics.getMetrics(METRIC_NAMES.ERROR_RATE, oneHourAgo).length,
-      });
-    };
-
-    // Update immediately and then every 30 seconds
-    updateStats();
-    const interval = setInterval(updateStats, 30000);
-
+    loadSecurityMetrics();
+    
+    // Atualizar métricas a cada 30 segundos
+    const interval = setInterval(loadSecurityMetrics, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  if (!isVisible) {
-    return null;
-  }
-
-  const getHealthScore = () => {
-    const factors = [
-      stats.passwordValidation?.avg < 1000 ? 25 : 0, // < 1s response time
-      stats.hibpResponse?.avg < 3000 ? 25 : 0, // < 3s HIBP response
-      stats.hibpFallbacks < 10 ? 25 : 0, // < 10 fallbacks per hour
-      stats.errors < 5 ? 25 : 0, // < 5 errors per hour
-    ];
-    return factors.reduce((sum, score) => sum + score, 0);
+  const loadSecurityMetrics = async () => {
+    try {
+      setLoading(true);
+      const data = await SecurityService.getSecurityMetrics();
+      setMetrics(data);
+      setError(null);
+    } catch (err) {
+      setError('Erro ao carregar métricas de segurança');
+      console.error('Erro ao carregar métricas:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const healthScore = getHealthScore();
+  const getHealthIcon = (health: string) => {
+    switch (health) {
+      case 'OK':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'WARNING':
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case 'ALERT':
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      default:
+        return <Shield className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  const getHealthBadgeVariant = (health: string) => {
+    switch (health) {
+      case 'OK':
+        return 'default';
+      case 'WARNING':
+        return 'secondary';
+      case 'ALERT':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Métricas de Segurança
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-4">
+            <Activity className="h-6 w-6 animate-spin" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Métricas de Segurança
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="border-yellow-200 bg-yellow-50/30 dark:border-yellow-800 dark:bg-yellow-900/10">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Shield className="h-4 w-4" />
-          Security Metrics (Dev/Debug)
-          <Badge variant={healthScore >= 75 ? 'default' : healthScore >= 50 ? 'secondary' : 'destructive'}>
-            {healthScore}% Health
-          </Badge>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Métricas de Segurança
         </CardTitle>
       </CardHeader>
-      
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          {/* Password Validation Performance */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              <span>Validação de Senha</span>
+        {metrics && (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Status do Sistema</span>
+              <Badge variant={getHealthBadgeVariant(metrics.system_health)} className="flex items-center gap-1">
+                {getHealthIcon(metrics.system_health)}
+                {metrics.system_health}
+              </Badge>
             </div>
-            <div className="text-muted-foreground">
-              {stats.passwordValidation ? (
-                <>
-                  Média: {Math.round(stats.passwordValidation.avg)}ms
-                  <br />
-                  Máx: {stats.passwordValidation.max}ms
-                </>
-              ) : (
-                'Nenhum dado'
-              )}
-            </div>
-          </div>
 
-          {/* HIBP Performance */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <Zap className="h-3 w-3" />
-              <span>HIBP Response</span>
-            </div>
-            <div className="text-muted-foreground">
-              {stats.hibpResponse ? (
-                <>
-                  Média: {Math.round(stats.hibpResponse.avg)}ms
-                  <br />
-                  Fallbacks: {stats.hibpFallbacks}
-                </>
-              ) : (
-                'Nenhum dado'
-              )}
-            </div>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{metrics.active_sessions}</div>
+                <div className="text-sm text-muted-foreground">Sessões Ativas</div>
+              </div>
 
-          {/* SSE Performance */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <Zap className="h-3 w-3" />
-              <span>SSE Time-to-Value</span>
-            </div>
-            <div className="text-muted-foreground">
-              {stats.sseConnections ? (
-                <>
-                  Média: {Math.round(stats.sseConnections.avg)}ms
-                  <br />
-                  Conexões: {stats.sseConnections.count}
-                </>
-              ) : (
-                'Nenhum dado'
-              )}
-            </div>
-          </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold text-red-500">{metrics.failed_logins_24h}</div>
+                <div className="text-sm text-muted-foreground">Falhas de Login (24h)</div>
+              </div>
 
-          {/* Error Rate */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              <span>Errors (1h)</span>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{metrics.recent_audits_7d}</div>
+                <div className="text-sm text-muted-foreground">Auditorias (7 dias)</div>
+              </div>
             </div>
-            <div className="text-muted-foreground">
-              {stats.errors} erros
+
+            {metrics.failed_logins_24h > 20 && (
+              <Alert variant={metrics.failed_logins_24h > 50 ? 'destructive' : 'default'}>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {metrics.failed_logins_24h > 50 
+                    ? 'ALERTA: Número elevado de tentativas de login falhadas detectadas!'
+                    : 'AVISO: Monitorar tentativas de login falhadas.'
+                  }
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="text-xs text-muted-foreground">
+              Última atualização: {new Date(metrics.security_check_time).toLocaleString('pt-BR')}
             </div>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span>System Health</span>
-            <span>{healthScore}%</span>
-          </div>
-          <Progress value={healthScore} className="h-2" />
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          💡 Para ver métricas: localStorage.setItem('debug_metrics', 'true')
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

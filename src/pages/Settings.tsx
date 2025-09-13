@@ -10,8 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Users, Shield, Settings as SettingsIcon, Key } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { AdminCadastrosModal } from '@/components/admin/AdminCadastrosModal';
-import { PinConfigurationDialog } from '@/components/PinConfigurationDialog';
-import { PinDebugHelper } from '@/components/PinDebugHelper';
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { PinConfigurationDialog } from "@/components/PinConfigurationDialog";
+import { PinDebugHelper } from "@/components/PinDebugHelper";
+import { SecurityMetrics } from "@/components/SecurityMetrics";
+import { SessionManager } from "@/components/SessionManager";
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -201,6 +204,14 @@ export const Settings = ({ onBack }: SettingsProps) => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Security Metrics - Admin Only */}
+        <AdminOnly showMessage={false}>
+          <SecurityMetrics />
+        </AdminOnly>
+
+        {/* Session Manager */}
+        <SessionManager />
 
         {/* Access Information */}
         <Card>

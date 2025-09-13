@@ -127,13 +127,43 @@ export class SecurityService {
   }
 
   static async updatePasswordChangeTime(userId: string): Promise<void> {
-    await ProfileService.updateProfile(userId, {
-      senha_alterada_em: new Date().toISOString()
-    });
+    const { error } = await supabase
+      .from('profiles')
+      .update({ senha_alterada_em: new Date().toISOString() })
+      .eq('id', userId);
 
-    await AuditService.logAction('password_changed', {
-      user_id: userId
-    }, 'profiles', userId);
+    if (error) throw error;
+  }
+
+  static async logSecurityEvent(eventType: string, details: Record<string, any> = {}): Promise<void> {
+    try {
+      await supabase.rpc('log_password_security_event', {
+        p_user_id: (await supabase.auth.getUser()).data.user?.id,
+        p_event_type: eventType,
+        p_details: details as any
+      });
+    } catch (error) {
+      console.error('Erro ao registrar evento de segurança:', error);
+    }
+  }
+
+  static async getSecurityMetrics(): Promise<any> {
+    try {
+      const { data, error } = await supabase.rpc('get_security_status');
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao obter métricas de segurança:', error);
+      return null;
+    }
+  }
+
+  static async cleanupExpiredSessions(): Promise<void> {
+    try {
+      await supabase.rpc('cleanup_expired_sessions');
+    } catch (error) {
+      console.error('Erro ao limpar sessões expiradas:', error);
+    }
   }
 
   static async isWorkingHours(userId: string): Promise<boolean> {
