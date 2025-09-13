@@ -100,12 +100,14 @@ const AppContent = () => {
       {hasUpdate && (
         <div 
           role="status" 
+          aria-live="polite"
           className="fixed bottom-3 left-1/2 -translate-x-1/2 rounded-lg border bg-card p-3 shadow-lg z-50"
         >
           Nova versão disponível. 
           <button 
             className="underline ml-2 hover:no-underline" 
             onClick={apply}
+            aria-label="Atualizar aplicação para a nova versão"
           >
             Atualizar
           </button>
