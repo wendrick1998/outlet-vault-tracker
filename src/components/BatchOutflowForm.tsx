@@ -44,8 +44,10 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const requiresCustomer = selectedReasonData?.requires_customer || false;
 
   const isFormValid = () => {
-    // Reason is always mandatory, seller is mandatory, customer is mandatory
-    if (!selectedReason || !selectedSeller || !selectedCustomer) return false;
+    // Reason and seller are always mandatory
+    if (!selectedReason || !selectedSeller) return false;
+    // Customer is only mandatory when the reason requires it
+    if (requiresCustomer && !selectedCustomer) return false;
     return true;
   };
 
@@ -55,13 +57,14 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   };
 
   const handleSkipCustomer = () => {
-    // For now, we don't allow skipping - customer is always required
     setShowQuickForm(false);
-    toast({
-      title: "Cliente obrigatório",
-      description: "É necessário selecionar ou cadastrar um cliente para continuar",
-      variant: "destructive"
-    });
+    if (requiresCustomer) {
+      toast({
+        title: "Cliente obrigatório",
+        description: "O motivo selecionado requer um cliente",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleNewCustomer = () => {
@@ -70,9 +73,14 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
 
   const handleSubmit = async () => {
     if (!isFormValid()) {
+      const missingFields = [];
+      if (!selectedReason) missingFields.push("motivo");
+      if (!selectedSeller) missingFields.push("vendedor");
+      if (requiresCustomer && !selectedCustomer) missingFields.push("cliente");
+      
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha motivo, vendedor e cliente para continuar",
+        description: `Preencha: ${missingFields.join(", ")}`,
         variant: "destructive"
       });
       return;
@@ -87,24 +95,26 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           item_id: item.id,
           reason_id: selectedReason,
           seller_id: selectedSeller,
-          customer_id: selectedCustomer,
+          customer_id: requiresCustomer ? selectedCustomer : null,
           notes: quickNote || undefined,
         });
 
         // Check if customer has pending data and create pending loan if needed
-        const customer = customers.find(c => c.id === selectedCustomer);
-        if (customer?.pending_data) {
-          // Create pending loan for incomplete customer data
-          await createPendingLoan({
-            loan_id: loan.id,
-            item_id: item.id,
-            pending_type: 'incomplete_customer_data' as any,
-            customer_name: customer.name,
-            customer_cpf: customer.cpf || undefined,
-            customer_phone: customer.phone || undefined,
-            notes: `Cliente cadastrado com dados incompletos durante empréstimo em lote`,
-            created_by: loan.seller_id // Use seller as creator
-          });
+        if (requiresCustomer && selectedCustomer) {
+          const customer = customers.find(c => c.id === selectedCustomer);
+          if (customer?.pending_data) {
+            // Create pending loan for incomplete customer data
+            await createPendingLoan({
+              loan_id: loan.id,
+              item_id: item.id,
+              pending_type: 'incomplete_customer_data' as any,
+              customer_name: customer.name,
+              customer_cpf: customer.cpf || undefined,
+              customer_phone: customer.phone || undefined,
+              notes: `Cliente cadastrado com dados incompletos durante empréstimo em lote`,
+              created_by: loan.seller_id // Use seller as creator
+            });
+          }
         }
 
         return loan;
@@ -113,16 +123,19 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
       await Promise.all(loanPromises);
 
       toast({
-        title: "Empréstimos registrados",
-        description: `${items.length} ${items.length === 1 ? 'empréstimo registrado' : 'empréstimos registrados'} com sucesso`,
+        title: requiresCustomer ? "Empréstimos registrados" : "Saídas registradas",
+        description: `${items.length} ${items.length === 1 ? 
+          (requiresCustomer ? 'empréstimo registrado' : 'saída registrada') : 
+          (requiresCustomer ? 'empréstimos registrados' : 'saídas registradas')
+        } com sucesso`,
       });
       
       onComplete();
     } catch (error) {
       console.error('Error creating batch loans:', error);
       toast({
-        title: "Erro ao registrar empréstimos",
-        description: "Não foi possível registrar os empréstimos em lote",
+        title: requiresCustomer ? "Erro ao registrar empréstimos" : "Erro ao registrar saídas",
+        description: requiresCustomer ? "Não foi possível registrar os empréstimos em lote" : "Não foi possível registrar as saídas em lote",
         variant: "destructive"
       });
     } finally {
@@ -171,7 +184,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
         <div className="flex items-center gap-3 mb-6">
           <FileText className="h-6 w-6 text-primary" />
           <div>
-            <h3 className="text-lg font-semibold">Dados do Empréstimo</h3>
+            <h3 className="text-lg font-semibold">Dados da Saída</h3>
             <p className="text-muted-foreground">Estes dados serão aplicados a todos os itens</p>
           </div>
         </div>
@@ -179,7 +192,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
         <div className="space-y-6">
           {/* Reason selection - Always mandatory */}
           <div className="space-y-3">
-            <label className="text-sm font-medium">Motivo do Empréstimo *</label>
+            <label className="text-sm font-medium">Motivo da Saída *</label>
             <div className="max-h-24 overflow-y-auto">
               <div className="flex flex-wrap gap-2 p-1">
                 {reasons.map((reason) => (
@@ -219,62 +232,64 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
             </div>
           </div>
 
-          {/* Customer selection - Always mandatory */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Cliente *</label>
-            <CustomerSearchInput
-              value={selectedCustomer}
-              onChange={setSelectedCustomer}
-              onNewCustomer={handleNewCustomer}
-              placeholder="Buscar cliente por nome, CPF ou telefone..."
-              disabled={isSubmitting}
-            />
-            
-            {/* Show selected customer info */}
-            {selectedCustomer && (
-              <div className="mt-2 p-3 bg-muted/30 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    {(() => {
-                      const customer = customers.find(c => c.id === selectedCustomer);
-                      if (!customer) return null;
-                      
-                      return (
-                        <div>
-                          <p className="font-medium text-sm">{customer.name}</p>
-                          <div className="flex gap-2 mt-1">
-                            {customer.phone && (
-                              <Badge variant="outline" className="text-xs">
-                                {customer.phone}
-                              </Badge>
-                            )}
-                            {customer.cpf && (
-                              <Badge variant="outline" className="text-xs">
-                                CPF: {customer.cpf}
-                              </Badge>
-                            )}
-                            {customer.pending_data && (
-                              <Badge variant="secondary" className="text-xs">
-                                ⚠️ Dados incompletos
-                              </Badge>
-                            )}
+          {/* Customer selection - Only when required */}
+          {requiresCustomer && (
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Cliente *</label>
+              <CustomerSearchInput
+                value={selectedCustomer}
+                onChange={setSelectedCustomer}
+                onNewCustomer={handleNewCustomer}
+                placeholder="Buscar cliente por nome, CPF ou telefone..."
+                disabled={isSubmitting}
+              />
+              
+              {/* Show selected customer info */}
+              {selectedCustomer && (
+                <div className="mt-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      {(() => {
+                        const customer = customers.find(c => c.id === selectedCustomer);
+                        if (!customer) return null;
+                        
+                        return (
+                          <div>
+                            <p className="font-medium text-sm">{customer.name}</p>
+                            <div className="flex gap-2 mt-1">
+                              {customer.phone && (
+                                <Badge variant="outline" className="text-xs">
+                                  {customer.phone}
+                                </Badge>
+                              )}
+                              {customer.cpf && (
+                                <Badge variant="outline" className="text-xs">
+                                  CPF: {customer.cpf}
+                                </Badge>
+                              )}
+                              {customer.pending_data && (
+                                <Badge variant="secondary" className="text-xs">
+                                  ⚠️ Dados incompletos
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedCustomer("")}
+                    >
+                      Remover
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedCustomer("")}
-                  >
-                    Remover
-                  </Button>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Quick note */}
           <div className="space-y-3">
@@ -312,7 +327,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           className={`bg-primary hover:bg-primary-hover ${isMobile ? 'w-full h-14 text-base order-1' : 'flex-1 h-12'}`}
           disabled={!isFormValid() || isSubmitting}
         >
-          {isSubmitting ? "Registrando..." : `Confirmar Empréstimo de ${items.length} ${items.length === 1 ? 'Item' : 'Itens'}`}
+          {isSubmitting ? "Registrando..." : `Confirmar ${requiresCustomer ? 'Empréstimo' : 'Saída'} de ${items.length} ${items.length === 1 ? 'Item' : 'Itens'}`}
         </Button>
       </div>
     </div>
