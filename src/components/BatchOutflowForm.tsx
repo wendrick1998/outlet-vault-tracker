@@ -1,20 +1,38 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, Users, FileText } from "lucide-react";
-import { CustomerSearchInput } from "@/components/CustomerSearchInput";
-import { QuickCustomerForm } from "@/components/QuickCustomerForm";
-import { useActiveReasons } from "@/hooks/useReasons";
-import { useActiveSellers } from "@/hooks/useSellers";
-import { useCustomers } from "@/hooks/useCustomers";
-import { useLoans } from "@/hooks/useLoans";
-import { usePendingLoans } from "@/hooks/usePendingLoans";
-import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
-import type { Database } from "@/integrations/supabase/types";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useLoans } from '@/hooks/useLoans';
+import { usePendingLoans } from '@/hooks/usePendingLoans';
+import { useCustomers } from '@/hooks/useCustomers';
+import { useActiveReasons } from '@/hooks/useReasons';
+import { useActiveSellers } from '@/hooks/useSellers';
+import { usePinProtection } from '@/hooks/usePinProtection';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { PinConfirmationModal } from '@/components/PinConfirmationModal';
+import { CustomerSearchInput } from '@/components/CustomerSearchInput';
+import { QuickCustomerForm } from '@/components/QuickCustomerForm';
+import { 
+  CheckCircle, 
+  ArrowLeft, 
+  Package, 
+  User, 
+  Phone, 
+  AlertTriangle, 
+  Shield,
+  Clock,
+  Users,
+  FileText
+} from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
@@ -29,28 +47,22 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
   const [selectedSeller, setSelectedSeller] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [quickNote, setQuickNote] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showQuickForm, setShowQuickForm] = useState(false);
-  
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
-  const { data: reasons = [] } = useActiveReasons();
-  const { data: sellers = [] } = useActiveSellers();
-  const { customers } = useCustomers();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showQuickForm, setShowQuickForm] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-
+  
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const { createLoan } = useLoans();
   const { createPendingLoan } = usePendingLoans();
   const { customers } = useCustomers();
-  const { reasons } = useReasons();
-  const { sellers } = useSellers();
+  const { data: reasons = [] } = useActiveReasons();
+  const { data: sellers = [] } = useActiveSellers();
   const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
-  const { toast } = useToast();
   
   // Verificar configuração do PIN ao montar componente
   useEffect(() => {
@@ -360,6 +372,16 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
           {isSubmitting ? "Registrando..." : `Confirmar ${requiresCustomer ? 'Empréstimo' : 'Saída'} de ${items.length} ${items.length === 1 ? 'Item' : 'Itens'}`}
         </Button>
       </div>
+
+      {/* PIN Confirmation Modal */}
+      <PinConfirmationModal
+        isOpen={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onConfirm={executeOutflow}
+        actionType="outflow"
+        title="Confirmar Saída dos Aparelhos"
+        description={`Digite seu PIN para confirmar a saída de ${items.length} aparelho(s) do cofre.`}
+      />
     </div>
   );
 };
