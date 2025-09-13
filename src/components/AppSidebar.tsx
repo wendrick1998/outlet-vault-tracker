@@ -15,7 +15,8 @@ import {
   Store,
   CheckSquare,
   TrendingUp,
-  Activity
+  Activity,
+  User
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -110,6 +111,12 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
   ];
 
   const adminItems = [
+    { 
+      title: "Perfil", 
+      page: "profile", 
+      icon: User, 
+      available: true 
+    },
     { 
       title: "Configurações", 
       page: "settings", 

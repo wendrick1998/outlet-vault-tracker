@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +18,12 @@ import { useHasPermission } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePinProtection } from "@/hooks/usePinProtection";
 import { SmartFormHelper } from "@/components/SmartFormHelper";
 import { QuickCustomerForm } from "@/components/QuickCustomerForm";
 import { CustomerSearchInput } from "@/components/CustomerSearchInput";
 import { DeviceLeftAtStoreDialog } from "@/components/DeviceLeftAtStoreDialog";
+import { PinConfirmationModal } from "@/components/PinConfirmationModal";
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -43,6 +45,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const [deviceLeftQuestion, setDeviceLeftQuestion] = useState<boolean | null>(null);
   const [showDeviceLeftDialog, setShowDeviceLeftDialog] = useState(false);
   const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -54,9 +57,27 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const { createLoan, isCreating } = useLoans();
   const { createPendingLoan } = usePendingLoans();
   const { createDeviceLeft } = useDevicesLeftAtStore();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
   
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
   const requiresCustomer = selectedReasonData?.requires_customer || false;
+  
+  // Verificar configuração do PIN ao montar componente
+  useEffect(() => {
+    checkPinConfiguration();
+  }, [checkPinConfiguration]);
+  
+  // Debug da lógica de cliente obrigatório
+  useEffect(() => {
+    if (selectedReasonData) {
+      console.log('OutflowForm - Reason selected:', {
+        id: selectedReasonData.id,
+        name: selectedReasonData.name,
+        requiresCustomer: selectedReasonData.requires_customer,
+        calculated: requiresCustomer
+      });
+    }
+  }, [selectedReasonData, requiresCustomer]);
 
   // Permission check
   if (loadingPermission) {
@@ -239,6 +260,22 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       });
       return;
     }
+
+    // Verificar se PIN está configurado
+    if (hasPinConfigured === false) {
+      toast({
+        title: "PIN não configurado",
+        description: "Configure seu PIN operacional nas configurações antes de continuar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Mostrar modal PIN para confirmação
+    setShowPinModal(true);
+  };
+
+  const executeOutflow = async () => {
 
     const loanData = {
       item_id: item.id,
@@ -501,13 +538,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
           Cancelar
         </Button>
         <Button 
-          onClick={() => {
-            if (requiresCustomer && showQuickForm) {
-              setShowQuickForm(true);
-            } else {
-              handleSubmit();
-            }
-          }}
+          onClick={handleSubmit}
           className={`bg-primary hover:bg-primary-hover ${isMobile ? 'w-full h-14 text-base order-1' : 'flex-1 h-12'}`}
           disabled={isCreating || !isFormValid()}
         >
@@ -515,6 +546,36 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         </Button>
       </div>
 
+      {/* Quick Customer Form */}
+      {showQuickForm && (
+        <QuickCustomerForm
+          isOpen={showQuickForm}
+          onClose={() => setShowQuickForm(false)}
+          onCustomerCreated={(customer) => {
+            setSelectedCustomer(customer.id);
+            setShowQuickForm(false);
+          }}
+        />
+      )}
+
+      {/* Device Left at Store Dialog */}
+      <DeviceLeftAtStoreDialog
+        isOpen={showDeviceLeftDialog}
+        onClose={() => setShowDeviceLeftDialog(false)}
+        onSubmit={handleDeviceLeftSubmit}
+        item={item}
+        customerName={getCustomerDisplayName()}
+      />
+
+      {/* PIN Confirmation Modal */}
+      <PinConfirmationModal
+        isOpen={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onConfirm={executeOutflow}
+        actionType="outflow"
+        title="Confirmar Saída do Aparelho"
+        description={`Digite seu PIN para confirmar a saída do aparelho ${item.device_model} - ${item.imei}.`}
+      />
       {/* Quick Customer Form */}
       <QuickCustomerForm
         open={showQuickForm && requiresCustomer}
@@ -532,6 +593,18 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
           onDeviceRegistered={handleDeviceLeftRegistered}
         />
       )}
+
+      {/* PIN Confirmation Modal */}
+      <PinConfirmationModal
+        isOpen={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onConfirm={executeOutflow}
+        actionType="outflow"
+        title="Confirmar Saída do Aparelho"
+        description={`Digite seu PIN para confirmar a saída do aparelho ${item.device_model} - ${item.imei}.`}
+      />
     </div>
+  );
+};
   );
 };
