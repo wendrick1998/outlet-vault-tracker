@@ -174,7 +174,6 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
       
       onComplete();
     } catch (error) {
-      console.error('Error creating batch loans:', error);
       toast({
         title: requiresCustomer ? "Erro ao registrar empréstimos" : "Erro ao registrar saídas",
         description: requiresCustomer ? "Não foi possível registrar os empréstimos em lote" : "Não foi possível registrar as saídas em lote",

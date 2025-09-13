@@ -7,9 +7,10 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Users, Shield, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, Users, Shield, Settings as SettingsIcon, Key } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import { AdminCadastrosModal } from '@/components/admin/AdminCadastrosModal';
+import { PinConfigurationDialog } from '@/components/PinConfigurationDialog';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -21,6 +22,7 @@ export const Settings = ({ onBack }: SettingsProps) => {
   const { profile } = useAuth();
   const { data: profiles, isLoading } = useAllProfiles();
   const updateUserRole = useUpdateUserRole();
+  const [showPinDialog, setShowPinDialog] = useState(false);
 
   const handleRoleChange = (userId: string, newRole: AppRole) => {
     updateUserRole.mutate({ userId, role: newRole });
@@ -163,6 +165,30 @@ export const Settings = ({ onBack }: SettingsProps) => {
           </CardContent>
         </Card>
 
+        {/* PIN Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Configuração de Segurança
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-2">PIN Operacional</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Configure seu PIN de 4 dígitos para confirmar operações sensíveis como empréstimos e devoluções.
+                </p>
+                <Button onClick={() => setShowPinDialog(true)}>
+                  <Key className="mr-2 h-4 w-4" />
+                  Configurar PIN
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Access Information */}
         <Card>
           <CardHeader>
@@ -203,6 +229,12 @@ export const Settings = ({ onBack }: SettingsProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* PIN Configuration Dialog */}
+      <PinConfigurationDialog
+        isOpen={showPinDialog}
+        onClose={() => setShowPinDialog(false)}
+      />
     </div>
   );
 };

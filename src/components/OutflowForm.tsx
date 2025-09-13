@@ -138,7 +138,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         }
         break;
       default:
-        console.log('Unknown field:', field, value);
+        
     }
   };
 

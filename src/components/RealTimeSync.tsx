@@ -43,7 +43,6 @@ export const RealTimeSync: React.FC<RealTimeSyncProps> = ({ onSyncStatusChange }
         schema: 'public',
         table: 'loans'
       }, (payload) => {
-        console.log('Real-time update:', payload);
         setLastSync(new Date());
       })
       .on('postgres_changes', {
@@ -51,7 +50,7 @@ export const RealTimeSync: React.FC<RealTimeSyncProps> = ({ onSyncStatusChange }
         schema: 'public',
         table: 'inventory'
       }, (payload) => {
-        console.log('Real-time update:', payload);
+        
         setLastSync(new Date());
       })
       .subscribe();

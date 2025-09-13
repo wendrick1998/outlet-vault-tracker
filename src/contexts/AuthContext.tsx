@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       (event, session) => {
         if (!mounted) return;
 
-        console.log('Auth state change:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
