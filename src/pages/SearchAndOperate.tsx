@@ -270,3 +270,5 @@ export const SearchAndOperate = ({ onBack }: SearchAndOperateProps) => {
     </PermissionGuard>
   );
 };
+
+export default SearchAndOperate;

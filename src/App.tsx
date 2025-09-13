@@ -25,8 +25,8 @@ import NotFound from "./pages/NotFound";
 const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
 const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m.History })));
 const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
-const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate').then(m => ({ default: m.SearchAndOperate })));
-const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow').then(m => ({ default: m.BatchOutflow })));
+const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate'));
+const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow'));
 
 type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference' | 'conference-report';
 

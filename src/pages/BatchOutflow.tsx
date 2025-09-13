@@ -104,3 +104,5 @@ export const BatchOutflow = ({ onBack }: BatchOutflowProps) => {
     </div>
   );
 };
+
+export default BatchOutflow;
