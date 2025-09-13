@@ -1,6 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -123,8 +121,6 @@ export function ThemeProvider({
     const savedTokens = localStorage.getItem(`${storageKey}-tokens`);
     return savedTokens ? JSON.parse(savedTokens) : defaultTokens;
   });
-
-  const { user } = useAuth();
 
   const applyTokens = (newTokens: ThemeTokens) => {
     const root = window.document.documentElement;
