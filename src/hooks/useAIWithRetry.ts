@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +17,7 @@ export interface AIResponse {
   confidence?: number;
   isRateLimited?: boolean;
   retryAfter?: number;
+  quotaExceeded?: boolean;
 }
 
 // Retry configuration
@@ -56,6 +58,8 @@ export function useAIWithRetry() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [retryAfter, setRetryAfter] = useState<number>(0);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
+  const [countdownTimer, setCountdownTimer] = useState<number>(0);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -162,16 +166,23 @@ export function useAIWithRetry() {
           if (errorData?.code === 'insufficient_quota') {
             rateLimitState.quotaExceeded = true;
             rateLimitState.isLimited = true;
-            rateLimitState.resetTime = Date.now() + (retryAfterValue * 1000);
+            rateLimitState.resetTime = Date.now() + (15 * 60 * 1000); // 15 minutes fixed
             
             setIsRateLimited(true);
-            setRetryAfter(retryAfterValue);
+            setRetryAfter(15 * 60); // 15 minutes in seconds
+            
+            toast({
+              title: "Cota de IA Esgotada",
+              description: "Limite de uso da IA atingido. Aguarde 15 minutos para tentar novamente.",
+              variant: "destructive",
+            });
             
             return {
               success: false,
-              error: 'Limite de uso da IA atingido. Tente novamente mais tarde.',
+              error: 'Limite de uso da IA atingido. Tente novamente em 15 minutos.',
               isRateLimited: true,
-              retryAfter: retryAfterValue,
+              retryAfter: 15 * 60,
+              quotaExceeded: true,
               data: response.data // May contain fallback data
             };
           }
@@ -272,14 +283,38 @@ export function useAIWithRetry() {
     rateLimitState.isLimited = false;
     rateLimitState.quotaExceeded = false;
     setIsRateLimited(false);
+    setQuotaExceeded(false);
     setRetryAfter(0);
+    setCountdownTimer(0);
   };
+
+  // Countdown timer effect for UI
+  React.useEffect(() => {
+    if (retryAfter > 0) {
+      setCountdownTimer(retryAfter);
+      const interval = setInterval(() => {
+        setCountdownTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            if (rateLimitState.quotaExceeded) {
+              resetRateLimit();
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [retryAfter]);
 
   return {
     isLoading,
     isRateLimited,
     retryAfter,
     quotaExceeded: rateLimitState.quotaExceeded,
+    countdownTimer,
     executeAIAction,
     searchWithAI,
     getSuggestions,
