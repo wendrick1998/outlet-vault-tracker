@@ -1058,6 +1058,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["reason_priority"] | null
           requires_customer: boolean
           requires_seller: boolean
+          updated_at: string | null
         }
         Insert: {
           auto_approve?: boolean | null
@@ -1071,6 +1072,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["reason_priority"] | null
           requires_customer?: boolean
           requires_seller?: boolean
+          updated_at?: string | null
         }
         Update: {
           auto_approve?: boolean | null
@@ -1084,6 +1086,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["reason_priority"] | null
           requires_customer?: boolean
           requires_seller?: boolean
+          updated_at?: string | null
         }
         Relationships: []
       }
