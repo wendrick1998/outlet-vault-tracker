@@ -32,6 +32,9 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Debug log para confirmar renderização
+  console.log('🔄 InflowActions renderizado para item:', item.imei);
+
   // Find the active loan for this item
   useEffect(() => {
     const findActiveLoan = async () => {
@@ -67,6 +70,7 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   }, [item.id, toast]);
 
   const handleAction = (type: 'return' | 'sold') => {
+    console.log('🔄 Ação selecionada:', type);
     setActionType(type);
   };
 
@@ -169,7 +173,7 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              O que fazer com este item?
+              Processar Devolução
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -186,6 +190,12 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
               </p>
             </div>
 
+            <div className="text-center mb-4">
+              <p className="text-muted-foreground">
+                Como você deseja processar este item que está retornando?
+              </p>
+            </div>
+
             <div className="grid gap-3">
               <Button
                 onClick={() => handleAction('return')}
@@ -194,7 +204,7 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
               >
                 <div className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
-                  <span className="font-semibold">Devolver ao Cofre</span>
+                  <span className="font-semibold">📦 Devolver ao Estoque</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
                   Item volta ao estoque disponível
@@ -208,7 +218,7 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
               >
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
-                  <span className="font-semibold">Marcar como Vendido</span>
+                  <span className="font-semibold">💰 Item Foi Vendido</span>
                 </div>
                 <span className="text-xs opacity-90">
                   Item foi vendido e sai definitivamente

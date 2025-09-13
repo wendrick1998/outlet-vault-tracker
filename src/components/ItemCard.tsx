@@ -73,21 +73,12 @@ export const ItemCard = ({
       
       case 'loaned':
         return (
-          <div className="flex gap-3">
-            <Button 
-              onClick={onReturn}
-              variant="outline"
-              className="flex-1 h-12 text-base"
-            >
-              Devolver
-            </Button>
-            <Button 
-              onClick={onMarkSold}
-              className="flex-1 bg-success hover:bg-success/90 h-12 text-base"
-            >
-              Vendido
-            </Button>
-          </div>
+          <Button 
+            onClick={onReturn}
+            className="w-full bg-primary hover:bg-primary-hover text-lg h-12"
+          >
+            Processar Devolução
+          </Button>
         );
         
       case 'sold':
