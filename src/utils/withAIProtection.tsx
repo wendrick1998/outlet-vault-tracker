@@ -14,18 +14,22 @@ export function withAIProtection<T extends { disabled?: boolean }>(
   const Wrapped = React.forwardRef<any, T>((props, ref) => {
     const { isRateLimited, quotaExceeded } = useAIWithRetry();
     const blocked = isRateLimited || quotaExceeded;
-    
-    const enhancedProps = {
-      ...props,
-      disabled: blocked || props.disabled,
-      'aria-disabled': blocked || props.disabled
-    } as T & { 'aria-disabled': boolean };
-    
-    return React.createElement(Comp, { ...enhancedProps, ref });
+
+    // Mantém T intacto; insere aria-* como any para não "forçar" no tipo do Comp
+    const a11y: any = { 'aria-disabled': blocked || props.disabled };
+
+    return (
+      <Comp
+        {...props}
+        {...a11y}
+        ref={ref}
+        disabled={blocked || props.disabled}
+      />
+    );
   });
-  
+
   Wrapped.displayName = `${name}(${(Comp as any).displayName || (Comp as any).name || 'Component'})`;
-  return Wrapped as React.ComponentType<T>;
+  return Wrapped;
 }
 
 // Pre-created AI-gated components for common use cases
