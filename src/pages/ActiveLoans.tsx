@@ -110,17 +110,19 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
       await sellLoan({ 
         id: loanId, 
         saleNumber: saleNumber || undefined,
-        notes: saleNumber ? `Venda registrada com número: ${saleNumber}` : "Venda registrada sem número"
       });
       
       toast({
         title: "Venda registrada",
-        description: "O item foi marcado como vendido e removido do estoque.",
+        description: saleNumber 
+          ? `Item vendido com número: ${saleNumber}`
+          : "Item marcado como vendido",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Erro ao registrar venda:', error);
       toast({
         title: "Erro ao registrar venda",
-        description: "Não foi possível registrar a venda",
+        description: error?.message || "Não foi possível registrar a venda",
         variant: "destructive"
       });
     } finally {

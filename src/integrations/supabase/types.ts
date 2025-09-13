@@ -1344,7 +1344,7 @@ export type Database = {
         | "auditor"
         | "viewer"
       inventory_status: "available" | "loaned" | "sold" | "maintenance"
-      loan_status: "active" | "returned" | "overdue"
+      loan_status: "active" | "returned" | "overdue" | "sold"
       pending_loan_type:
         | "incomplete_customer_data"
         | "missing_cpf"
@@ -1520,7 +1520,7 @@ export const Constants = {
         "viewer",
       ],
       inventory_status: ["available", "loaned", "sold", "maintenance"],
-      loan_status: ["active", "returned", "overdue"],
+      loan_status: ["active", "returned", "overdue", "sold"],
       pending_loan_type: [
         "incomplete_customer_data",
         "missing_cpf",

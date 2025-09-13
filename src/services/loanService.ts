@@ -130,13 +130,29 @@ export class LoanService {
   }
 
   static async sellLoan(id: string, saleNumber?: string, notes?: string): Promise<Loan> {
+    // Validate loan exists and is active
+    const loan = await this.getById(id);
+    if (!loan) {
+      throw new Error('Empréstimo não encontrado');
+    }
+    if (loan.status !== 'active') {
+      throw new Error('Apenas empréstimos ativos podem ser vendidos');
+    }
+
     const updates: LoanUpdate = {
-      status: 'sold' as any, // Type cast needed since the enum might not be updated yet
+      status: 'sold',
       returned_at: new Date().toISOString(),
     };
 
     if (notes) {
       updates.notes = notes;
+    }
+
+    // Add sale number to notes if provided
+    if (saleNumber) {
+      updates.notes = updates.notes 
+        ? `${updates.notes} - Número da venda: ${saleNumber}`
+        : `Número da venda: ${saleNumber}`;
     }
 
     // The trigger will automatically update inventory status to 'sold'
@@ -153,7 +169,7 @@ export class LoanService {
         seller:sellers(*),
         reason:reasons(*)
       `)
-      .in('status', ['returned', 'sold'] as any)
+      .in('status', ['returned', 'sold'])
       .order('returned_at', { ascending: false })
       .limit(limit);
 
