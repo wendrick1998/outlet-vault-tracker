@@ -420,8 +420,8 @@ const DesignPanel = ({ onBack }: DesignPanelProps) => {
               
               <ColorPicker
                 label="Texto Secundário"
-                value={tokens.colors.mutesForeground}
-                onChange={(value) => updateColorToken('mutesForeground', value)}
+                value={tokens.colors.mutedForeground}
+                onChange={(value) => updateColorToken('mutedForeground', value)}
               />
             </TabsContent>
 
@@ -490,7 +490,7 @@ const DesignPanel = ({ onBack }: DesignPanelProps) => {
                 <div className="mt-3 space-y-2">
                   {Object.entries(tokens.typography.fontSize).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between">
-                      <span className={`text-${key} capitalize`}>{key}</span>
+                      <span className={`text-${key as keyof ThemeTokens['typography']['fontSize']} capitalize`}>{key}</span>
                       <span className="text-xs font-mono bg-muted px-2 py-1 rounded">{value}</span>
                     </div>
                   ))}

@@ -14,7 +14,7 @@ export interface ThemeTokens {
     background: string;
     foreground: string;
     muted: string;
-    mutesForeground: string;
+    mutedForeground: string;
     border: string;
     input: string;
     card: string;
@@ -31,13 +31,14 @@ export interface ThemeTokens {
   spacing: {
     xs: string;
     sm: string;
-    base: string;
+    md: string;
     lg: string;
     xl: string;
   };
   typography: {
     fontFamily: string;
     fontSize: {
+      xs: string;
       sm: string;
       base: string;
       lg: string;
@@ -58,7 +59,7 @@ const defaultTokens: ThemeTokens = {
     background: '240 10% 98%',
     foreground: '240 10% 8%',
     muted: '210 15% 88%',
-    mutesForeground: '240 15% 30%',
+    mutedForeground: '240 15% 30%',
     border: '210 20% 75%',
     input: '210 20% 92%',
     card: '0 0% 100%',
@@ -75,13 +76,14 @@ const defaultTokens: ThemeTokens = {
   spacing: {
     xs: '0.25rem',
     sm: '0.5rem',
-    base: '1rem',
+    md: '1rem',
     lg: '1.5rem',
     xl: '2rem',
   },
   typography: {
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
     fontSize: {
+      xs: '0.75rem',
       sm: '0.875rem',
       base: '1rem',
       lg: '1.125rem',

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 interface StatsCardProps {
   title: string;
   value: string | number;
+  subtitle?: string;
   icon?: LucideIcon;
   variant?: "default" | "success" | "warning" | "destructive";
   className?: string;
@@ -12,7 +13,8 @@ interface StatsCardProps {
 
 export const StatsCard = ({ 
   title, 
-  value, 
+  value,
+  subtitle,
   icon: Icon, 
   variant = "default",
   className 
@@ -32,6 +34,9 @@ export const StatsCard = ({
             {value}
           </div>
           <div className="text-muted-foreground text-sm">{title}</div>
+          {subtitle && (
+            <div className="text-muted-foreground text-xs mt-1">{subtitle}</div>
+          )}
         </div>
         {Icon && (
           <Icon className={cn("h-8 w-8 opacity-60", variants[variant])} />
