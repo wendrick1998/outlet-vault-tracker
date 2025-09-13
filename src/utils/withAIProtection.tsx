@@ -15,7 +15,7 @@ export function withAIProtection<T extends { disabled?: boolean }>(
     const { isRateLimited, quotaExceeded } = useAIWithRetry();
     const blocked = isRateLimited || quotaExceeded;
 
-    // Mantém T intacto; insere aria-* como any para não "forçar" no tipo do Comp
+    // Não força no tipo T: injeta aria-* via any para A11y sem "poluir" o componente
     const a11y: any = { 'aria-disabled': blocked || props.disabled };
 
     return (
