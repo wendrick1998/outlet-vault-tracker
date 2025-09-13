@@ -18,12 +18,12 @@ import { useHasPermission } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePinProtection } from "@/hooks/usePinProtection";
 import { SmartFormHelper } from "@/components/SmartFormHelper";
 import { QuickCustomerForm } from "@/components/QuickCustomerForm";
 import { CustomerSearchInput } from "@/components/CustomerSearchInput";
 import { DeviceLeftAtStoreDialog } from "@/components/DeviceLeftAtStoreDialog";
 import { PinConfirmationModal } from "@/components/PinConfirmationModal";
+import { PinService } from "@/services/pinService";
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -57,15 +57,9 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const { createLoan, isCreating } = useLoans();
   const { createPendingLoan } = usePendingLoans();
   const { createDeviceLeft } = useDevicesLeftAtStore();
-  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
   
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
   const requiresCustomer = selectedReasonData?.requires_customer || false;
-  
-  // Verificar configuração do PIN ao montar componente
-  useEffect(() => {
-    checkPinConfiguration();
-  }, [checkPinConfiguration]);
   
   // Lógica de cliente obrigatório baseada no motivo selecionado
 
@@ -249,18 +243,27 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       return;
     }
 
-    // Verificar se PIN está configurado
-    if (hasPinConfigured === false) {
+    // Sempre verificar PIN de forma fresca (sem cache)
+    try {
+      const pinConfigured = await PinService.hasPinConfigured();
+      if (pinConfigured) {
+        // Mostrar modal PIN para confirmação
+        setShowPinModal(true);
+      } else {
+        toast({
+          title: "PIN não configurado",
+          description: "Configure seu PIN operacional nas configurações antes de continuar.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao verificar PIN:', error);
       toast({
-        title: "PIN não configurado",
-        description: "Configure seu PIN operacional nas configurações antes de continuar.",
+        title: "Erro",
+        description: "Erro ao verificar configuração de PIN",
         variant: "destructive"
       });
-      return;
     }
-
-    // Mostrar modal PIN para confirmação
-    setShowPinModal(true);
   };
 
   const executeOutflow = async () => {

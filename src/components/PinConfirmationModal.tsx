@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertTriangle } from 'lucide-react';
-import { usePinProtection } from '@/hooks/usePinProtection';
+import { PinService } from '@/services/pinService';
+import { useToast } from '@/hooks/use-toast';
 
 interface PinConfirmationModalProps {
   isOpen: boolean;
@@ -25,7 +26,8 @@ export const PinConfirmationModal = ({
 }: PinConfirmationModalProps) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const { validatePin, isValidating } = usePinProtection();
+  const [isValidating, setIsValidating] = useState(false);
+  const { toast } = useToast();
 
   // Reset estado quando modal abre/fecha
   useEffect(() => {
@@ -71,13 +73,48 @@ export const PinConfirmationModal = ({
       return;
     }
 
-    const isValid = await validatePin(pin);
-    if (isValid) {
-      onConfirm();
-      onClose();
-    } else {
+    setIsValidating(true);
+    try {
+      // Validar formato primeiro
+      const formatValidation = PinService.validatePinFormat(pin);
+      if (!formatValidation.valid) {
+        setError(formatValidation.message || 'PIN inválido');
+        setPin('');
+        return;
+      }
+
+      // Validar no backend
+      const result = await PinService.validatePin(pin);
+      
+      if (result.blocked) {
+        setError(result.message);
+        setPin('');
+        return;
+      }
+
+      if (result.not_configured) {
+        toast({
+          title: "PIN não configurado",
+          description: "Configure seu PIN operacional nas configurações antes de continuar.",
+          variant: "destructive"
+        });
+        onClose();
+        return;
+      }
+
+      if (result.valid) {
+        onConfirm();
+        onClose();
+      } else {
+        setError(result.message || 'PIN inválido. Tente novamente.');
+        setPin('');
+      }
+    } catch (error) {
+      console.error('Erro na validação do PIN:', error);
+      setError('Erro interno. Tente novamente.');
       setPin('');
-      setError('PIN inválido. Tente novamente.');
+    } finally {
+      setIsValidating(false);
     }
   };
 
