@@ -58,6 +58,16 @@ export function ErrorBoundary({ children, fallback }: ErrorBoundaryProps) {
         // Log error for monitoring
         console.error('ErrorBoundary caught an error:', error, errorInfo);
         
+        // Enhanced logging for critical DOM races
+        if (error.message.match(/removeChild|NotFoundError|contains/i)) {
+          console.warn('[dom-race]', { 
+            msg: error.message, 
+            when: new Date().toISOString(),
+            stack: error.stack,
+            componentStack: errorInfo.componentStack
+          });
+        }
+        
         // In production, send to error tracking service
         if (process.env.NODE_ENV === 'production') {
           // Example: Sentry.captureException(error, { extra: errorInfo });

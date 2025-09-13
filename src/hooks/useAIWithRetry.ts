@@ -164,24 +164,29 @@ export function useAIWithRetry() {
           
           // Check if it's quota exceeded vs rate limiting
           if (errorData?.code === 'insufficient_quota') {
+            const retryAfterHeader = errorData?.retryAfter ? parseInt(errorData.retryAfter) : 0;
+            const cooldownTime = Math.max(retryAfterHeader, 900); // Ensure 15min minimum
+            
             rateLimitState.quotaExceeded = true;
             rateLimitState.isLimited = true;
-            rateLimitState.resetTime = Date.now() + (15 * 60 * 1000); // 15 minutes fixed
+            rateLimitState.resetTime = Date.now() + (cooldownTime * 1000);
             
-            setIsRateLimited(true);
-            setRetryAfter(15 * 60); // 15 minutes in seconds
+            setQuotaExceeded(true);
+            setRetryAfter(cooldownTime);
             
             toast({
-              title: "Cota de IA Esgotada",
-              description: "Limite de uso da IA atingido. Aguarde 15 minutos para tentar novamente.",
-              variant: "destructive",
+              title: "Cota de IA esgotada",
+              description: `Aguarde ${Math.ceil(cooldownTime/60)} minutos antes de tentar novamente.`,
+              variant: "destructive"
             });
+            
+            console.info('[ai]', { type: action.type, quotaExceeded: true, cooldownTime, t: Date.now() });
             
             return {
               success: false,
               error: 'Limite de uso da IA atingido. Tente novamente em 15 minutos.',
               isRateLimited: true,
-              retryAfter: 15 * 60,
+              retryAfter: cooldownTime,
               quotaExceeded: true,
               data: response.data // May contain fallback data
             };
@@ -190,6 +195,7 @@ export function useAIWithRetry() {
           // Regular rate limiting - retry with backoff
           if (attempt < RETRY_CONFIG.maxRetries) {
             const delayMs = calculateRetryDelay(attempt, retryAfterValue);
+            console.info('[ai]', { type: action.type, rateLimited: true, retryAfter: retryAfterValue, t: Date.now() });
             console.log(`Rate limited, retrying in ${delayMs}ms (attempt ${attempt + 1})`);
             await delay(delayMs);
             continue;

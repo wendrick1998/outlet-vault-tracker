@@ -1,5 +1,6 @@
 import { useState, Suspense, lazy, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { useServiceWorkerUpdate } from '@/lib/useServiceWorkerUpdate';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Loading } from "@/components/ui/loading";
@@ -87,6 +88,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { hasUpdate, apply } = useServiceWorkerUpdate();
 
   // Prefetch History page on mount
   useEffect(() => {
@@ -94,7 +96,22 @@ const AppContent = () => {
   }, []);
 
   return (
-    <Routes>
+    <div className="min-h-screen bg-background">
+      {hasUpdate && (
+        <div 
+          role="status" 
+          className="fixed bottom-3 left-1/2 -translate-x-1/2 rounded-lg border bg-card p-3 shadow-lg z-50"
+        >
+          Nova versão disponível. 
+          <button 
+            className="underline ml-2 hover:no-underline" 
+            onClick={apply}
+          >
+            Atualizar
+          </button>
+        </div>
+      )}
+      <Routes>
       {/* Public routes */}
       <Route path="/auth" element={<Auth onLoginSuccess={() => navigate('/')} />} />
       
@@ -246,7 +263,8 @@ const AppContent = () => {
       
       {/* 404 page */}
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </div>
   );
 };
 

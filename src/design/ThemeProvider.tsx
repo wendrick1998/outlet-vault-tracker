@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { safeParseTokens } from './validateTokens';
 import { toast } from '@/hooks/use-toast';
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -207,9 +208,10 @@ export function ThemeProvider({
       const savedTheme = localStorage.getItem(`${storageKey}-saved`);
 
       if (savedTokens) {
-        const parsedTokens = JSON.parse(savedTokens);
-        setTokens(parsedTokens);
-        applyTokens(parsedTokens);
+        const parsedData = JSON.parse(savedTokens);
+        const validatedTokens = safeParseTokens(parsedData, defaultTokens);
+        setTokens(validatedTokens);
+        applyTokens(validatedTokens);
       }
 
       if (savedTheme) {
@@ -217,6 +219,9 @@ export function ThemeProvider({
       }
     } catch (error) {
       console.error('Error loading theme:', error);
+      // Fall back to default tokens
+      setTokens(defaultTokens);
+      applyTokens(defaultTokens);
     }
   };
 
