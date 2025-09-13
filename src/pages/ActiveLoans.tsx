@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, AlertTriangle, User, Tag, Search, Filter } from "lucide-react";
+import { Clock, AlertTriangle, User, Tag, Search, Filter, ShoppingCart } from "lucide-react";
 import { useActiveLoans, useLoans } from "@/hooks/useLoans";
 import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
+import { usePendingSales } from "@/hooks/usePendingSales";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 
 interface ActiveLoansProps {
@@ -26,8 +28,10 @@ type LoanWithDetails = Database['public']['Tables']['loans']['Row'] & {
 
 export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { data: loans = [], isLoading } = useActiveLoans();
   const { returnLoan } = useLoans();
+  const { createPendingSale, isCreating } = usePendingSales();
   const { data: reasons = [] } = useActiveReasons();
   const { data: sellers = [] } = useActiveSellers();
 
@@ -36,6 +40,9 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   const [filterReason, setFilterReason] = useState<string>("all");
   const [filterSeller, setFilterSeller] = useState<string>("all");
   const [filterOverdue, setFilterOverdue] = useState<string>("all");
+  
+  // Loading states for individual actions
+  const [loadingStates, setLoadingStates] = useState<{[key: string]: { returning: boolean; selling: boolean }}>({});
 
   // Filtered loans
   const filteredLoans = useMemo(() => {
@@ -81,6 +88,7 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   }, [loans, searchTerm, filterReason, filterSeller, filterOverdue]);
 
   const handleReturn = async (loanId: string) => {
+    setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], returning: true } }));
     try {
       await returnLoan({ id: loanId });
       toast({
@@ -93,6 +101,45 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
         description: "Não foi possível devolver o item",
         variant: "destructive"
       });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], returning: false } }));
+    }
+  };
+
+  const handleSale = async (loanId: string, itemId: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Usuário não encontrado",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const saleNumber = prompt("Número da venda (opcional):");
+    
+    setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], selling: true } }));
+    try {
+      createPendingSale({
+        loan_id: loanId,
+        item_id: itemId,
+        created_by: user.id,
+        sale_number: saleNumber || undefined,
+        status: 'pending'
+      });
+      
+      toast({
+        title: "Venda registrada",
+        description: "A venda foi registrada como pendente de regularização",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao registrar venda",
+        description: "Não foi possível registrar a venda",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], selling: false } }));
     }
   };
 
@@ -184,9 +231,18 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
           <div className="flex gap-3 pt-2">
             <Button
               onClick={() => handleReturn(loan.id)}
-              className="flex-1 bg-success hover:bg-success/90"
+              disabled={loadingStates[loan.id]?.returning || loadingStates[loan.id]?.selling}
+              className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
             >
-              Devolver
+              {loadingStates[loan.id]?.returning ? "Devolvendo..." : "Devolver"}
+            </Button>
+            <Button
+              onClick={() => handleSale(loan.id, item.id)}
+              disabled={loadingStates[loan.id]?.returning || loadingStates[loan.id]?.selling}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              {loadingStates[loan.id]?.selling ? "Vendendo..." : "Vendido"}
             </Button>
           </div>
         </div>
