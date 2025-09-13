@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { Shield, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { usePinProtection } from '@/hooks/usePinProtection';
 
 interface PinConfigurationDialogProps {
@@ -15,8 +15,8 @@ interface PinConfigurationDialogProps {
 export const PinConfigurationDialog = ({ isOpen, onClose, onSuccess }: PinConfigurationDialogProps) => {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [step, setStep] = useState<'setup' | 'confirm'>('setup');
   const [showPin, setShowPin] = useState(false);
+  const [error, setError] = useState('');
   const { setupPin, isSettingUp } = usePinProtection();
 
   // Reset estado quando dialog abre/fecha
@@ -24,29 +24,56 @@ export const PinConfigurationDialog = ({ isOpen, onClose, onSuccess }: PinConfig
     if (isOpen) {
       setPin('');
       setConfirmPin('');
-      setStep('setup');
+      setShowPin(false);
+      setError('');
     }
   }, [isOpen]);
 
-  const handlePinComplete = (value: string) => {
-    if (step === 'setup') {
-      setPin(value);
-      if (value.length === 4) {
-        setStep('confirm');
-      }
-    } else {
-      setConfirmPin(value);
+  const handlePinChange = (value: string) => {
+    // Aceita apenas dígitos e máximo 4 caracteres
+    const numericValue = value.replace(/\D/g, '').slice(0, 4);
+    setPin(numericValue);
+    setError('');
+  };
+
+  const handleConfirmPinChange = (value: string) => {
+    // Aceita apenas dígitos e máximo 4 caracteres
+    const numericValue = value.replace(/\D/g, '').slice(0, 4);
+    setConfirmPin(numericValue);
+    setError('');
+  };
+
+  const validatePinFormat = (pinValue: string): boolean => {
+    if (pinValue.length !== 4) {
+      setError('PIN deve ter exatamente 4 dígitos');
+      return false;
     }
+
+    // Verificar PINs óbvios
+    const weakPins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321', '0123', '9876'];
+    if (weakPins.includes(pinValue)) {
+      setError('PIN muito simples. Use uma combinação mais complexa');
+      return false;
+    }
+
+    return true;
   };
 
   const handleConfirm = async () => {
-    if (pin !== confirmPin) {
-      setConfirmPin('');
-      setStep('setup');
-      setPin('');
+    setError('');
+
+    // Validar formato do PIN
+    if (!validatePinFormat(pin)) {
       return;
     }
 
+    // Verificar se os PINs coincidem
+    if (pin !== confirmPin) {
+      setError('Os PINs não coincidem. Verifique e tente novamente');
+      return;
+    }
+
+    // Configurar PIN
     const success = await setupPin(pin);
     if (success) {
       onSuccess?.();
@@ -54,12 +81,7 @@ export const PinConfigurationDialog = ({ isOpen, onClose, onSuccess }: PinConfig
     }
   };
 
-  const handleBack = () => {
-    setConfirmPin('');
-    setStep('setup');
-  };
-
-  const canProceed = step === 'setup' ? pin.length === 4 : confirmPin.length === 4;
+  const canSubmit = pin.length === 4 && confirmPin.length === 4 && pin === confirmPin;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -70,10 +92,7 @@ export const PinConfigurationDialog = ({ isOpen, onClose, onSuccess }: PinConfig
             Configurar PIN Operacional
           </DialogTitle>
           <DialogDescription>
-            {step === 'setup' 
-              ? 'Crie um PIN de 4 dígitos para confirmar operações críticas.'
-              : 'Confirme seu PIN digitando novamente.'
-            }
+            Crie um PIN de 4 dígitos para confirmar operações críticas como empréstimos e devoluções.
           </DialogDescription>
         </DialogHeader>
 
@@ -89,84 +108,94 @@ export const PinConfigurationDialog = ({ isOpen, onClose, onSuccess }: PinConfig
 
           {/* Input do PIN */}
           <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-sm font-medium mb-2">
-                {step === 'setup' ? 'Digite seu PIN:' : 'Confirme seu PIN:'}
-              </p>
-              
-              <div className="flex justify-center">
-                <InputOTP
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Digite seu PIN (4 dígitos):
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPin ? "text" : "password"}
+                  value={pin}
+                  onChange={(e) => handlePinChange(e.target.value)}
+                  placeholder="••••"
                   maxLength={4}
-                  value={step === 'setup' ? pin : confirmPin}
-                  onChange={handlePinComplete}
-                  render={({ slots }) => (
-                    <InputOTPGroup>
-                      {slots.map((slot, index) => (
-                        <InputOTPSlot
-                          key={index}
-                          index={index}
-                          {...slot}
-                          className="w-12 h-12 text-lg"
-                        />
-                      ))}
-                    </InputOTPGroup>
-                  )}
+                  className="text-center text-lg font-mono tracking-widest"
+                  autoFocus
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPin(!showPin)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                >
+                  {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
-
-              {/* Toggle para mostrar/ocultar PIN */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPin(!showPin)}
-                className="mt-2 text-xs"
-              >
-                {showPin ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
-                {showPin ? 'Ocultar' : 'Mostrar'} PIN
-              </Button>
-
-              {/* Mostrar PIN se solicitado */}
-              {showPin && (step === 'setup' ? pin : confirmPin) && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  PIN: {step === 'setup' ? pin : confirmPin}
-                </p>
-              )}
             </div>
 
-            {/* Aviso de PIN não coincidente */}
-            {step === 'confirm' && confirmPin.length === 4 && pin !== confirmPin && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Confirme seu PIN:
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPin ? "text" : "password"}
+                  value={confirmPin}
+                  onChange={(e) => handleConfirmPinChange(e.target.value)}
+                  placeholder="••••"
+                  maxLength={4}
+                  className="text-center text-lg font-mono tracking-widest"
+                />
+                {pin.length === 4 && confirmPin.length === 4 && pin === confirmPin && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mostrar PIN se solicitado */}
+            {showPin && pin && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  PIN: {pin} {confirmPin && `/ Confirmação: ${confirmPin}`}
+                </p>
+              </div>
+            )}
+
+            {/* Exibir erro */}
+            {error && (
               <Alert variant="destructive">
-                <AlertDescription>
-                  Os PINs não coincidem. Tente novamente.
-                </AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
           </div>
 
-          {/* Botões de ação */}
+          {/* Botão de confirmação */}
           <div className="flex gap-2">
-            {step === 'confirm' && (
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                className="flex-1"
-              >
-                Voltar
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+              disabled={isSettingUp}
+            >
+              Cancelar
+            </Button>
             
             <Button
-              onClick={step === 'setup' ? () => setStep('confirm') : handleConfirm}
-              disabled={!canProceed || isSettingUp}
+              onClick={handleConfirm}
+              disabled={!canSubmit || isSettingUp}
               className="flex-1"
             >
-              {isSettingUp 
-                ? 'Configurando...' 
-                : step === 'setup' 
-                  ? 'Continuar' 
-                  : 'Confirmar PIN'
-              }
+              {isSettingUp ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Configurando...
+                </>
+              ) : (
+                'Configurar PIN'
+              )}
             </Button>
           </div>
 
