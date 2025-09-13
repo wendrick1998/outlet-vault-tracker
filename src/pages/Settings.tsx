@@ -11,6 +11,7 @@ import { ArrowLeft, Users, Shield, Settings as SettingsIcon, Key } from 'lucide-
 import type { Database } from '@/integrations/supabase/types';
 import { AdminCadastrosModal } from '@/components/admin/AdminCadastrosModal';
 import { PinConfigurationDialog } from '@/components/PinConfigurationDialog';
+import { PinDebugHelper } from '@/components/PinDebugHelper';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -23,6 +24,7 @@ export const Settings = ({ onBack }: SettingsProps) => {
   const { data: profiles, isLoading } = useAllProfiles();
   const updateUserRole = useUpdateUserRole();
   const [showPinDialog, setShowPinDialog] = useState(false);
+  const [showPinDebug, setShowPinDebug] = useState(false);
 
   const handleRoleChange = (userId: string, newRole: AppRole) => {
     updateUserRole.mutate({ userId, role: newRole });
@@ -184,6 +186,17 @@ export const Settings = ({ onBack }: SettingsProps) => {
                   <Key className="mr-2 h-4 w-4" />
                   Configurar PIN
                 </Button>
+                
+                {/* Debug Button - Only for Admins */}
+                {profile?.role === 'admin' && (
+                  <Button 
+                    onClick={() => setShowPinDebug(true)} 
+                    variant="outline" 
+                    className="ml-2"
+                  >
+                    🔧 Debug PIN
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -234,6 +247,12 @@ export const Settings = ({ onBack }: SettingsProps) => {
       <PinConfigurationDialog
         isOpen={showPinDialog}
         onClose={() => setShowPinDialog(false)}
+      />
+
+      {/* PIN Debug Helper - Only for Admins */}
+      <PinDebugHelper
+        isOpen={showPinDebug}
+        onClose={() => setShowPinDebug(false)}
       />
     </div>
   );

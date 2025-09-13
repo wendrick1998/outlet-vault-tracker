@@ -20,22 +20,56 @@ export class PinService {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) {
+        console.error('PIN Setup Error: Usuário não autenticado');
         throw new Error('Usuário não autenticado');
       }
+
+      console.log('PIN Setup: Iniciando configuração para usuário:', user.user.id);
 
       const { data, error } = await supabase.rpc('set_operation_pin', {
         user_id: user.user.id,
         pin: pin
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('PIN Setup RPC Error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
 
+      console.log('PIN Setup Success:', data);
       return data as unknown as PinSetupResult;
-    } catch (error) {
-      console.error('Erro ao configurar PIN:', error);
+    } catch (error: any) {
+      console.error('PIN Setup Complete Error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        stack: error.stack
+      });
+      
+      // Retornar erro mais específico baseado no tipo
+      let errorMessage = 'Erro interno ao configurar PIN.';
+      
+      if (error.message?.includes('PIN deve conter')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('PIN muito simples')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('Usuário não encontrado')) {
+        errorMessage = 'Usuário não encontrado ou inativo.';
+      } else if (error.message?.includes('Erro na criptografia')) {
+        errorMessage = 'Erro na criptografia do PIN. Contate o administrador.';
+      } else if (error.details) {
+        errorMessage = `Erro no banco de dados: ${error.details}`;
+      }
+
       return {
         success: false,
-        message: 'Erro interno ao configurar PIN.'
+        message: errorMessage
       };
     }
   }
@@ -47,22 +81,52 @@ export class PinService {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) {
+        console.error('PIN Validation Error: Usuário não autenticado');
         throw new Error('Usuário não autenticado');
       }
+
+      console.log('PIN Validation: Iniciando validação para usuário:', user.user.id);
 
       const { data, error } = await supabase.rpc('validate_operation_pin', {
         user_id: user.user.id,
         pin: pin
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('PIN Validation RPC Error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
 
+      console.log('PIN Validation Success:', data);
       return data as unknown as PinValidationResult;
-    } catch (error) {
-      console.error('Erro ao validar PIN:', error);
+    } catch (error: any) {
+      console.error('PIN Validation Complete Error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        stack: error.stack
+      });
+
+      // Retornar erro mais específico
+      let errorMessage = 'Erro interno ao validar PIN.';
+      
+      if (error.message?.includes('bloqueado')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('não foi configurado')) {
+        errorMessage = 'PIN operacional não foi configurado.';
+      } else if (error.details) {
+        errorMessage = `Erro no banco de dados: ${error.details}`;
+      }
+
       return {
         valid: false,
-        message: 'Erro interno ao validar PIN.'
+        message: errorMessage
       };
     }
   }
