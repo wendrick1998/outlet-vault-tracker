@@ -2,8 +2,10 @@ import React from 'react';
 import { useAIWithRetry } from '@/hooks/useAIWithRetry';
 
 /**
- * HOC that automatically protects components from AI actions when rate limited or quota exceeded  
- * Enhanced with forwardRef support and displayName for better debugging
+ * HOC que bloqueia ações quando a IA estiver rate limited / quota exceeded.
+ * - Preserva ref (forwardRef)
+ * - Mantém typing do componente original (T)
+ * - Injeta disabled e aria-disabled quando bloqueado
  */
 export function withAIProtection<T extends { disabled?: boolean }>(
   Comp: React.ComponentType<T>,
@@ -17,12 +19,12 @@ export function withAIProtection<T extends { disabled?: boolean }>(
       ...props,
       disabled: blocked || props.disabled,
       'aria-disabled': blocked || props.disabled
-    } as T;
+    } as T & { 'aria-disabled': boolean };
     
     return React.createElement(Comp, { ...enhancedProps, ref });
   });
   
-  Wrapped.displayName = `${name}(${Comp.displayName || Comp.name || 'Component'})`;
+  Wrapped.displayName = `${name}(${(Comp as any).displayName || (Comp as any).name || 'Component'})`;
   return Wrapped as React.ComponentType<T>;
 }
 
