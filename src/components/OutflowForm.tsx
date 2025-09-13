@@ -79,24 +79,22 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     }
   }, [selectedReasonData, requiresCustomer]);
 
-  // Permission check
   if (loadingPermission) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-muted-foreground">Verificando permissões...</p>
+      <Card className="p-6">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (!hasWithdrawPermission) {
     return (
       <Card className="p-6">
-        <Alert className="border-destructive bg-destructive/10">
-          <ShieldX className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive font-medium">
+        <Alert>
+          <ShieldX className="h-4 w-4" />
+          <AlertDescription>
             Acesso negado: Você não tem permissão para realizar retiradas de aparelhos.
           </AlertDescription>
         </Alert>
@@ -276,7 +274,6 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   };
 
   const executeOutflow = async () => {
-
     const loanData = {
       item_id: item.id,
       reason_id: selectedReason,
@@ -320,6 +317,29 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     });
   };
 
+  const handleDeviceLeftSubmit = (data: any) => {
+    if (!pendingLoanId) return;
+    
+    createDeviceLeft({
+      loan_id: pendingLoanId,
+      model: data.deviceInfo,
+      imei: data.imei || null,
+      reason: data.notes,
+      created_by: user?.id || '',
+    }, {
+      onSuccess: () => {
+        handleDeviceLeftRegistered();
+      },
+      onError: () => {
+        toast({
+          title: "Erro ao registrar aparelho",
+          description: "Não foi possível registrar o aparelho deixado.",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+
   const handleDeviceLeftRegistered = () => {
     setShowDeviceLeftDialog(false);
     toast({
@@ -338,6 +358,12 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     onComplete();
   };
 
+  const getCustomerDisplayName = () => {
+    if (useGuestCustomer) return guestCustomer;
+    const customer = customers.find(c => c.id === selectedCustomer);
+    return customer?.name || '';
+  };
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -349,20 +375,28 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
           <p className="text-muted-foreground">{item.color} • ...{item.suffix || item.imei.slice(-5)}</p>
         </div>
 
+        {/* Justification */}
+        <div className="space-y-2 mb-6">
+          <Label htmlFor="justification">Justificativa da Saída *</Label>
+          <Textarea
+            id="justification"
+            placeholder="Descreva o motivo da saída..."
+            value={justification}
+            onChange={(e) => setJustification(e.target.value)}
+            className="min-h-[80px]"
+          />
+        </div>
+
         {/* Reason selection */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Motivo da Saída *</label>
-          <ScrollArea className="h-auto max-h-24">
-            <div className="flex flex-wrap gap-2 p-1">
-              {reasons.filter(r => r.is_active).map((reason) => (
+        <div className="space-y-2 mb-6">
+          <Label>Motivo da Saída *</Label>
+          <ScrollArea className="h-20">
+            <div className="flex flex-wrap gap-2">
+              {reasons.map((reason) => (
                 <Badge
                   key={reason.id}
                   variant={selectedReason === reason.id ? "default" : "outline"}
-                  className={`
-                    cursor-pointer px-3 py-2 text-base hover:bg-primary hover:text-primary-foreground transition-colors
-                    ${isMobile ? 'min-h-[48px] text-sm' : 'min-h-[40px]'}
-                    ${selectedReason === reason.id ? 'bg-primary text-primary-foreground' : ''}
-                  `}
+                  className="cursor-pointer"
                   onClick={() => setSelectedReason(reason.id)}
                 >
                   {reason.name}
@@ -373,16 +407,16 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         </div>
 
         {/* Seller selection */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Vendedor Responsável *</label>
-          <ScrollArea className="h-auto max-h-48">
-            <div className={`grid gap-2 p-1 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-              {sellers.filter(s => s.is_active).map((seller) => (
+        <div className="space-y-2 mb-6">
+          <Label>Vendedor Responsável *</Label>
+          <ScrollArea className="h-20">
+            <div className="flex flex-wrap gap-2">
+              {sellers.map((seller) => (
                 <Button
                   key={seller.id}
                   variant={selectedSeller === seller.id ? "default" : "outline"}
+                  size="sm"
                   onClick={() => setSelectedSeller(seller.id)}
-                  className={`justify-start transition-colors ${isMobile ? 'h-14 text-base' : 'h-12'}`}
                 >
                   {seller.name}
                 </Button>
@@ -391,105 +425,108 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
           </ScrollArea>
         </div>
 
-        {/* Customer selection (if required) */}
+        {/* Customer section - only show if required */}
         {requiresCustomer && (
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Cliente *</label>
+          <div className="space-y-4 mb-6">
+            <Label>Cliente {requiresCustomer && "*"}</Label>
             
-            <div className="flex gap-2 mb-3">
-              <Button
-                variant={!useGuestCustomer && !showQuickForm ? "default" : "outline"}
-                onClick={() => { setUseGuestCustomer(false); setShowQuickForm(false); }}
-                size="sm"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Buscar Cliente
-              </Button>
-              <Button
-                variant={useGuestCustomer && !showQuickForm ? "default" : "outline"}
-                onClick={() => { setUseGuestCustomer(true); setShowQuickForm(false); }}
-                size="sm"
-              >
-                Cliente Avulso
-              </Button>
-            </div>
-
-            {!useGuestCustomer && !showQuickForm ? (
-              <div className="space-y-2">
+            {!useGuestCustomer ? (
+              <div className="space-y-3">
                 <CustomerSearchInput
                   value={selectedCustomer}
                   onChange={setSelectedCustomer}
                   onNewCustomer={() => setShowQuickForm(true)}
-                  placeholder="Pesquisar por nome, CPF ou telefone..."
+                  placeholder="Buscar cliente..."
                 />
-                {selectedCustomer && (
-                  <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-                    ✓ Cliente selecionado
-                  </div>
-                )}
-              </div>
-            ) : showQuickForm ? (
-              <div className="p-4 border border-dashed rounded-lg bg-muted/30">
-                <p className="text-sm text-muted-foreground text-center">
-                  Clique no botão "Confirmar Saída" para abrir o formulário de cadastro rápido
-                </p>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUseGuestCustomer(true)}
+                    className="text-xs"
+                  >
+                    <User className="w-3 h-3 mr-1" />
+                    Cliente Avulso
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowQuickForm(true)}
+                    className="text-xs"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Cadastrar Novo
+                  </Button>
+                </div>
               </div>
             ) : (
-              <Input
-                type="text"
-                placeholder="Nome do cliente avulso..."
-                value={guestCustomer}
-                onChange={(e) => setGuestCustomer(e.target.value)}
-                className={`w-full ${isMobile ? 'h-14 text-base' : 'h-12'}`}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Nome do cliente avulso..."
+                  value={guestCustomer}
+                  onChange={(e) => setGuestCustomer(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setUseGuestCustomer(false);
+                    setGuestCustomer("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            )}
+
+            {/* Selected customer display */}
+            {!useGuestCustomer && selectedCustomer && (
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">
+                      {customers.find(c => c.id === selectedCustomer)?.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {customers.find(c => c.id === selectedCustomer)?.email}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedCustomer("")}
+                  >
+                    Alterar
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         )}
 
-        {/* Justification - Always required */}
-        <div className="space-y-3">
-          <Label htmlFor="justification" className="text-sm font-medium">
-            Justificativa *
-            <span className="text-xs text-muted-foreground ml-1">(sempre obrigatória)</span>
-          </Label>
-          <Textarea
-            id="justification"
-            placeholder="Justifique a saída deste aparelho..."
-            value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-            rows={3}
-            className={!justification.trim() ? "border-amber-300 bg-amber-50" : ""}
-          />
-          {!justification.trim() && (
-            <p className="text-xs text-amber-600">⚠️ Justificativa é obrigatória para todas as saídas</p>
-          )}
-        </div>
-
-        {/* Device left at store question */}
+        {/* Device left question - only for loans */}
         {requiresCustomer && (selectedCustomer || useGuestCustomer) && deviceLeftQuestion === null && (
-          <div className="space-y-3 p-4 border border-blue-200 bg-blue-50 rounded-lg">
-            <Label className="text-sm font-medium text-blue-800">
-              Verificação de Aparelho
-            </Label>
-            <p className="text-sm text-blue-700">
-              O cliente está deixando algum aparelho na loja?
-            </p>
+          <div className="mb-6 p-4 border rounded-lg bg-blue-50/50">
+            <p className="font-medium mb-3">O cliente deixou algum aparelho na loja?</p>
             <div className="flex gap-2">
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
                 onClick={() => setDeviceLeftQuestion(true)}
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                variant="outline"
               >
                 Sim
               </Button>
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
                 onClick={() => setDeviceLeftQuestion(false)}
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                variant="outline"
               >
                 Não
               </Button>
@@ -547,36 +584,6 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       </div>
 
       {/* Quick Customer Form */}
-      {showQuickForm && (
-        <QuickCustomerForm
-          isOpen={showQuickForm}
-          onClose={() => setShowQuickForm(false)}
-          onCustomerCreated={(customer) => {
-            setSelectedCustomer(customer.id);
-            setShowQuickForm(false);
-          }}
-        />
-      )}
-
-      {/* Device Left at Store Dialog */}
-      <DeviceLeftAtStoreDialog
-        isOpen={showDeviceLeftDialog}
-        onClose={() => setShowDeviceLeftDialog(false)}
-        onSubmit={handleDeviceLeftSubmit}
-        item={item}
-        customerName={getCustomerDisplayName()}
-      />
-
-      {/* PIN Confirmation Modal */}
-      <PinConfirmationModal
-        isOpen={showPinModal}
-        onClose={() => setShowPinModal(false)}
-        onConfirm={executeOutflow}
-        actionType="outflow"
-        title="Confirmar Saída do Aparelho"
-        description={`Digite seu PIN para confirmar a saída do aparelho ${item.device_model} - ${item.imei}.`}
-      />
-      {/* Quick Customer Form */}
       <QuickCustomerForm
         open={showQuickForm && requiresCustomer}
         onOpenChange={setShowQuickForm}
@@ -601,10 +608,8 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         onConfirm={executeOutflow}
         actionType="outflow"
         title="Confirmar Saída do Aparelho"
-        description={`Digite seu PIN para confirmar a saída do aparelho ${item.device_model} - ${item.imei}.`}
+        description={`Digite seu PIN para confirmar a saída do aparelho ${item.model} - ${item.imei}.`}
       />
     </div>
-  );
-};
   );
 };
