@@ -163,16 +163,14 @@ export const PinConfirmationModal = ({
                   maxLength={4}
                   value={pin}
                   onChange={handlePinChange}
-                  render={({ slots }) => (
-                    <InputOTPGroup>
-                      {slots.map((slot, index) => (
-                        <InputOTPSlot key={index} index={index} className="w-12 h-12 text-lg">
-                          {slot.char ? '●' : ''}
-                        </InputOTPSlot>
-                      ))}
-                    </InputOTPGroup>
-                  )}
-                />
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
             </div>
 
