@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CustomerService } from '@/services/customerService';
+import { CustomerService, type SecureCustomer } from '@/services/customerService';
 import { useToast } from '@/components/ui/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -24,7 +24,7 @@ export function useCustomers() {
     data: customers = [],
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<SecureCustomer[]>({
     queryKey: QUERY_KEYS.lists(),
     queryFn: CustomerService.getAll,
   });
