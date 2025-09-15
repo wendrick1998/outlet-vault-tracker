@@ -24,7 +24,7 @@ export class PinService {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('PIN Setup: Iniciando configuração para usuário:', user.user.id);
+      
 
       const { data, error } = await supabase.rpc('set_operation_pin', {
         user_id: user.user.id,
@@ -41,7 +41,7 @@ export class PinService {
         throw error;
       }
 
-      console.log('PIN Setup Success:', data);
+      
       return data as unknown as PinSetupResult;
     } catch (error: any) {
       console.error('PIN Setup Complete Error:', {
@@ -85,7 +85,7 @@ export class PinService {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('PIN Validation: Iniciando validação para usuário:', user.user.id);
+      
 
       const { data, error } = await supabase.rpc('validate_operation_pin', {
         user_id: user.user.id,
@@ -102,7 +102,7 @@ export class PinService {
         throw error;
       }
 
-      console.log('PIN Validation Success:', data);
+      
       return data as unknown as PinValidationResult;
     } catch (error: any) {
       console.error('PIN Validation Complete Error:', {

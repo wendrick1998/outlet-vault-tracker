@@ -35,11 +35,15 @@ export const PinDebugHelper: React.FC<PinDebugHelperProps> = ({ isOpen, onClose 
   const testPinSetup = async () => {
     setIsLoading(true);
     try {
-      console.log('🔧 PIN Debug: Testando configuração do PIN');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 PIN Debug: Testando configuração do PIN');
+      }
       const result = await PinService.setupPin(testPin);
       addResult('Configuração do PIN', result, result.success);
-    } catch (error) {
-      console.error('🚨 PIN Debug Error:', error);
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚨 PIN Debug Error:', error);
+      }
       addResult('Configuração do PIN', { error: error.message }, false);
     } finally {
       setIsLoading(false);
@@ -49,11 +53,15 @@ export const PinDebugHelper: React.FC<PinDebugHelperProps> = ({ isOpen, onClose 
   const testPinValidation = async () => {
     setIsLoading(true);
     try {
-      console.log('🔍 PIN Debug: Testando validação do PIN');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 PIN Debug: Testando validação do PIN');
+      }
       const result = await PinService.validatePin(testPin);
       addResult('Validação do PIN', result, result.valid);
-    } catch (error) {
-      console.error('🚨 PIN Debug Error:', error);
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚨 PIN Debug Error:', error);
+      }
       addResult('Validação do PIN', { error: error.message }, false);
     } finally {
       setIsLoading(false);
@@ -63,11 +71,15 @@ export const PinDebugHelper: React.FC<PinDebugHelperProps> = ({ isOpen, onClose 
   const testHasPinConfigured = async () => {
     setIsLoading(true);
     try {
-      console.log('📋 PIN Debug: Verificando se PIN está configurado');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📋 PIN Debug: Verificando se PIN está configurado');
+      }
       const result = await PinService.hasPinConfigured();
       addResult('Verificar PIN Configurado', { hasPinConfigured: result }, true);
-    } catch (error) {
-      console.error('🚨 PIN Debug Error:', error);
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚨 PIN Debug Error:', error);
+      }
       addResult('Verificar PIN Configurado', { error: error.message }, false);
     } finally {
       setIsLoading(false);
@@ -77,7 +89,9 @@ export const PinDebugHelper: React.FC<PinDebugHelperProps> = ({ isOpen, onClose 
   const testDirectRPC = async () => {
     setIsLoading(true);
     try {
-      console.log('🎯 PIN Debug: Testando RPC direto');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 PIN Debug: Testando RPC direto');
+      }
       const { data: user } = await supabase.auth.getUser();
       
       if (!user.user) {
@@ -91,7 +105,9 @@ export const PinDebugHelper: React.FC<PinDebugHelperProps> = ({ isOpen, onClose 
       });
 
       if (error) {
-        console.error('🚨 RPC Error:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('🚨 RPC Error:', error);
+        }
         addResult('RPC Direto', { 
           error: error.message, 
           details: error.details,
@@ -99,11 +115,15 @@ export const PinDebugHelper: React.FC<PinDebugHelperProps> = ({ isOpen, onClose 
           code: error.code 
         }, false);
       } else {
-        console.log('✅ RPC Success:', data);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ RPC Success:', data);
+        }
         addResult('RPC Direto', data, (data as any)?.success === true);
       }
     } catch (error: any) {
-      console.error('🚨 PIN Debug Error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚨 PIN Debug Error:', error);
+      }
       addResult('RPC Direto', { error: error.message }, false);
     } finally {
       setIsLoading(false);

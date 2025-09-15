@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LoadingButton } from '@/components/ui/loading-states';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { PinService } from '@/services/pinService';
 import { useToast } from '@/hooks/use-toast';
@@ -195,13 +196,14 @@ export const PinConfirmationModal = ({
               Cancelar
             </Button>
             
-            <Button
+            <LoadingButton 
               onClick={handleConfirm}
-              disabled={pin.length !== 4 || isValidating}
+              disabled={pin.length !== 4}
+              loading={isValidating}
               className="flex-1"
             >
-              {isValidating ? 'Validando...' : 'Confirmar'}
-            </Button>
+              Confirmar
+            </LoadingButton>
           </div>
 
           {/* Informação sobre segurança */}
