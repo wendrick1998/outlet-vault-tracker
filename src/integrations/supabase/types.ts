@@ -1316,6 +1316,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_sensitive_customer_access: {
+        Args: {
+          access_type: string
+          customer_id: string
+          fields_accessed: string[]
+        }
+        Returns: undefined
+      }
       migrate_existing_roles: {
         Args: Record<PropertyKey, never>
         Returns: undefined

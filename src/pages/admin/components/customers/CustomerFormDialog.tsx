@@ -8,12 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useToast } from "@/hooks/use-toast";
 import { customerSchema } from "@/lib/validation";
-import type { Database } from '@/integrations/supabase/types';
-
-type Customer = Database['public']['Tables']['customers']['Row'];
+import type { SecureCustomer } from '@/services/customerService';
 
 interface CustomerFormDialogProps {
-  customer: Customer | null;
+  customer: SecureCustomer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
