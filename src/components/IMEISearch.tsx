@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Search, Scan } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SearchService, type SearchResult, type AISearchResult } from "@/services/searchService";
+import { SearchService, type SearchResult } from "@/services/searchService";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from '@/integrations/supabase/types';
 
@@ -16,8 +16,6 @@ interface IMEISearchProps {
 export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) => {
   const [imeiInput, setImeiInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [correctedTerm, setCorrectedTerm] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -26,7 +24,7 @@ export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) =>
     inputRef.current?.focus();
   }, []);
 
-  const handleSearch = async (useAI = true) => {
+  const handleSearch = async () => {
     if (!imeiInput.trim()) {
       toast({
         title: "IMEI obrigatório",
@@ -41,34 +39,8 @@ export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) =>
     try {
       const cleanIMEI = imeiInput.trim().replace(/\D/g, ''); // Remove non-digits
       
-      let result: SearchResult;
-      
-      if (useAI) {
-        // Try AI-enhanced search first
-        const aiResult: AISearchResult = await SearchService.aiSearchByIMEI(cleanIMEI);
-        
-        // Update suggestions and corrected term
-        setAiSuggestions(aiResult.suggestions);
-        setCorrectedTerm(aiResult.correctedTerm);
-        
-        // Show AI insights if available
-        if (aiResult.reasoning && aiResult.confidence > 0.7) {
-          toast({
-            title: "💡 Sugestão da IA",
-            description: aiResult.reasoning,
-          });
-        }
-        
-        // Convert AI result to regular SearchResult format
-        result = {
-          items: aiResult.results,
-          exactMatch: aiResult.results.length === 1 ? aiResult.results[0] : undefined,
-          hasMultiple: aiResult.results.length > 1
-        };
-      } else {
-        // Fallback to regular search
-        result = await SearchService.searchByIMEI(cleanIMEI);
-      }
+      // Direct database search (no AI)
+      const result = await SearchService.searchByIMEI(cleanIMEI);
       
       if (result.exactMatch) {
         onItemFound(result.exactMatch);
@@ -108,7 +80,7 @@ export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) =>
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSearch(true);
+      handleSearch();
     }
   };
 
@@ -158,59 +130,16 @@ export const IMEISearch = ({ onItemFound, onMultipleFound }: IMEISearchProps) =>
             </div>
           </div>
           
-          <div className="flex flex-col gap-2">
-            <Button
-              onClick={() => handleSearch(true)}
-              disabled={isSearching || !imeiInput.trim()}
-              className="px-6 py-3 h-auto text-lg bg-primary hover:bg-primary-hover"
-            >
-              <Search className="h-5 w-5 mr-2" />
-              {isSearching ? "🤖 Buscando..." : "🤖 Busca IA"}
-            </Button>
-            <Button
-              onClick={() => handleSearch(false)}
-              disabled={isSearching || !imeiInput.trim()}
-              variant="outline"
-              className="px-3 py-1 text-sm"
-            >
-              Simples
-            </Button>
-          </div>
+          <Button
+            onClick={handleSearch}
+            disabled={isSearching || !imeiInput.trim()}
+            className="px-6 py-3 h-auto text-lg bg-primary hover:bg-primary-hover"
+          >
+            <Search className="h-5 w-5 mr-2" />
+            {isSearching ? "Buscando..." : "Buscar"}
+          </Button>
         </div>
 
-        {/* AI Suggestions */}
-        {aiSuggestions.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">💡 Sugestões da IA:</p>
-            <div className="flex flex-wrap gap-1">
-              {aiSuggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  onClick={() => setImeiInput(suggestion)}
-                  className="text-xs bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded transition-colors"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Corrected Term */}
-        {correctedTerm && correctedTerm !== imeiInput && (
-          <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
-              🔧 Você quis dizer:{" "}
-              <button 
-                onClick={() => setImeiInput(correctedTerm)} 
-                className="font-medium underline hover:no-underline"
-              >
-                {correctedTerm}
-              </button>
-              ?
-            </p>
-          </div>
-        )}
       </div>
     </Card>
   );

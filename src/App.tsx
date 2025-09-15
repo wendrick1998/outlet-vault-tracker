@@ -25,6 +25,7 @@ import { BatchOutflow } from "./pages/BatchOutflow";
 import { ActiveLoans } from "./pages/ActiveLoans";
 import { History } from "./pages/History";
 import { Admin } from "./pages/Admin";
+import { AIInsights } from "./pages/AIInsights";
 
 type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference' | 'conference-report';
 
@@ -246,6 +247,14 @@ const AppContent = () => {
         element={
           <AppLayout>
             <SystemMonitoring />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/ai-insights" 
+        element={
+          <AppLayout>
+            <AIInsights onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
