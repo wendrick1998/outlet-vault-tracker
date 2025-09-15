@@ -1,9 +1,8 @@
-import { useState, Suspense, lazy, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useServiceWorkerUpdate } from '@/lib/useServiceWorkerUpdate';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Loading } from "@/components/ui/loading";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -21,12 +20,11 @@ import SystemMonitoring from "@/pages/SystemMonitoring";
 import { Auth } from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
-// Lazy load heavy pages for better performance
-const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
-const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m.History })));
-const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
-const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate'));
-const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow'));
+import { SearchAndOperate } from "./pages/SearchAndOperate";
+import { BatchOutflow } from "./pages/BatchOutflow";
+import { ActiveLoans } from "./pages/ActiveLoans";
+import { History } from "./pages/History";
+import { Admin } from "./pages/Admin";
 
 type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference' | 'conference-report';
 
@@ -92,9 +90,12 @@ const AppContent = () => {
   const navigate = useNavigate();
   const { hasUpdate, apply } = useServiceWorkerUpdate();
 
-  // Prefetch History page on mount
+  // Prefetch pages for better performance
   useEffect(() => {
+    // Pre-load pages that might be accessed
     import('./pages/History');
+    import('./pages/Admin');
+    import('./pages/ActiveLoans');
   }, []);
 
   return (
@@ -140,9 +141,7 @@ const AppContent = () => {
         path="/search-and-operate" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazySearchAndOperate onBack={() => navigate('/')} />
-            </Suspense>
+            <SearchAndOperate onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
@@ -150,9 +149,7 @@ const AppContent = () => {
         path="/active-loans" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyActiveLoans onBack={() => navigate('/')} />
-            </Suspense>
+            <ActiveLoans onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
@@ -160,9 +157,7 @@ const AppContent = () => {
         path="/history" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyHistory onBack={() => navigate('/')} />
-            </Suspense>
+            <History onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
@@ -170,9 +165,7 @@ const AppContent = () => {
         path="/batch-outflow" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyBatchOutflow onBack={() => navigate('/')} />
-            </Suspense>
+            <BatchOutflow onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
@@ -196,9 +189,7 @@ const AppContent = () => {
         path="/admin" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyAdmin onBack={() => navigate('/')} />
-            </Suspense>
+            <Admin onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
@@ -206,9 +197,7 @@ const AppContent = () => {
         path="/admin/ui-inventory" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyAdmin onBack={() => navigate('/')} />
-            </Suspense>
+            <Admin onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
@@ -216,9 +205,7 @@ const AppContent = () => {
         path="/admin/design" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyAdmin onBack={() => navigate('/')} />
-            </Suspense>
+            <Admin onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
@@ -226,9 +213,7 @@ const AppContent = () => {
         path="/admin/ui-kit" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyAdmin onBack={() => navigate('/')} />
-            </Suspense>
+            <Admin onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />
