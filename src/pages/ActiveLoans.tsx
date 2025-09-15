@@ -11,6 +11,7 @@ import { useActiveLoans, useLoans } from "@/hooks/useLoans";
 import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
 import { useToast } from "@/hooks/use-toast";
+import { PinConfirmationModal } from "@/components/PinConfirmationModal";
 import type { Database } from "@/integrations/supabase/types";
 
 interface ActiveLoansProps {
@@ -39,6 +40,12 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   
   // Loading states for individual actions
   const [loadingStates, setLoadingStates] = useState<{[key: string]: { returning: boolean; selling: boolean }}>({});
+  
+  // PIN protection state
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'return' | 'sell' | null>(null);
+  const [pendingLoanId, setPendingLoanId] = useState<string>('');
+  const [pendingSaleNumber, setPendingSaleNumber] = useState<string>('');
 
   // Filtered loans
   const filteredLoans = useMemo(() => {
@@ -83,51 +90,72 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
     });
   }, [loans, searchTerm, filterReason, filterSeller, filterOverdue]);
 
-  const handleReturn = async (loanId: string) => {
-    setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], returning: true } }));
-    try {
-      await returnLoan({ id: loanId });
-      toast({
-        title: "Item devolvido",
-        description: "O item foi devolvido com sucesso",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao devolver",
-        description: "Não foi possível devolver o item",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], returning: false } }));
-    }
+  const handleReturn = (loanId: string) => {
+    setPendingAction('return');
+    setPendingLoanId(loanId);
+    setPendingSaleNumber('');
+    setShowPinModal(true);
   };
 
-  const handleSale = async (loanId: string) => {
+  const handleSale = (loanId: string) => {
     const saleNumber = prompt("Número da venda (opcional):");
-    
-    setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], selling: true } }));
-    try {
-      await sellLoan({ 
-        id: loanId, 
-        saleNumber: saleNumber || undefined,
-      });
-      
-      toast({
-        title: "Venda registrada",
-        description: saleNumber 
-          ? `Item vendido com número: ${saleNumber}`
-          : "Item marcado como vendido",
-      });
-    } catch (error: any) {
-      console.error('Erro ao registrar venda:', error);
-      toast({
-        title: "Erro ao registrar venda",
-        description: error?.message || "Não foi possível registrar a venda",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], selling: false } }));
+    setPendingAction('sell');
+    setPendingLoanId(loanId);
+    setPendingSaleNumber(saleNumber || '');
+    setShowPinModal(true);
+  };
+
+  const executePendingAction = async () => {
+    if (!pendingAction || !pendingLoanId) return;
+
+    if (pendingAction === 'return') {
+      setLoadingStates(prev => ({ ...prev, [pendingLoanId]: { ...prev[pendingLoanId], returning: true } }));
+      try {
+        await returnLoan({ id: pendingLoanId });
+        toast({
+          title: "Item devolvido",
+          description: "O item foi devolvido com sucesso",
+        });
+      } catch (error) {
+        toast({
+          title: "Erro ao devolver",
+          description: "Não foi possível devolver o item",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingStates(prev => ({ ...prev, [pendingLoanId]: { ...prev[pendingLoanId], returning: false } }));
+      }
+    } else if (pendingAction === 'sell') {
+      setLoadingStates(prev => ({ ...prev, [pendingLoanId]: { ...prev[pendingLoanId], selling: true } }));
+      try {
+        await sellLoan({ 
+          id: pendingLoanId, 
+          saleNumber: pendingSaleNumber || undefined,
+        });
+        
+        toast({
+          title: "Venda registrada",
+          description: pendingSaleNumber 
+            ? `Item vendido com número: ${pendingSaleNumber}`
+            : "Item marcado como vendido",
+        });
+      } catch (error: any) {
+        console.error('Erro ao registrar venda:', error);
+        toast({
+          title: "Erro ao registrar venda",
+          description: error?.message || "Não foi possível registrar a venda",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingStates(prev => ({ ...prev, [pendingLoanId]: { ...prev[pendingLoanId], selling: false } }));
+      }
     }
+
+    // Reset pending action state
+    setPendingAction(null);
+    setPendingLoanId('');
+    setPendingSaleNumber('');
+    setShowPinModal(false);
   };
 
   const renderLoanCard = (loan: LoanWithDetails) => {
@@ -364,6 +392,24 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
           </div>
         )}
       </main>
+
+      {/* PIN Confirmation Modal */}
+      <PinConfirmationModal
+        isOpen={showPinModal}
+        onClose={() => {
+          setShowPinModal(false);
+          setPendingAction(null);
+          setPendingLoanId('');
+          setPendingSaleNumber('');
+        }}
+        onConfirm={executePendingAction}
+        title={pendingAction === 'return' ? "Confirmar Devolução" : "Confirmar Venda"}
+        description={pendingAction === 'return' 
+          ? "Digite seu PIN operacional para confirmar a devolução do item"
+          : "Digite seu PIN operacional para confirmar a venda do item"
+        }
+        actionType={pendingAction === 'return' ? 'return' : 'operation'}
+      />
     </div>
   );
 };
