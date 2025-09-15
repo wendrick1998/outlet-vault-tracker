@@ -8,16 +8,14 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { CustomerFormDialog } from "./CustomerFormDialog";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from '@/integrations/supabase/types';
-
-type Customer = Database['public']['Tables']['customers']['Row'];
+import type { SecureCustomer } from '@/services/customerService';
 
 export const AdminCustomersTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<SecureCustomer | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<SecureCustomer | null>(null);
   const [isClearTestModalOpen, setIsClearTestModalOpen] = useState(false);
 
   const { toast } = useToast();
@@ -37,12 +35,12 @@ export const AdminCustomersTab = () => {
     customer.cpf?.includes(searchTerm)
   );
 
-  const handleEdit = (customer: Customer) => {
+  const handleEdit = (customer: SecureCustomer) => {
     setSelectedCustomer(customer);
     setIsFormOpen(true);
   };
 
-  const handleDelete = (customer: Customer) => {
+  const handleDelete = (customer: SecureCustomer) => {
     setCustomerToDelete(customer);
     setIsDeleteModalOpen(true);
   };

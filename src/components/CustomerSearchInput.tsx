@@ -5,9 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search } from "lucide-react";
 import { useCustomers } from "@/hooks/useCustomers";
-import type { Database } from '@/integrations/supabase/types';
-
-type Customer = Database['public']['Tables']['customers']['Row'];
+import type { SecureCustomer } from '@/services/customerService';
 
 interface CustomerSearchInputProps {
   value: string;
@@ -26,7 +24,7 @@ export const CustomerSearchInput = ({
 }: CustomerSearchInputProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<SecureCustomer[]>([]);
   
   const { customers = [] } = useCustomers();
 
@@ -56,7 +54,7 @@ export const CustomerSearchInput = ({
     }
   }, [value, customers, searchTerm]);
 
-  const handleCustomerSelect = (customer: Customer) => {
+  const handleCustomerSelect = (customer: SecureCustomer) => {
     setSearchTerm(customer.name);
     setShowResults(false);
     onChange(customer.id);
