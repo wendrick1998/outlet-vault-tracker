@@ -15,9 +15,10 @@ import { StockConferenceCard } from "./StockConferenceCard";
 import { StockScanner } from "./StockScanner";
 import { StockConferenceWorkflow } from "./StockConferenceWorkflow";
 import { StockReports } from "./StockReports";
+import { StockAnalyticsDashboard } from "./StockAnalyticsDashboard";
 import { useStock, useStockStats, useStockConferences } from "@/hooks/useStock";
 import { useLabels } from "@/hooks/useCatalogs";
-import { ArrowLeft, Plus, Search, Scan, Package, Store, ShoppingCart, AlertCircle, TrendingUp, BarChart3, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, Search, Scan, Package, Store, ShoppingCart, AlertCircle, TrendingUp, BarChart3, RefreshCw, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface StockDashboardProps {
@@ -28,12 +29,14 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState("dashboard");
 
   const { items, isLoading } = useStock({
     status: selectedStatus !== "all" ? selectedStatus : undefined,
     location: selectedLocation !== "all" ? selectedLocation : undefined,
+    labelIds: selectedLabels.length > 0 ? selectedLabels : undefined,
   });
 
   const { data: stats, isLoading: isLoadingStats } = useStockStats();
@@ -56,6 +59,33 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
   const handleScanAction = () => {
     toast.info("Funcionalidade de scanner será implementada em breve!");
   };
+
+  const handleStatCardClick = (filter: { status?: string; location?: string }) => {
+    if (filter.status) {
+      setSelectedStatus(filter.status);
+    }
+    if (filter.location) {
+      setSelectedLocation(filter.location);
+    }
+    setSelectedTab("items");
+  };
+
+  const handleLabelToggle = (labelId: string) => {
+    setSelectedLabels(prev => 
+      prev.includes(labelId) 
+        ? prev.filter(id => id !== labelId)
+        : [...prev, labelId]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setSelectedStatus("all");
+    setSelectedLocation("all");
+    setSelectedLabels([]);
+  };
+
+  const hasActiveFilters = searchTerm || selectedStatus !== "all" || selectedLocation !== "all" || selectedLabels.length > 0;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -102,7 +132,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           title="Total de Itens"
           value={stats?.total || 0}
           icon={Package}
-          className="lg:col-span-1"
+          className="lg:col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => clearAllFilters()}
         />
         <StatsCard
           title="Disponíveis"
@@ -110,7 +141,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           icon={Package}
           variant="success"
           subtitle="Pronto para empréstimo"
-          className="lg:col-span-1"
+          className="lg:col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => handleStatCardClick({ status: "disponivel" })}
         />
         <StatsCard
           title="Sincronizados"
@@ -118,7 +150,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           icon={RefreshCw}
           variant="default"
           subtitle="Vinculados ao cofre"
-          className="lg:col-span-1"
+          className="lg:col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => clearAllFilters()}
         />
         <StatsCard
           title="Reservados"
@@ -126,7 +159,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           icon={AlertCircle}
           variant="warning"
           subtitle="Em empréstimo"
-          className="lg:col-span-1"
+          className="lg:col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => handleStatCardClick({ status: "reservado" })}
         />
         <StatsCard
           title="Demonstração"
@@ -134,7 +168,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           icon={Store}
           variant="default"
           subtitle="Etiquetas automáticas"
-          className="lg:col-span-1"
+          className="lg:col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => handleStatCardClick({ location: "vitrine" })}
         />
         <StatsCard
           title="Em Estoque"
@@ -142,7 +177,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           icon={Package}
           variant="default"
           subtitle="Armazenados"
-          className="lg:col-span-1"
+          className="lg:col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => handleStatCardClick({ location: "estoque" })}
         />
       </div>
 
@@ -162,8 +198,9 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
 
       {/* Main Content */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="items">Itens</TabsTrigger>
           <TabsTrigger value="search">Buscar</TabsTrigger>
           <TabsTrigger value="scanner">Scanner</TabsTrigger>
@@ -205,41 +242,83 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="analytics" className="space-y-6">
+          <StockAnalyticsDashboard />
+        </TabsContent>
+
         <TabsContent value="items" className="space-y-6">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por IMEI, modelo, marca..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          <div className="space-y-4">
+            <div className="flex gap-4 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por IMEI, modelo, marca..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="disponivel">Disponível</SelectItem>
+                  <SelectItem value="reservado">Reservado</SelectItem>
+                  <SelectItem value="vendido">Vendido</SelectItem>
+                  <SelectItem value="defeituoso">Defeituoso</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Localização" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Localizações</SelectItem>
+                  <SelectItem value="vitrine">Vitrine</SelectItem>
+                  <SelectItem value="estoque">Estoque</SelectItem>
+                  <SelectItem value="assistencia">Assistência</SelectItem>
+                  <SelectItem value="deposito">Depósito</SelectItem>
+                </SelectContent>
+              </Select>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  onClick={clearAllFilters}
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Limpar Filtros
+                </Button>
+              )}
             </div>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="disponivel">Disponível</SelectItem>
-                <SelectItem value="reservado">Reservado</SelectItem>
-                <SelectItem value="vendido">Vendido</SelectItem>
-                <SelectItem value="defeituoso">Defeituoso</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Localização" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as Localizações</SelectItem>
-                <SelectItem value="vitrine">Vitrine</SelectItem>
-                <SelectItem value="estoque">Estoque</SelectItem>
-                <SelectItem value="assistencia">Assistência</SelectItem>
-                <SelectItem value="deposito">Depósito</SelectItem>
-              </SelectContent>
-            </Select>
+
+            {/* Filtros por Etiqueta */}
+            {labels.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Filtrar por Etiquetas:</div>
+                <div className="flex flex-wrap gap-2">
+                  {labels.map((label) => (
+                    <Badge
+                      key={label.id}
+                      variant={selectedLabels.includes(label.id) ? "default" : "outline"}
+                      className="cursor-pointer hover:bg-muted transition-colors"
+                      style={{
+                        backgroundColor: selectedLabels.includes(label.id) ? label.color : undefined,
+                        borderColor: label.color,
+                      }}
+                      onClick={() => handleLabelToggle(label.id)}
+                    >
+                      {label.name}
+                      {selectedLabels.includes(label.id) && (
+                        <X className="h-3 w-3 ml-1" />
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

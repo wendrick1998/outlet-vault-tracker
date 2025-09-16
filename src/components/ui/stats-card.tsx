@@ -9,6 +9,7 @@ interface StatsCardProps {
   icon?: LucideIcon;
   variant?: "default" | "success" | "warning" | "destructive";
   className?: string;
+  onClick?: () => void;
 }
 
 export const StatsCard = ({ 
@@ -17,7 +18,8 @@ export const StatsCard = ({
   subtitle,
   icon: Icon, 
   variant = "default",
-  className 
+  className,
+  onClick
 }: StatsCardProps) => {
   const variants = {
     default: "text-primary",
@@ -27,7 +29,10 @@ export const StatsCard = ({
   };
 
   return (
-    <Card className={cn("p-4 shadow-soft", className)}>
+    <Card 
+      className={cn("p-4 shadow-soft", onClick && "cursor-pointer", className)} 
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between">
         <div>
           <div className={cn("text-2xl font-bold", variants[variant])}>

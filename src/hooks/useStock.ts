@@ -21,6 +21,7 @@ const QUERY_KEYS = {
 export function useStock(options?: {
   status?: string;
   location?: string;
+  labelIds?: string[];
   includeArchived?: boolean;
 }) {
   const { toast } = useToast();

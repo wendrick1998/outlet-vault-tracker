@@ -11,6 +11,7 @@ export class StockService {
   static async getAll(options?: {
     status?: string;
     location?: string;
+    labelIds?: string[];
     includeArchived?: boolean;
   }): Promise<StockItem[]> {
     let query = supabase
@@ -52,6 +53,11 @@ export class StockService {
     // Se não incluir arquivados, filtrar pelo inventory também
     if (!options?.includeArchived) {
       query = query.eq('inventory.is_archived', false);
+    }
+
+    // Filtrar por etiquetas se especificado
+    if (options?.labelIds && options.labelIds.length > 0) {
+      query = query.in('stock_item_labels.label.id', options.labelIds);
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });
