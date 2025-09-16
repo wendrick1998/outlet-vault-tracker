@@ -29,7 +29,7 @@ const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Adm
 const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate'));
 const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow'));
 
-type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference' | 'conference-report';
+type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference' | 'conference-report' | 'stock' | 'system-monitoring' | 'historical-audits';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -45,6 +45,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
     if (path.startsWith('/profile')) return 'profile';
     if (path.startsWith('/settings')) return 'settings';
     if (path.startsWith('/conference')) return 'conference';
+    if (path.startsWith('/stock')) return 'stock';
+    if (path.startsWith('/system-monitoring')) return 'system-monitoring';
+    if (path.startsWith('/historical-audits')) return 'historical-audits';
     return 'home';
   };
 

@@ -96,6 +96,15 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
     },
   ];
 
+  const stockItems = [
+    { 
+      title: "Gestão de Estoque", 
+      page: "stock", 
+      icon: Store, 
+      available: true 
+    },
+  ];
+
   const reportsItems = [
     { 
       title: "Histórico", 
@@ -229,6 +238,19 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               {renderMenuItems(inventoryItems)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Estoque */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="flex items-center gap-2">
+            <Store className="h-4 w-4" />
+            {state !== "collapsed" && "Estoque"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderMenuItems(stockItems)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
