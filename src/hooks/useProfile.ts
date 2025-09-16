@@ -125,12 +125,32 @@ export function useCreateProfile() {
   });
 }
 
-// Add stub export to fix import issues
-export const useUpdateUserRole = () => {
-  return {
-    mutate: (data: any) => {
-      console.log('useUpdateUserRole stub called with:', data);
+export function useUpdateUserRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: AppRole }) =>
+      ProfileService.updateUserRole(userId, role),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.profiles.detail(userId) 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.profiles.lists() 
+      });
+      toast({
+        title: "Função atualizada",
+        description: "A função do usuário foi atualizada com sucesso.",
+        variant: "default",
+      });
     },
-    isPending: false
-  };
-};
+    onError: (error) => {
+      console.error('Error updating user role:', error);
+      toast({
+        title: "Erro ao atualizar função",
+        description: "Não foi possível atualizar a função do usuário.",
+        variant: "destructive",
+      });
+    },
+  });
+}
