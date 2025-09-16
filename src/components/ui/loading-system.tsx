@@ -170,18 +170,9 @@ export const LoadingStates = ({
   }
 };
 
-// Exports principais
-export const Loading = LoadingSpinner; // Backward compatibility
-export const LoadingSkeletons = LoadingSkeleton; // Backward compatibility
-
 // Export unificado
 export const LoadingSystem = {
   Spinner: LoadingSpinner,
   Skeleton: LoadingSkeleton,
   States: LoadingStates,
-  // Aliases para backward compatibility
-  Loading: LoadingSpinner,
-  LoadingStates: LoadingStates,
-  LoadingSkeleton: LoadingSkeleton,
-  LoadingSkeletons: LoadingSkeleton,
 };
