@@ -14,6 +14,7 @@ import { Home } from "./pages/Home";
 import { SearchAndRegister } from "./pages/SearchAndRegister";
 import { Profile } from "./pages/Profile";
 import { Settings } from "./pages/Settings";
+import { Stock } from "./pages/Stock";
 import { InventoryConferencePage } from "./pages/InventoryConferencePage";
 import { ConferenceReport } from "./pages/ConferenceReport";
 import HistoricalAudits from "@/pages/HistoricalAudits";
@@ -229,6 +230,14 @@ const AppContent = () => {
             <Suspense fallback={<Loading />}>
               <LazyAdmin onBack={() => navigate('/')} />
             </Suspense>
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/stock" 
+        element={
+          <AppLayout>
+            <Stock onBack={() => navigate('/')} />
           </AppLayout>
         } 
       />

@@ -1177,6 +1177,321 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_conference_scans: {
+        Row: {
+          conference_id: string
+          found: boolean
+          id: string
+          imei_scanned: string
+          location_found: Database["public"]["Enums"]["stock_location"] | null
+          scanned_at: string
+          scanned_by: string | null
+          stock_item_id: string | null
+        }
+        Insert: {
+          conference_id: string
+          found: boolean
+          id?: string
+          imei_scanned: string
+          location_found?: Database["public"]["Enums"]["stock_location"] | null
+          scanned_at?: string
+          scanned_by?: string | null
+          stock_item_id?: string | null
+        }
+        Update: {
+          conference_id?: string
+          found?: boolean
+          id?: string
+          imei_scanned?: string
+          location_found?: Database["public"]["Enums"]["stock_location"] | null
+          scanned_at?: string
+          scanned_by?: string | null
+          stock_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_conference_scans_conference_id_fkey"
+            columns: ["conference_id"]
+            isOneToOne: false
+            referencedRelation: "stock_conferences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_conference_scans_scanned_by_fkey"
+            columns: ["scanned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_conference_scans_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_conferences: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          description: string | null
+          discrepancies: Json | null
+          id: string
+          items_expected: number | null
+          items_found: number | null
+          items_missing: number | null
+          location: Database["public"]["Enums"]["stock_location"] | null
+          notes: string | null
+          started_at: string
+          started_by: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          description?: string | null
+          discrepancies?: Json | null
+          id?: string
+          items_expected?: number | null
+          items_found?: number | null
+          items_missing?: number | null
+          location?: Database["public"]["Enums"]["stock_location"] | null
+          notes?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          description?: string | null
+          discrepancies?: Json | null
+          id?: string
+          items_expected?: number | null
+          items_found?: number | null
+          items_missing?: number | null
+          location?: Database["public"]["Enums"]["stock_location"] | null
+          notes?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_conferences_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_item_labels: {
+        Row: {
+          applied_at: string
+          applied_by: string | null
+          id: string
+          label_id: string
+          stock_item_id: string
+        }
+        Insert: {
+          applied_at?: string
+          applied_by?: string | null
+          id?: string
+          label_id: string
+          stock_item_id: string
+        }
+        Update: {
+          applied_at?: string
+          applied_by?: string | null
+          id?: string
+          label_id?: string
+          stock_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_labels_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_item_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_item_labels_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_items: {
+        Row: {
+          acquisition_date: string | null
+          apple_model_id: string | null
+          battery_pct: number | null
+          brand: string
+          color: string | null
+          condition: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          imei: string
+          is_featured: boolean | null
+          last_viewed_at: string | null
+          location: Database["public"]["Enums"]["stock_location"]
+          model: string
+          notes: string | null
+          price: number | null
+          purchase_order: string | null
+          serial_number: string | null
+          shelf_position: string | null
+          status: Database["public"]["Enums"]["stock_status"]
+          storage: string | null
+          supplier: string | null
+          updated_at: string
+          view_count: number | null
+          warranty_until: string | null
+        }
+        Insert: {
+          acquisition_date?: string | null
+          apple_model_id?: string | null
+          battery_pct?: number | null
+          brand?: string
+          color?: string | null
+          condition?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          imei: string
+          is_featured?: boolean | null
+          last_viewed_at?: string | null
+          location?: Database["public"]["Enums"]["stock_location"]
+          model: string
+          notes?: string | null
+          price?: number | null
+          purchase_order?: string | null
+          serial_number?: string | null
+          shelf_position?: string | null
+          status?: Database["public"]["Enums"]["stock_status"]
+          storage?: string | null
+          supplier?: string | null
+          updated_at?: string
+          view_count?: number | null
+          warranty_until?: string | null
+        }
+        Update: {
+          acquisition_date?: string | null
+          apple_model_id?: string | null
+          battery_pct?: number | null
+          brand?: string
+          color?: string | null
+          condition?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          imei?: string
+          is_featured?: boolean | null
+          last_viewed_at?: string | null
+          location?: Database["public"]["Enums"]["stock_location"]
+          model?: string
+          notes?: string | null
+          price?: number | null
+          purchase_order?: string | null
+          serial_number?: string | null
+          shelf_position?: string | null
+          status?: Database["public"]["Enums"]["stock_status"]
+          storage?: string | null
+          supplier?: string | null
+          updated_at?: string
+          view_count?: number | null
+          warranty_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          from_location: Database["public"]["Enums"]["stock_location"] | null
+          from_status: Database["public"]["Enums"]["stock_status"] | null
+          id: string
+          movement_type: string
+          performed_at: string
+          performed_by: string | null
+          quantity: number | null
+          reason: string | null
+          reference_number: string | null
+          stock_item_id: string
+          to_location: Database["public"]["Enums"]["stock_location"] | null
+          to_status: Database["public"]["Enums"]["stock_status"] | null
+        }
+        Insert: {
+          from_location?: Database["public"]["Enums"]["stock_location"] | null
+          from_status?: Database["public"]["Enums"]["stock_status"] | null
+          id?: string
+          movement_type: string
+          performed_at?: string
+          performed_by?: string | null
+          quantity?: number | null
+          reason?: string | null
+          reference_number?: string | null
+          stock_item_id: string
+          to_location?: Database["public"]["Enums"]["stock_location"] | null
+          to_status?: Database["public"]["Enums"]["stock_status"] | null
+        }
+        Update: {
+          from_location?: Database["public"]["Enums"]["stock_location"] | null
+          from_status?: Database["public"]["Enums"]["stock_status"] | null
+          id?: string
+          movement_type?: string
+          performed_at?: string
+          performed_by?: string | null
+          quantity?: number | null
+          reason?: string | null
+          reference_number?: string | null
+          stock_item_id?: string
+          to_location?: Database["public"]["Enums"]["stock_location"] | null
+          to_status?: Database["public"]["Enums"]["stock_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_role_assignments: {
         Row: {
           assigned_at: string
@@ -1487,6 +1802,20 @@ export type Database = {
         | "return"
         | "disposal"
       reason_priority: "low" | "medium" | "high" | "urgent"
+      stock_location:
+        | "vitrine"
+        | "estoque"
+        | "assistencia"
+        | "deposito"
+        | "loja_online"
+        | "conserto"
+      stock_status:
+        | "disponivel"
+        | "reservado"
+        | "vendido"
+        | "defeituoso"
+        | "manutencao"
+        | "promocao"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1672,6 +2001,22 @@ export const Constants = {
         "disposal",
       ],
       reason_priority: ["low", "medium", "high", "urgent"],
+      stock_location: [
+        "vitrine",
+        "estoque",
+        "assistencia",
+        "deposito",
+        "loja_online",
+        "conserto",
+      ],
+      stock_status: [
+        "disponivel",
+        "reservado",
+        "vendido",
+        "defeituoso",
+        "manutencao",
+        "promocao",
+      ],
     },
   },
 } as const
