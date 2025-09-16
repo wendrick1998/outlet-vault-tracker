@@ -1,16 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PendingSalesService, type PendingSaleWithDetails } from '@/services/pendingSalesService';
 import { useToast } from '@/hooks/use-toast';
+import { QUERY_KEYS } from '@/lib/query-keys';
 import type { Database } from '@/integrations/supabase/types';
 
 type PendingSaleInsert = Database['public']['Tables']['pending_sales']['Insert'];
-
-const QUERY_KEYS = {
-  pendingSales: ['pending-sales'] as const,
-  pendingSale: (id: string) => ['pending-sales', id] as const,
-  pendingStats: ['pending-sales', 'stats'] as const,
-  userPendingSales: (userId: string) => ['pending-sales', 'user', userId] as const,
-};
 
 export function usePendingSales() {
   const queryClient = useQueryClient();
@@ -22,7 +16,7 @@ export function usePendingSales() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: QUERY_KEYS.pendingSales,
+    queryKey: QUERY_KEYS.pendingSales.lists(),
     queryFn: PendingSalesService.getAll,
   });
 
@@ -31,8 +25,8 @@ export function usePendingSales() {
     mutationFn: (pendingSale: PendingSaleInsert) =>
       PendingSalesService.create(pendingSale),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingSales });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingStats });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingSales.lists() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingSales.stats() });
       toast({
         title: "Pendência criada",
         description: "A venda foi marcada como pendente de regularização.",
@@ -61,8 +55,8 @@ export function usePendingSales() {
       notes?: string;
     }) => PendingSalesService.resolve(id, saleNumber, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingSales });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingStats });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingSales.lists() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingSales.stats() });
       toast({
         title: "Pendência resolvida",
         description: "A venda foi regularizada com sucesso.",
@@ -92,7 +86,7 @@ export function usePendingSales() {
 
 export function usePendingSale(id: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.pendingSale(id),
+    queryKey: QUERY_KEYS.pendingSales.detail(id),
     queryFn: () => PendingSalesService.getById(id),
     enabled: !!id,
   });
@@ -100,22 +94,24 @@ export function usePendingSale(id: string) {
 
 export function usePendingSalesOnly() {
   return useQuery({
-    queryKey: ['pending-sales', 'pending-only'],
+    queryKey: QUERY_KEYS.pendingSales.list({ pending: true }),
     queryFn: PendingSalesService.getPending,
   });
 }
 
 export function usePendingSalesStats() {
   return useQuery({
-    queryKey: QUERY_KEYS.pendingStats,
+    queryKey: QUERY_KEYS.pendingSales.stats(),
     queryFn: PendingSalesService.getStats,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
 
-export function useUserPendingSales(userId: string) {
+export function usePendingSalesByUser(userId: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.userPendingSales(userId),
+    queryKey: QUERY_KEYS.pendingSales.list({ userId }),
     queryFn: () => PendingSalesService.getByUser(userId),
     enabled: !!userId,
+    staleTime: 1000 * 60, // 1 minute
   });
 }

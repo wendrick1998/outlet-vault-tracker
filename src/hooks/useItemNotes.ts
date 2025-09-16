@@ -1,20 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NotesService } from '@/services/notesService';
 import { useToast } from '@/components/ui/use-toast';
+import { QUERY_KEYS } from '@/lib/query-keys';
 import type { Database } from '@/integrations/supabase/types';
 
 type ItemNote = Database['public']['Tables']['item_notes']['Row'];
 type ItemNoteInsert = Database['public']['Tables']['item_notes']['Insert'];
-
-const QUERY_KEYS = {
-  all: ['item-notes'] as const,
-  lists: () => [...QUERY_KEYS.all, 'list'] as const,
-  list: (filters: string) => [...QUERY_KEYS.lists(), filters] as const,
-  details: () => [...QUERY_KEYS.all, 'detail'] as const,
-  detail: (id: string) => [...QUERY_KEYS.details(), id] as const,
-  byItem: (itemId: string) => [...QUERY_KEYS.all, 'by-item', itemId] as const,
-  recent: (limit: number) => [...QUERY_KEYS.all, 'recent', limit] as const,
-};
 
 export function useItemNotes(itemId: string) {
   const { toast } = useToast();
@@ -23,112 +14,113 @@ export function useItemNotes(itemId: string) {
   const {
     data: notes = [],
     isLoading,
-    error,
+    error
   } = useQuery({
-    queryKey: QUERY_KEYS.byItem(itemId),
+    queryKey: QUERY_KEYS.itemNotes.list({ itemId }),
     queryFn: () => NotesService.getByItemId(itemId),
     enabled: !!itemId,
   });
 
-  const createMutation = useMutation({
-    mutationFn: NotesService.create,
+  const addNote = useMutation({
+    mutationFn: (note: ItemNoteInsert) => NotesService.createNote(note),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.byItem(itemId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.itemNotes.list({ itemId }) 
+      });
       toast({
         title: "Nota adicionada",
-        description: "Nota adicionada ao item com sucesso.",
+        description: "A nota foi adicionada com sucesso.",
+        variant: "default",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error adding note:', error);
       toast({
         title: "Erro ao adicionar nota",
-        description: error.message,
+        description: "Não foi possível adicionar a nota.",
         variant: "destructive",
       });
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: NotesService.delete,
+  const updateNote = useMutation({
+    mutationFn: ({ id, ...updates }: { id: string; content: string }) =>
+      NotesService.updateNote(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.byItem(itemId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.itemNotes.list({ itemId }) 
+      });
+      toast({
+        title: "Nota atualizada",
+        description: "A nota foi atualizada com sucesso.",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating note:', error);
+      toast({
+        title: "Erro ao atualizar nota",
+        description: "Não foi possível atualizar a nota.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteNote = useMutation({
+    mutationFn: (noteId: string) => NotesService.deleteNote(noteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.itemNotes.list({ itemId }) 
+      });
       toast({
         title: "Nota removida",
-        description: "Nota removida com sucesso.",
+        description: "A nota foi removida com sucesso.",
+        variant: "default",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error deleting note:', error);
       toast({
         title: "Erro ao remover nota",
-        description: error.message,
+        description: "Não foi possível remover a nota.",
         variant: "destructive",
       });
     },
   });
 
-  const addNote = (note: string) => {
-    createMutation.mutate({
-      item_id: itemId,
-      note: note.trim(),
-    });
-  };
-
   return {
-    // Data
     notes,
     isLoading,
     error,
-
-    // Actions
-    addNote,
-    deleteNote: deleteMutation.mutate,
-
-    // Status
-    isAdding: createMutation.isPending,
-    isDeleting: deleteMutation.isPending,
+    addNote: addNote.mutate,
+    updateNote: updateNote.mutate,
+    deleteNote: deleteNote.mutate,
+    isAdding: addNote.isPending,
+    isUpdating: updateNote.isPending,
+    isDeleting: deleteNote.isPending,
   };
 }
 
-export function useItemNote(id: string) {
+export function useAllItemNotes() {
   return useQuery({
-    queryKey: QUERY_KEYS.detail(id),
-    queryFn: () => NotesService.getById(id),
-    enabled: !!id,
+    queryKey: QUERY_KEYS.itemNotes.lists(),
+    queryFn: NotesService.getAllNotes,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 
-export function useRecentNotes(limit = 10) {
+export function useRecentItemNotes(limit: number = 10) {
   return useQuery({
-    queryKey: QUERY_KEYS.recent(limit),
+    queryKey: QUERY_KEYS.itemNotes.list({ recent: limit }),
     queryFn: () => NotesService.getRecentNotes(limit),
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
 
-// Hook for adding notes to any item without needing to query existing notes
-export function useAddItemNote() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ itemId, note }: { itemId: string; note: string }) =>
-      NotesService.addNote(itemId, note),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.byItem(variables.itemId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      toast({
-        title: "Nota adicionada",
-        description: "Nota adicionada ao item com sucesso.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro ao adicionar nota",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+export function useItemNote(noteId: string) {
+  return useQuery({
+    queryKey: QUERY_KEYS.itemNotes.detail(noteId),
+    queryFn: () => NotesService.getNoteById(noteId),
+    enabled: !!noteId,
   });
 }

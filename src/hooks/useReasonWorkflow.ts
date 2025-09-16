@@ -1,16 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReasonWorkflowService } from '@/services/reasonWorkflowService';
 import { useToast } from '@/hooks/use-toast';
+import { QUERY_KEYS } from '@/lib/query-keys';
 import type { ReasonWorkflowInsert } from '@/types/workflow';
 import type { Database } from '@/integrations/supabase/types';
-
-const QUERY_KEYS = {
-  workflows: ['reason-workflows'] as const,
-  reasonWorkflows: (reasonId: string) => [...QUERY_KEYS.workflows, 'reason', reasonId] as const,
-  slaTracking: (loanId: string) => [...QUERY_KEYS.workflows, 'sla', loanId] as const,
-  pendingApprovals: () => [...QUERY_KEYS.workflows, 'approvals', 'pending'] as const,
-  overdueSLAs: () => [...QUERY_KEYS.workflows, 'sla', 'overdue'] as const,
-};
 
 // Hook for managing workflows for a specific reason
 export function useReasonWorkflows(reasonId: string) {
@@ -19,65 +12,59 @@ export function useReasonWorkflows(reasonId: string) {
 
   const {
     data: workflows = [],
-    isLoading,
-    error,
+    isLoading
   } = useQuery({
-    queryKey: QUERY_KEYS.reasonWorkflows(reasonId),
-    queryFn: () => ReasonWorkflowService.getWorkflowsForReason(reasonId),
+    queryKey: QUERY_KEYS.reasonWorkflows.list({ reasonId }),
+    queryFn: () => ReasonWorkflowService.getByReasonId(reasonId),
     enabled: !!reasonId,
   });
 
-  const createStepMutation = useMutation({
-    mutationFn: ReasonWorkflowService.createWorkflowStep,
+  const createWorkflow = useMutation({
+    mutationFn: (workflow: ReasonWorkflowInsert) =>
+      ReasonWorkflowService.create(workflow),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reasonWorkflows(reasonId) });
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.reasonWorkflows.list({ reasonId }) 
+      });
       toast({
-        title: 'Passo criado',
-        description: 'Passo do workflow foi criado com sucesso.',
+        title: "Workflow criado",
+        description: "O workflow foi criado com sucesso.",
+        variant: "default",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error creating workflow:', error);
       toast({
-        title: 'Erro ao criar passo',
-        description: error.message,
-        variant: 'destructive',
+        title: "Erro ao criar workflow",
+        description: "Não foi possível criar o workflow.",
+        variant: "destructive",
       });
     },
   });
 
-  const updateStepMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<ReasonWorkflowInsert> }) =>
-      ReasonWorkflowService.updateWorkflowStep(id, updates),
+  const completeStep = useMutation({
+    mutationFn: ({ workflowId, stepId, notes }: { 
+      workflowId: string; 
+      stepId: string; 
+      notes?: string 
+    }) =>
+      ReasonWorkflowService.completeStep(workflowId, stepId, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reasonWorkflows(reasonId) });
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.reasonWorkflows.list({ reasonId }) 
+      });
       toast({
-        title: 'Passo atualizado',
-        description: 'Passo do workflow foi atualizado com sucesso.',
+        title: "Etapa concluída",
+        description: "A etapa do workflow foi marcada como concluída.",
+        variant: "default",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error completing step:', error);
       toast({
-        title: 'Erro ao atualizar passo',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteStepMutation = useMutation({
-    mutationFn: ReasonWorkflowService.deleteWorkflowStep,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reasonWorkflows(reasonId) });
-      toast({
-        title: 'Passo removido',
-        description: 'Passo do workflow foi removido com sucesso.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Erro ao remover passo',
-        description: error.message,
-        variant: 'destructive',
+        title: "Erro ao concluir etapa",
+        description: "Não foi possível concluir a etapa.",
+        variant: "destructive",
       });
     },
   });
@@ -85,152 +72,116 @@ export function useReasonWorkflows(reasonId: string) {
   return {
     workflows,
     isLoading,
-    error,
-    createStep: createStepMutation.mutateAsync,
-    updateStep: updateStepMutation.mutateAsync,
-    deleteStep: deleteStepMutation.mutateAsync,
-    isCreating: createStepMutation.isPending,
-    isUpdating: updateStepMutation.isPending,
-    isDeleting: deleteStepMutation.isPending,
+    createWorkflow: createWorkflow.mutate,
+    completeStep: completeStep.mutate,
+    isCreating: createWorkflow.isPending,
+    isCompleting: completeStep.isPending,
   };
 }
 
-// Hook for SLA tracking
+// Hook for SLA tracking for loans
 export function useSLATracking(loanId: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.slaTracking(loanId),
+    queryKey: QUERY_KEYS.reasonWorkflows.list({ slaTracking: loanId }),
     queryFn: () => ReasonWorkflowService.getSLATracking(loanId),
     enabled: !!loanId,
+    staleTime: 1000 * 60, // 1 minute
   });
 }
 
-// Hook for pending approvals
-export function usePendingApprovals(userId?: string) {
+// Hook for getting pending approvals
+export function usePendingApprovals() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const {
-    data: approvals = [],
-    isLoading,
-    error,
+    data: pendingApprovals = [],
+    isLoading
   } = useQuery({
-    queryKey: QUERY_KEYS.pendingApprovals(),
-    queryFn: () => ReasonWorkflowService.getPendingApprovals(userId),
+    queryKey: QUERY_KEYS.reasonWorkflows.list({ pending: true }),
+    queryFn: ReasonWorkflowService.getPendingApprovals,
+    staleTime: 1000 * 30, // 30 seconds - more frequent for approvals
   });
 
-  const approveMutation = useMutation({
-    mutationFn: ({ approvalId, notes }: { approvalId: string; notes?: string }) =>
-      ReasonWorkflowService.approveMovement(approvalId, notes),
+  const approveWorkflow = useMutation({
+    mutationFn: ({ workflowId, notes }: { workflowId: string; notes?: string }) =>
+      ReasonWorkflowService.approve(workflowId, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingApprovals() });
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.reasonWorkflows.list({ pending: true }) 
+      });
       toast({
-        title: 'Movimento aprovado',
-        description: 'O movimento foi aprovado com sucesso.',
+        title: "Workflow aprovado",
+        description: "O workflow foi aprovado com sucesso.",
+        variant: "default",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error approving workflow:', error);
       toast({
-        title: 'Erro ao aprovar',
-        description: error.message,
-        variant: 'destructive',
+        title: "Erro ao aprovar",
+        description: "Não foi possível aprovar o workflow.",
+        variant: "destructive",
       });
     },
   });
 
-  const rejectMutation = useMutation({
-    mutationFn: ({ approvalId, reason }: { approvalId: string; reason: string }) =>
-      ReasonWorkflowService.rejectMovement(approvalId, reason),
+  const rejectWorkflow = useMutation({
+    mutationFn: ({ workflowId, reason }: { workflowId: string; reason: string }) =>
+      ReasonWorkflowService.reject(workflowId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingApprovals() });
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.reasonWorkflows.list({ pending: true }) 
+      });
       toast({
-        title: 'Movimento rejeitado',
-        description: 'O movimento foi rejeitado.',
-        variant: 'destructive',
+        title: "Workflow rejeitado",
+        description: "O workflow foi rejeitado.",
+        variant: "default",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      console.error('Error rejecting workflow:', error);
       toast({
-        title: 'Erro ao rejeitar',
-        description: error.message,
-        variant: 'destructive',
+        title: "Erro ao rejeitar",
+        description: "Não foi possível rejeitar o workflow.",
+        variant: "destructive",
       });
     },
   });
 
   return {
-    approvals,
+    pendingApprovals,
     isLoading,
-    error,
-    approve: approveMutation.mutateAsync,
-    reject: rejectMutation.mutateAsync,
-    isApproving: approveMutation.isPending,
-    isRejecting: rejectMutation.isPending,
+    approveWorkflow: approveWorkflow.mutate,
+    rejectWorkflow: rejectWorkflow.mutate,
+    isApproving: approveWorkflow.isPending,
+    isRejecting: rejectWorkflow.isPending,
   };
 }
 
-// Hook for overdue SLAs
+// Hook for getting overdue SLAs
 export function useOverdueSLAs() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const {
-    data: overdueSLAs = [],
-    isLoading,
-  } = useQuery({
-    queryKey: QUERY_KEYS.overdueSLAs(),
+  return useQuery({
+    queryKey: QUERY_KEYS.reasonWorkflows.list({ overdue: true }),
     queryFn: ReasonWorkflowService.getOverdueSLAs,
-    refetchInterval: 30000, // Check every 30 seconds
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
-
-  const checkSLAMutation = useMutation({
-    mutationFn: ReasonWorkflowService.checkSLAOverdue,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.overdueSLAs() });
-    },
-  });
-
-  return {
-    overdueSLAs,
-    isLoading,
-    checkSLA: checkSLAMutation.mutateAsync,
-    isChecking: checkSLAMutation.isPending,
-  };
 }
 
-// Hook for workflow execution
-export function useWorkflowExecution() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const executeMutation = useMutation({
-    mutationFn: ({ loanId, reasonId }: { loanId: string; reasonId: string }) =>
-      ReasonWorkflowService.executeWorkflow(loanId, reasonId),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingApprovals() });
-      toast({
-        title: 'Workflow executado',
-        description: `${(result as any).steps_executed || 0} passos executados. ${Array.isArray((result as any).approvals_required) ? (result as any).approvals_required.length : 0} aprovações necessárias.`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Erro no workflow',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
+// Hook for workflow analytics
+export function useWorkflowAnalytics(startDate?: Date, endDate?: Date) {
+  return useQuery({
+    queryKey: QUERY_KEYS.reasonWorkflows.stats(),
+    queryFn: () => ReasonWorkflowService.getAnalytics(startDate, endDate),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
-  return {
-    execute: executeMutation.mutateAsync,
-    isExecuting: executeMutation.isPending,
-  };
 }
 
-// Utility hooks
-export const useWorkflowUtils = () => {
-  return {
-    stepTypes: ReasonWorkflowService.getStepTypes(),
-    workflowRoles: ReasonWorkflowService.getWorkflowRoles(),
-  };
-};
+// Hook for workflow performance metrics
+export function useWorkflowPerformance() {
+  return useQuery({
+    queryKey: QUERY_KEYS.reasonWorkflows.list({ performance: true }),
+    queryFn: ReasonWorkflowService.getPerformanceMetrics,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
+}

@@ -33,6 +33,10 @@ export const QUERY_KEYS = {
   pendingLoans: createQueryKeys('pendingLoans'),
   pendingSales: createQueryKeys('pendingSales'),
   devicesLeftAtStore: createQueryKeys('devicesLeftAtStore'),
+  itemNotes: createQueryKeys('itemNotes'),
+  reasonWorkflows: createQueryKeys('reasonWorkflows'),
+  sellers: createQueryKeys('sellers'),
+  search: createQueryKeys('search'),
 } as const;
 
 export type QueryKeys = typeof QUERY_KEYS;
