@@ -11,6 +11,9 @@ import { StockItemCard } from "./StockItemCard";
 import { StockItemDialog } from "./StockItemDialog";
 import { StockSearch } from "./StockSearch";
 import { StockConferenceCard } from "./StockConferenceCard";
+import { StockScanner } from "./StockScanner";
+import { StockConferenceWorkflow } from "./StockConferenceWorkflow";
+import { StockReports } from "./StockReports";
 import { useStock, useStockStats, useStockConferences } from "@/hooks/useStock";
 import { useLabels } from "@/hooks/useCatalogs";
 import { ArrowLeft, Plus, Search, Scan, Package, Store, ShoppingCart, AlertCircle, TrendingUp, BarChart3 } from "lucide-react";
@@ -144,11 +147,13 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
 
       {/* Main Content */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="items">Itens</TabsTrigger>
           <TabsTrigger value="search">Buscar</TabsTrigger>
+          <TabsTrigger value="scanner">Scanner</TabsTrigger>
           <TabsTrigger value="conferences">Conferências</TabsTrigger>
+          <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -237,12 +242,33 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           <StockSearch />
         </TabsContent>
 
-        <TabsContent value="conferences">
+        <TabsContent value="scanner" className="space-y-6">
+          <StockScanner 
+            onItemFound={(item) => {
+              console.log("Item encontrado:", item);
+              // Aqui você pode adicionar lógica adicional quando um item for encontrado
+            }} 
+          />
+        </TabsContent>
+
+        <TabsContent value="conferences" className="space-y-6">
+          <StockConferenceWorkflow />
+          
           <div className="space-y-4">
-            {conferences.map((conference) => (
-              <StockConferenceCard key={conference.id} conference={conference} />
-            ))}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Histórico de Conferências</h3>
+            </div>
+            
+            <div className="grid gap-4">
+              {conferences?.map((conference) => (
+                <StockConferenceCard key={conference.id} conference={conference} />
+              ))}
+            </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-6">
+          <StockReports />
         </TabsContent>
       </Tabs>
 
