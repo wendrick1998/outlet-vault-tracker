@@ -255,7 +255,7 @@ export function useAIWithRetry() {
     });
   };
 
-  const getSuggestions = async (actionType: string, itemData: any, formData: any, context?: string) => {
+  const getSuggestions = async (actionType: string, itemData: Record<string, unknown>, formData: Record<string, unknown>, context?: string): Promise<AIResponse> => {
     return executeAIAction({
       type: 'suggest',
       data: { action: actionType, itemData, formData },
@@ -277,7 +277,7 @@ export function useAIWithRetry() {
     });
   };
 
-  const validateLoan = async (itemData: any, formData: any, context?: string) => {
+  const validateLoan = async (itemData: Record<string, unknown>, formData: Record<string, unknown>, context?: string): Promise<AIResponse> => {
     return executeAIAction({
       type: 'validate',
       data: { itemData, formData },

@@ -137,13 +137,13 @@ export const MultiPermissionGuard = ({
   fallback,
   showMessage = true 
 }: MultiPermissionGuardProps) => {
-  // Check all permissions
-  const permissionChecks = permissions.map(permission => 
-    useHasPermission(permission)
-  );
+  // Use individual hook calls instead of map to follow Rules of Hooks
+  const firstPermission = permissions[0] ? useHasPermission(permissions[0]) : { data: true, isLoading: false };
+  const secondPermission = permissions[1] ? useHasPermission(permissions[1]) : { data: true, isLoading: false };
+  const thirdPermission = permissions[2] ? useHasPermission(permissions[2]) : { data: true, isLoading: false };
   
-  const isLoading = permissionChecks.some(check => check.isLoading);
-  const hasAllPermissions = permissionChecks.every(check => check.data);
+  const isLoading = firstPermission.isLoading || secondPermission.isLoading || thirdPermission.isLoading;
+  const hasAllPermissions = firstPermission.data && secondPermission.data && thirdPermission.data;
 
   if (isLoading) {
     return (

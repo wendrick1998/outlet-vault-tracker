@@ -1,20 +1,16 @@
 import { useState, useCallback } from 'react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-
-export interface ValidationRule<T> {
-  field: keyof T;
-  validator: (value: any) => { valid: boolean; message?: string };
-}
+import type { FormValidationRule } from '@/types/api';
 
 export interface UseFormValidationOptions<T> {
   schema?: z.ZodSchema<T>;
-  rules?: ValidationRule<T>[];
+  rules?: FormValidationRule<T>[];
   onSuccess?: (data: T) => void | Promise<void>;
   onError?: (errors: Record<string, string>) => void;
 }
 
-export function useFormValidation<T extends Record<string, any>>({
+export function useFormValidation<T extends Record<string, unknown>>({
   schema,
   rules = [],
   onSuccess,
@@ -24,7 +20,7 @@ export function useFormValidation<T extends Record<string, any>>({
   const [isValidating, setIsValidating] = useState(false);
   const { toast } = useToast();
 
-  const validateField = useCallback((field: keyof T, value: any): string | null => {
+  const validateField = useCallback((field: keyof T, value: unknown): string | null => {
     // Check custom rules first
     const rule = rules.find(r => r.field === field);
     if (rule) {
@@ -37,7 +33,7 @@ export function useFormValidation<T extends Record<string, any>>({
     // If schema is provided, validate with zod
     if (schema && 'shape' in schema) {
       try {
-        const fieldSchema = (schema as any).shape[field as string];
+        const fieldSchema = (schema as z.ZodObject<Record<string, z.ZodTypeAny>>).shape[field as string];
         if (fieldSchema) {
           fieldSchema.parse(value);
         }

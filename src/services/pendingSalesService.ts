@@ -6,22 +6,14 @@ type PendingSaleInsert = Database['public']['Tables']['pending_sales']['Insert']
 type PendingSaleUpdate = Database['public']['Tables']['pending_sales']['Update'];
 
 export interface PendingSaleWithDetails extends PendingSale {
-  loans?: any;
+  // Remove the loans relationship as it doesn't exist in the schema
 }
 
 export class PendingSalesService {
   static async getAll(): Promise<PendingSaleWithDetails[]> {
     const { data, error } = await supabase
       .from('pending_sales')
-      .select(`
-        *,
-        loans(
-          id,
-          item_id,
-          status,
-          inventory(imei, brand, model)
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -31,15 +23,7 @@ export class PendingSalesService {
   static async getPending(): Promise<PendingSaleWithDetails[]> {
     const { data, error } = await supabase
       .from('pending_sales')
-      .select(`
-        *,
-        loans(
-          id,
-          item_id,
-          status,
-          inventory(imei, brand, model)
-        )
-      `)
+      .select('*')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
@@ -50,15 +34,7 @@ export class PendingSalesService {
   static async getByUser(userId: string): Promise<PendingSaleWithDetails[]> {
     const { data, error } = await supabase
       .from('pending_sales')
-      .select(`
-        *,
-        loans(
-          id,
-          item_id,
-          status,
-          inventory(imei, brand, model)
-        )
-      `)
+      .select('*')
       .eq('created_by', userId)
       .order('created_at', { ascending: false });
 
@@ -102,15 +78,7 @@ export class PendingSalesService {
   static async getById(id: string): Promise<PendingSaleWithDetails | null> {
     const { data, error } = await supabase
       .from('pending_sales')
-      .select(`
-        *,
-        loans(
-          id,
-          item_id,
-          status,
-          inventory(imei, brand, model)
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .maybeSingle();
 

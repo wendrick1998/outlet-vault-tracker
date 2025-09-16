@@ -225,15 +225,8 @@ export const Admin = ({ onBack }: AdminProps) => {
           ? "As alterações foram salvas com sucesso" 
           : "Novo item foi adicionado com sucesso"
       });
-      if (activeTab !== "main") {
-        return (
-          <>
-            {activeTab === "ui-inventory" && <UIInventory onBack={() => setActiveTab("main")} />}
-            {activeTab === "design-panel" && <DesignPanel onBack={() => setActiveTab("main")} />}
-            {activeTab === "ui-kit" && <UIKit onBack={() => setActiveTab("main")} />}
-          </>
-        );
-      }
+      
+      closeModal();
     } catch (error) {
       toast({
         title: "Erro",

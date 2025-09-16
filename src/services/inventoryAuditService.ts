@@ -223,7 +223,7 @@ export class InventoryAuditService {
   }
 
   // Snapshot creation
-  static async createSnapshot(filters: any = {}): Promise<any[]> {
+  static async createSnapshot(filters: Record<string, unknown> = {}): Promise<unknown[]> {
     let query = supabase
       .from('inventory')
       .select('*')
@@ -237,7 +237,7 @@ export class InventoryAuditService {
       query = query.eq('status', 'available');
     }
 
-    if (filters.brand && filters.brand !== 'all') {
+    if (filters.brand && typeof filters.brand === 'string' && filters.brand !== 'all') {
       query = query.eq('brand', filters.brand);
     }
 

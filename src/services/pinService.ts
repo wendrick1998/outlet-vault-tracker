@@ -1,5 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
 
+// Error interface for Supabase errors
+interface SupabaseError {
+  message?: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+  stack?: string;
+}
+
 export interface PinValidationResult {
   valid: boolean;
   blocked?: boolean;
@@ -43,28 +52,29 @@ export class PinService {
 
       
       return data as unknown as PinSetupResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const supabaseError = error as SupabaseError;
       console.error('PIN Setup Complete Error:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-        stack: error.stack
+        message: supabaseError.message,
+        details: supabaseError.details,
+        hint: supabaseError.hint,
+        code: supabaseError.code,
+        stack: supabaseError.stack
       });
       
       // Retornar erro mais específico baseado no tipo
       let errorMessage = 'Erro interno ao configurar PIN.';
       
-      if (error.message?.includes('PIN deve conter')) {
-        errorMessage = error.message;
-      } else if (error.message?.includes('PIN muito simples')) {
-        errorMessage = error.message;
-      } else if (error.message?.includes('Usuário não encontrado')) {
+      if (supabaseError.message?.includes('PIN deve conter')) {
+        errorMessage = supabaseError.message;
+      } else if (supabaseError.message?.includes('PIN muito simples')) {
+        errorMessage = supabaseError.message;
+      } else if (supabaseError.message?.includes('Usuário não encontrado')) {
         errorMessage = 'Usuário não encontrado ou inativo.';
-      } else if (error.message?.includes('Erro na criptografia')) {
+      } else if (supabaseError.message?.includes('Erro na criptografia')) {
         errorMessage = 'Erro na criptografia do PIN. Contate o administrador.';
-      } else if (error.details) {
-        errorMessage = `Erro no banco de dados: ${error.details}`;
+      } else if (supabaseError.details) {
+        errorMessage = `Erro no banco de dados: ${supabaseError.details}`;
       }
 
       return {
@@ -104,24 +114,25 @@ export class PinService {
 
       
       return data as unknown as PinValidationResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const supabaseError = error as SupabaseError;
       console.error('PIN Validation Complete Error:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-        stack: error.stack
+        message: supabaseError.message,
+        details: supabaseError.details,
+        hint: supabaseError.hint,
+        code: supabaseError.code,
+        stack: supabaseError.stack
       });
 
       // Retornar erro mais específico
       let errorMessage = 'Erro interno ao validar PIN.';
       
-      if (error.message?.includes('bloqueado')) {
-        errorMessage = error.message;
-      } else if (error.message?.includes('não foi configurado')) {
+      if (supabaseError.message?.includes('bloqueado')) {
+        errorMessage = supabaseError.message;
+      } else if (supabaseError.message?.includes('não foi configurado')) {
         errorMessage = 'PIN operacional não foi configurado.';
-      } else if (error.details) {
-        errorMessage = `Erro no banco de dados: ${error.details}`;
+      } else if (supabaseError.details) {
+        errorMessage = `Erro no banco de dados: ${supabaseError.details}`;
       }
 
       return {

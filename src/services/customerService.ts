@@ -71,7 +71,7 @@ export class CustomerService {
 
   static async getAll(): Promise<SecureCustomer[]> {
     try {
-      const userRole = await this.getCurrentUserRole();
+    const userRole = await CustomerService.getCurrentUserRole();
       
       // Log the data access
       await this.logDataAccess('getAll', undefined, userRole === 'admin' || userRole === 'manager' ? ['email', 'phone', 'cpf', 'address'] : ['name']);
