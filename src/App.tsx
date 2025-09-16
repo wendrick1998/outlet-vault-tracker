@@ -17,7 +17,7 @@ import { InventoryConferencePage } from "./pages/InventoryConferencePage";
 import { ConferenceReport } from "./pages/ConferenceReport";
 import HistoricalAudits from "@/pages/HistoricalAudits";
 import SystemMonitoring from "@/pages/SystemMonitoring";
-import { Auth } from "./pages/Auth";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 import { SearchAndOperate } from "./pages/SearchAndOperate";
@@ -119,7 +119,7 @@ const AppContent = () => {
       )}
       <Routes>
       {/* Public routes */}
-      <Route path="/auth" element={<Auth onLoginSuccess={() => navigate('/')} />} />
+      <Route path="/auth" element={<Auth />} />
       
       {/* Protected routes with layout */}
       <Route 
