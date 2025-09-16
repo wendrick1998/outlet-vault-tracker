@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { handleError, handleSuccess } from '@/lib/error-handler';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -313,7 +314,11 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      toast({ title: "Erro", description: "Informe seu email.", variant: "destructive" });
+      const errorConfig = handleError(new Error('Informe seu email.'), {
+        toastTitle: 'Erro',
+        source: 'auth-forgot'
+      });
+      if (errorConfig) toast(errorConfig);
       return;
     }
     setLoading(true);
@@ -325,7 +330,12 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
       toast({ title: "Verifique seu email", description: "Enviamos um link para redefinir sua senha." });
       setIsForgot(false);
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || 'Não foi possível enviar o email.', variant: "destructive" });
+      const errorConfig = handleError(err, {
+        toastTitle: 'Erro',
+        toastDescription: 'Não foi possível enviar o email.',
+        source: 'auth-forgot'
+      });
+      if (errorConfig) toast(errorConfig);
     } finally {
       setLoading(false);
     }
@@ -334,11 +344,19 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      toast({ title: "Senha fraca", description: "A nova senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+      const errorConfig = handleError(new Error('A nova senha deve ter pelo menos 6 caracteres.'), {
+        toastTitle: 'Senha fraca',
+        source: 'auth-reset'
+      });
+      if (errorConfig) toast(errorConfig);
       return;
     }
     if (newPassword !== newPasswordConfirm) {
-      toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+      const errorConfig = handleError(new Error('As senhas não coincidem.'), {
+        toastTitle: 'Erro',
+        source: 'auth-reset'
+      });
+      if (errorConfig) toast(errorConfig);
       return;
     }
     setLoading(true);
@@ -349,7 +367,12 @@ export const Auth = ({ onLoginSuccess }: AuthProps) => {
       setIsReset(false);
       setIsLogin(true);
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || 'Não foi possível redefinir a senha.', variant: "destructive" });
+      const errorConfig = handleError(err, {
+        toastTitle: 'Erro',
+        toastDescription: 'Não foi possível redefinir a senha.',
+        source: 'auth-reset'
+      });
+      if (errorConfig) toast(errorConfig);
     } finally {
       setLoading(false);
     }

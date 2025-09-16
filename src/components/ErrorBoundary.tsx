@@ -4,6 +4,8 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppError, ErrorInfo, ErrorType } from '@/types/errors';
+import { safeConsole } from '@/lib/safe-console';
+import { handleError } from '@/lib/error-handler';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -70,31 +72,41 @@ const logError = (error: Error, errorInfo: React.ErrorInfo) => {
     url: window.location.href,
   };
 
-  console.error('ErrorBoundary caught an error:', error, errorInfo, logData);
+  safeConsole.error('ErrorBoundary caught an error:', error, { 
+    component: 'ErrorBoundary',
+    metadata: { errorInfo, ...logData }
+  });
   
   // Enhanced logging based on error type
   switch (errorType) {
     case 'dom_race':
-      console.warn('[DOM_RACE_DETECTED]', { 
+      safeConsole.warn('[DOM_RACE_DETECTED]', { 
         message: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
         ...logData
-      });
+      }, { component: 'ErrorBoundary' });
       break;
     case 'network':
-      console.warn('[NETWORK_ERROR]', { 
+      safeConsole.warn('[NETWORK_ERROR]', { 
         message: error.message,
         ...logData
-      });
+      }, { component: 'ErrorBoundary' });
       break;
     case 'auth':
-      console.warn('[AUTH_ERROR]', { 
+      safeConsole.warn('[AUTH_ERROR]', { 
         message: error.message,
         ...logData
-      });
+      }, { component: 'ErrorBoundary' });
       break;
   }
+  
+  // Use centralized error handler
+  handleError(error, {
+    showToast: false, // Don't show toast in error boundary
+    source: 'ErrorBoundary',
+    metadata: { ...logData, errorInfo }
+  });
   
   // In production, send to error tracking service
   if (process.env.NODE_ENV === 'production') {

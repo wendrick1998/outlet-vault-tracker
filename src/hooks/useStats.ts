@@ -1,18 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { StatsService, type SystemStats } from '@/services/statsService';
-
-const QUERY_KEYS = {
-  all: ['stats'] as const,
-  system: () => [...QUERY_KEYS.all, 'system'] as const,
-  inventory: () => [...QUERY_KEYS.all, 'inventory'] as const,
-  loans: () => [...QUERY_KEYS.all, 'loans'] as const,
-  customers: () => [...QUERY_KEYS.all, 'customers'] as const,
-  sellers: () => [...QUERY_KEYS.all, 'sellers'] as const,
-};
+import { QUERY_KEYS } from '@/lib/query-keys';
 
 export function useSystemStats() {
   return useQuery({
-    queryKey: QUERY_KEYS.system(),
+    queryKey: QUERY_KEYS.stats.list({ type: 'system' }),
     queryFn: StatsService.getSystemStats,
     staleTime: 1000 * 60 * 2, // 2 minutes
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
@@ -21,7 +13,7 @@ export function useSystemStats() {
 
 export function useInventoryStats() {
   return useQuery({
-    queryKey: QUERY_KEYS.inventory(),
+    queryKey: QUERY_KEYS.stats.list({ type: 'inventory' }),
     queryFn: StatsService.getInventoryStats,
     staleTime: 1000 * 60 * 1, // 1 minute
   });
@@ -29,7 +21,7 @@ export function useInventoryStats() {
 
 export function useLoanStats() {
   return useQuery({
-    queryKey: QUERY_KEYS.loans(),
+    queryKey: QUERY_KEYS.stats.list({ type: 'loans' }),
     queryFn: StatsService.getLoanStats,
     staleTime: 1000 * 60 * 1, // 1 minute
   });
@@ -37,7 +29,7 @@ export function useLoanStats() {
 
 export function useCustomerStats() {
   return useQuery({
-    queryKey: QUERY_KEYS.customers(),
+    queryKey: QUERY_KEYS.stats.list({ type: 'customers' }),
     queryFn: StatsService.getCustomerStats,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -45,7 +37,7 @@ export function useCustomerStats() {
 
 export function useSellerStats() {
   return useQuery({
-    queryKey: QUERY_KEYS.sellers(),
+    queryKey: QUERY_KEYS.stats.list({ type: 'sellers' }),
     queryFn: StatsService.getSellerStats,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

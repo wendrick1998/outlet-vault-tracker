@@ -1,12 +1,6 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { AuditService } from '@/services/auditService';
-
-const AUDIT_QUERY_KEYS = {
-  auditLogs: ['audit-logs'] as const,
-  auditStats: () => [...AUDIT_QUERY_KEYS.auditLogs, 'stats'] as const,
-  auditLogsByTable: (tableName: string, recordId?: string) => 
-    [...AUDIT_QUERY_KEYS.auditLogs, 'by-table', tableName, recordId] as const,
-};
+import { QUERY_KEYS } from '@/lib/query-keys';
 
 export function useAuditLogs(
   userId?: string,
@@ -14,7 +8,7 @@ export function useAuditLogs(
   enabled: boolean = true
 ) {
   return useInfiniteQuery({
-    queryKey: [...AUDIT_QUERY_KEYS.auditLogs, userId, action],
+    queryKey: QUERY_KEYS.audit.list({ userId, action }),
     queryFn: ({ pageParam = 0 }) => 
       AuditService.getAuditLogs(50, (pageParam as number) * 50, userId, action),
     getNextPageParam: (lastPage, allPages) => 
@@ -31,7 +25,7 @@ export function useAuditLogsByTable(
   enabled: boolean = true
 ) {
   return useQuery({
-    queryKey: AUDIT_QUERY_KEYS.auditLogsByTable(tableName, recordId),
+    queryKey: QUERY_KEYS.audit.list({ tableName, recordId }),
     queryFn: () => AuditService.getAuditLogsByTable(tableName, recordId),
     enabled: enabled && !!tableName,
     staleTime: 1000 * 60 * 5, // 5 minutos
@@ -40,7 +34,7 @@ export function useAuditLogsByTable(
 
 export function useAuditStats(days: number = 30) {
   return useQuery({
-    queryKey: [...AUDIT_QUERY_KEYS.auditStats(), days],
+    queryKey: QUERY_KEYS.audit.stats(),
     queryFn: () => AuditService.getAuditStats(days),
     staleTime: 1000 * 60 * 10, // 10 minutos
   });
