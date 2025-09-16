@@ -7,7 +7,12 @@ import {
   Edit, 
   Tag,
   Smartphone,
-  DollarSign
+  DollarSign,
+  Clock,
+  ShoppingCart,
+  Wrench,
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { BatteryIndicator } from "@/components/BatteryIndicator";
 import { StockItemDialog } from "./StockItemDialog";
 import { StockLabelManager } from "./StockLabelManager";
+import { LoanInfoDisplay } from "./LoanInfoDisplay";
 import type { Database } from '@/integrations/supabase/types';
 
 type StockItem = Database['public']['Tables']['stock_items']['Row'] & {
@@ -36,12 +42,36 @@ interface StockItemCardProps {
 }
 
 const statusConfig = {
-  disponivel: { label: 'Disponível', color: 'bg-green-500' },
-  reservado: { label: 'Reservado', color: 'bg-orange-500' },
-  vendido: { label: 'Vendido', color: 'bg-blue-500' },
-  defeituoso: { label: 'Defeituoso', color: 'bg-red-500' },
-  manutencao: { label: 'Manutenção', color: 'bg-yellow-500' },
-  promocao: { label: 'Promoção', color: 'bg-purple-500' },
+  disponivel: { 
+    label: 'Disponível', 
+    color: 'bg-green-500',
+    icon: CheckCircle 
+  },
+  reservado: { 
+    label: 'Emprestado', 
+    color: 'bg-orange-500',
+    icon: Clock 
+  },
+  vendido: { 
+    label: 'Vendido', 
+    color: 'bg-blue-500',
+    icon: ShoppingCart 
+  },
+  defeituoso: { 
+    label: 'Defeituoso', 
+    color: 'bg-red-500',
+    icon: AlertTriangle 
+  },
+  manutencao: { 
+    label: 'Manutenção', 
+    color: 'bg-yellow-500',
+    icon: Wrench 
+  },
+  promocao: { 
+    label: 'Promoção', 
+    color: 'bg-purple-500',
+    icon: Tag 
+  },
 };
 
 const locationConfig = {
@@ -88,8 +118,9 @@ export const StockItemCard = ({ item, labels }: StockItemCardProps) => {
 
         <div className="flex items-center gap-2 flex-wrap">
           <Badge 
-            className={`text-white text-xs ${statusInfo?.color}`}
+            className={`text-white text-xs gap-1 ${statusInfo?.color}`}
           >
+            {statusInfo?.icon && <statusInfo.icon className="h-3 w-3" />}
             {statusInfo?.label}
           </Badge>
           
@@ -136,6 +167,14 @@ export const StockItemCard = ({ item, labels }: StockItemCardProps) => {
               </span>
             )}
           </div>
+        )}
+
+        {/* Loan Information - Show when item is loaned */}
+        {item.status === 'reservado' && (
+          <LoanInfoDisplay 
+            inventoryId={item.inventory_id} 
+            imei={item.imei}
+          />
         )}
 
         {/* Labels */}

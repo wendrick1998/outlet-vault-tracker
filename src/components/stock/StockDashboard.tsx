@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Loading } from "@/components/ui/loading";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StatsCard } from "@/components/ui/stats-card";
 import { StockItemCard } from "./StockItemCard";
 import { StockItemDialog } from "./StockItemDialog";
@@ -16,7 +17,7 @@ import { StockConferenceWorkflow } from "./StockConferenceWorkflow";
 import { StockReports } from "./StockReports";
 import { useStock, useStockStats, useStockConferences } from "@/hooks/useStock";
 import { useLabels } from "@/hooks/useCatalogs";
-import { ArrowLeft, Plus, Search, Scan, Package, Store, ShoppingCart, AlertCircle, TrendingUp, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, Search, Scan, Package, Store, ShoppingCart, AlertCircle, TrendingUp, BarChart3, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface StockDashboardProps {
@@ -144,6 +145,20 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           className="lg:col-span-1"
         />
       </div>
+
+      {/* Sync Status Alert */}
+      <Alert className="bg-green-50 border-green-200">
+        <CheckCircle2 className="h-4 w-4 text-green-600" />
+        <AlertDescription className="text-green-800">
+          <div className="flex items-center justify-between">
+            <span>
+              <strong>Sincronização Automática Ativa:</strong> O estoque está integrado com o sistema de empréstimos. 
+              Status dos aparelhos são atualizados automaticamente quando emprestados ou devolvidos.
+            </span>
+            <RefreshCw className="h-4 w-4 text-green-600" />
+          </div>
+        </AlertDescription>
+      </Alert>
 
       {/* Main Content */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
