@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Edit, Trash, Phone, Mail, MapPin, CreditCard, AlertTriangle } from "lucide-react";
+import { Plus, Search, Edit, Trash, Phone, Mail, MapPin, CreditCard, AlertTriangle, Shield, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useCustomers } from "@/hooks/useCustomers";
 import { CustomerFormDialog } from "./CustomerFormDialog";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { SensitiveDataDisplay } from "@/components/SensitiveDataDisplay";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from '@/integrations/supabase/types';
 
@@ -21,6 +23,7 @@ export const AdminCustomersTab = () => {
   const [isClearTestModalOpen, setIsClearTestModalOpen] = useState(false);
 
   const { toast } = useToast();
+  const { profile } = useAuth();
   const { 
     customers = [], 
     isLoading, 
@@ -29,6 +32,10 @@ export const AdminCustomersTab = () => {
     clearTestData,
     isClearingTestData 
   } = useCustomers();
+
+  // Determine user role for security display
+  const userRole = profile?.role === 'admin' ? 'admin' : 
+                   profile?.role === 'manager' ? 'manager' : 'user';
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,11 +103,14 @@ export const AdminCustomersTab = () => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="flex justify-between items-start mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">Gerenciar Clientes</h2>
-            <p className="text-muted-foreground">
-              Cadastre e gerencie clientes para empréstimos
-            </p>
+          <div className="flex items-center gap-3">
+            <Users className="h-8 w-8 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold">Gerenciar Clientes</h2>
+              <p className="text-muted-foreground">
+                Cadastre e gerencie clientes com proteção de dados avançada
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -122,6 +132,20 @@ export const AdminCustomersTab = () => {
               <Plus className="h-4 w-4" />
               Novo Cliente
             </Button>
+          </div>
+        </div>
+
+        {/* Security Notice */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2 text-amber-800">
+            <Shield className="h-5 w-5" />
+            <div>
+              <h3 className="font-semibold">Proteção de Dados Pessoais</h3>
+              <p className="text-sm mt-1">
+                Dados sensíveis (email, telefone, CPF) estão protegidos e requerem acesso temporário autorizado.
+                Todos os acessos são auditados para conformidade com LGPD.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -149,41 +173,27 @@ export const AdminCustomersTab = () => {
           ) : (
             filteredCustomers.map((customer) => (
               <Card key={customer.id} className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-3">
                       <h3 className="font-semibold text-lg">{customer.name}</h3>
                       {customer.is_registered && (
                         <Badge variant="secondary">Registrado</Badge>
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      {customer.phone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          {formatPhone(customer.phone)}
-                        </div>
-                      )}
-                      {customer.email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          {customer.email}
-                        </div>
-                      )}
-                      {customer.cpf && (
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-4 w-4" />
-                          CPF: {formatCPF(customer.cpf)}
-                        </div>
-                      )}
-                      {customer.address && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          {customer.address}
-                        </div>
-                      )}
-                    </div>
+                    {/* Secure sensitive data display */}
+                    <SensitiveDataDisplay 
+                      customer={customer} 
+                      userRole={userRole}
+                    />
+                    
+                    {customer.address && (
+                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        {customer.address}
+                      </div>
+                    )}
                     
                     {customer.notes && (
                       <p className="text-sm text-muted-foreground mt-2 italic">

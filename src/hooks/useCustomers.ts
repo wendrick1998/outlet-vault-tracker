@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CustomerService } from '@/services/customerService';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 
 type Customer = Database['public']['Tables']['customers']['Row'];
@@ -19,6 +20,7 @@ const QUERY_KEYS = {
 export function useCustomers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const {
     data: customers = [],
@@ -26,7 +28,9 @@ export function useCustomers() {
     error,
   } = useQuery({
     queryKey: QUERY_KEYS.lists(),
-    queryFn: CustomerService.getAll,
+    queryFn: () => CustomerService.getAll(),
+    // Only fetch if authenticated
+    enabled: !!profile,
   });
 
   const createMutation = useMutation({

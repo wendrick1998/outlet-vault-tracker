@@ -1141,6 +1141,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_data_access_sessions: {
+        Row: {
+          access_reason: string
+          approved_fields: string[]
+          created_at: string | null
+          customer_id: string
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_reason: string
+          approved_fields: string[]
+          created_at?: string | null
+          customer_id: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_reason?: string
+          approved_fields?: string[]
+          created_at?: string | null
+          customer_id?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_role_assignments: {
         Row: {
           assigned_at: string
@@ -1228,6 +1264,10 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_expired_access_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1261,6 +1301,10 @@ export type Database = {
           access_purpose?: Database["public"]["Enums"]["customer_access_purpose"]
           customer_id: string
         }
+        Returns: Json
+      }
+      get_customer_with_session_validation: {
+        Args: { customer_id: string; session_id?: string }
         Returns: Json
       }
       get_customers_secure: {
@@ -1344,6 +1388,14 @@ export type Database = {
       migrate_existing_roles: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      request_sensitive_data_access: {
+        Args: {
+          business_reason: string
+          customer_id: string
+          requested_fields: string[]
+        }
+        Returns: Json
       }
       search_customers_secure: {
         Args: { search_term: string; search_type?: string }
