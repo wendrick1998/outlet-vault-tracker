@@ -20,6 +20,7 @@ import { ConferenceReport } from "./pages/ConferenceReport";
 import HistoricalAudits from "@/pages/HistoricalAudits";
 import SystemMonitoring from "@/pages/SystemMonitoring";
 import { Auth } from "./pages/Auth";
+import { Analytics } from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 // Lazy load heavy pages for better performance
@@ -46,6 +47,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
     if (path.startsWith('/settings')) return 'settings';
     if (path.startsWith('/conference')) return 'conference';
     if (path.startsWith('/stock')) return 'stock';
+    if (path.startsWith('/analytics')) return 'analytics';
     if (path.startsWith('/system-monitoring')) return 'system-monitoring';
     if (path.startsWith('/historical-audits')) return 'historical-audits';
     return 'home';
