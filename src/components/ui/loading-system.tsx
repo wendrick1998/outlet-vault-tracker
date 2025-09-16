@@ -17,7 +17,7 @@ interface LoadingSpinnerProps extends BaseLoadingProps {
   variant?: "default" | "inline" | "fullscreen";
 }
 
-export const LoadingSpinner = ({ 
+const LoadingSpinner = ({ 
   className, 
   size = "md", 
   text,
@@ -58,7 +58,7 @@ interface LoadingSkeletonProps extends BaseLoadingProps {
   variant?: "default" | "card" | "table";
 }
 
-export const LoadingSkeleton = ({ 
+const LoadingSkeleton = ({ 
   className, 
   rows = 3, 
   showAvatar = false,
@@ -130,7 +130,7 @@ interface LoadingStatesProps extends BaseLoadingProps {
   message?: string;
 }
 
-export const LoadingStates = ({ 
+const LoadingStates = ({ 
   className, 
   type, 
   message = "Carregando...",
@@ -170,7 +170,10 @@ export const LoadingStates = ({
   }
 };
 
-// Export unificado
+// Export unificado - componentes individuais
+export { LoadingSpinner, LoadingSkeleton, LoadingStates };
+
+// Export do sistema completo
 export const LoadingSystem = {
   Spinner: LoadingSpinner,
   Skeleton: LoadingSkeleton,
