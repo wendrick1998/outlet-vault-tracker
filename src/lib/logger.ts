@@ -1,4 +1,7 @@
-import { isDevelopment, isProduction } from './environment';
+// Environment detection inline to avoid circular dependencies
+const isDevelopment = import.meta.env.DEV;
+const isProduction = import.meta.env.PROD && typeof window !== 'undefined' && 
+  !window.location.hostname.startsWith('preview--');
 import type { LogEntry } from '@/types/api';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';

@@ -3,7 +3,7 @@ import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useServiceWorkerUpdate } from '@/lib/useServiceWorkerUpdate';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { AuthProvider } from "@/contexts/AuthContext";
+
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Header } from "@/components/Header";
@@ -279,11 +279,11 @@ const AppWrapper = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
+    <>
       <AppWrapper />
       <Toaster />
       <Sonner />
-    </AuthProvider>
+    </>
   );
 };
 

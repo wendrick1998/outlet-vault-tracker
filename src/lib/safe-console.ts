@@ -4,7 +4,10 @@
  */
 
 import { logger } from './logger';
-import { isProduction } from './environment';
+
+// Environment detection inline to avoid circular dependencies
+const isProduction = import.meta.env.PROD && typeof window !== 'undefined' && 
+  !window.location.hostname.startsWith('preview--');
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
