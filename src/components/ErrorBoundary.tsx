@@ -3,6 +3,7 @@ import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AppError, ErrorInfo, ErrorType } from '@/types/errors';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -50,29 +51,62 @@ interface ErrorBoundaryProps {
   fallback?: React.ComponentType<ErrorFallbackProps>;
 }
 
+const getErrorType = (error: Error): ErrorType => {
+  if (error.message.match(/removeChild|NotFoundError|contains/i)) return 'dom_race';
+  if (error.message.match(/network|fetch|CORS/i)) return 'network';
+  if (error.message.match(/validation|invalid|required/i)) return 'validation';
+  if (error.message.match(/auth|unauthorized|forbidden/i)) return 'auth';
+  if (error.message.match(/permission|access denied/i)) return 'permission';
+  return 'unknown';
+};
+
+const logError = (error: Error, errorInfo: React.ErrorInfo) => {
+  const errorType = getErrorType(error);
+  
+  const logData: ErrorInfo = {
+    type: errorType,
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    url: window.location.href,
+  };
+
+  console.error('ErrorBoundary caught an error:', error, errorInfo, logData);
+  
+  // Enhanced logging based on error type
+  switch (errorType) {
+    case 'dom_race':
+      console.warn('[DOM_RACE_DETECTED]', { 
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        ...logData
+      });
+      break;
+    case 'network':
+      console.warn('[NETWORK_ERROR]', { 
+        message: error.message,
+        ...logData
+      });
+      break;
+    case 'auth':
+      console.warn('[AUTH_ERROR]', { 
+        message: error.message,
+        ...logData
+      });
+      break;
+  }
+  
+  // In production, send to error tracking service
+  if (process.env.NODE_ENV === 'production') {
+    // Example: Sentry.captureException(error, { extra: { ...errorInfo, ...logData } });
+  }
+};
+
 export function ErrorBoundary({ children, fallback }: ErrorBoundaryProps) {
   return (
     <ReactErrorBoundary
       FallbackComponent={fallback || ErrorFallback}
-      onError={(error, errorInfo) => {
-        // Log error for monitoring
-        console.error('ErrorBoundary caught an error:', error, errorInfo);
-        
-        // Enhanced logging for critical DOM races
-        if (error.message.match(/removeChild|NotFoundError|contains/i)) {
-          console.warn('[dom-race]', { 
-            msg: error.message, 
-            when: new Date().toISOString(),
-            stack: error.stack,
-            componentStack: errorInfo.componentStack
-          });
-        }
-        
-        // In production, send to error tracking service
-        if (process.env.NODE_ENV === 'production') {
-          // Example: Sentry.captureException(error, { extra: errorInfo });
-        }
-      }}
+      onError={logError}
     >
       {children}
     </ReactErrorBoundary>

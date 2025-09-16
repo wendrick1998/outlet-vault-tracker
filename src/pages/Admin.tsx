@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Settings, Package, Users, UserCheck, Tag, Plus, Edit, Trash2, Upload, TrendingUp, Rocket } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
@@ -35,17 +35,20 @@ import { itemSchema, reasonSchema, sellerSchema, customerSchema } from "@/lib/va
 import { FeatureFlagsAdmin } from "@/components/FeatureFlagsAdmin";
 import { FeatureFlagWrapper } from "@/components/ui/feature-flag";
 import { FEATURE_FLAGS } from "@/lib/features";
-import { AdvancedSearch } from "@/components/AdvancedSearch";
-import { BatchOperations } from "@/components/BatchOperations";
-import { InventoryCategories } from "@/components/InventoryCategories";
-import { RoleManagement } from "@/components/RoleManagement";
 import { PermissionGuard, SystemFeaturesGuard } from "@/components/PermissionGuard";
-import { ReasonWorkflowManager } from "@/components/ReasonWorkflowManager";
-import { SmartReporting } from "@/components/SmartReporting";
-import { RealTimeSync } from "@/components/RealTimeSync";
-import { OfflineQueue } from "@/components/OfflineQueue";
-import { CanaryDeploymentDashboard } from "@/components/CanaryDeploymentDashboard";
-import { CanaryMetricsCollector } from "@/components/CanaryMetricsCollector";
+import { MemoizedOfflineQueue } from "@/components/optimized/MemoizedComponents";
+import { 
+  MemoizedAdvancedSearch,
+  MemoizedBatchOperations,
+  MemoizedInventoryCategories,
+  MemoizedRoleManagement,
+  MemoizedReasonWorkflowManager,
+  MemoizedSmartReporting,
+  MemoizedRealTimeSync,
+  MemoizedCanaryDeploymentDashboard,
+  MemoizedCanaryMetricsCollector,
+  MemoizedFeatureFlagsAdmin
+} from "@/components/optimized/AdminMemoizedComponents";
 import { UIInventory } from "./admin/UIInventory";
 import DesignPanel from "./admin/DesignPanel";
 import { UIKit } from "./admin/UIKit";
@@ -129,7 +132,7 @@ export const Admin = ({ onBack }: AdminProps) => {
 
   const [guestCustomerEnabled, setGuestCustomerEnabled] = useState(true);
 
-  const openModal = (type: AdminModal, item?: InventoryItem | Reason | Seller | Customer) => {
+  const openModal = useCallback((type: AdminModal, item?: InventoryItem | Reason | Seller | Customer) => {
     setActiveModal(type);
     
     if (item) {
@@ -184,12 +187,12 @@ export const Admin = ({ onBack }: AdminProps) => {
       setSellerForm({ name: "", phone: "", email: "" });
       setCustomerForm({ name: "", phone: "", email: "" });
     }
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setActiveModal("none");
     setEditingItem(null);
-  };
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -306,13 +309,13 @@ export const Admin = ({ onBack }: AdminProps) => {
           <TabsContent value="items">
             <div className="space-y-6">
               {/* Advanced Search */}
-              <AdvancedSearch onResults={(results) => console.log('Search results:', results)} />
+              <MemoizedAdvancedSearch onResults={(results) => console.log('Search results:', results)} />
               
               {/* Batch Operations */}
-              <BatchOperations items={items} onRefresh={() => window.location.reload()} />
+              <MemoizedBatchOperations items={items} onRefresh={() => window.location.reload()} />
               
               {/* Inventory Categories */}
-              <InventoryCategories />
+              <MemoizedInventoryCategories />
               
               <Card>
                 <div className="p-6">
@@ -413,7 +416,7 @@ export const Admin = ({ onBack }: AdminProps) => {
               </Card>
               
               <FeatureFlagWrapper flag={FEATURE_FLAGS.REASON_WORKFLOWS}>
-                <ReasonWorkflowManager />
+                <MemoizedReasonWorkflowManager />
               </FeatureFlagWrapper>
             </div>
           </TabsContent>
@@ -421,7 +424,7 @@ export const Admin = ({ onBack }: AdminProps) => {
           {/* Roles Tab */}
           <FeatureFlagWrapper flag={FEATURE_FLAGS.GRANULAR_PERMISSIONS}>
             <TabsContent value="roles">
-              <RoleManagement />
+              <MemoizedRoleManagement />
             </TabsContent>
           </FeatureFlagWrapper>
 
@@ -429,14 +432,14 @@ export const Admin = ({ onBack }: AdminProps) => {
           <FeatureFlagWrapper flag={FEATURE_FLAGS.ADVANCED_REPORTING}>
             <TabsContent value="reports">
               <div className="space-y-6">
-                <SmartReporting />
+                <MemoizedSmartReporting />
                 
                 <FeatureFlagWrapper flag={FEATURE_FLAGS.REAL_TIME_SYNC}>
-                  <RealTimeSync />
+                  <MemoizedRealTimeSync />
                 </FeatureFlagWrapper>
                 
                 <FeatureFlagWrapper flag={FEATURE_FLAGS.OFFLINE_QUEUE}>
-                  <OfflineQueue />
+                  <MemoizedOfflineQueue />
                 </FeatureFlagWrapper>
               </div>
             </TabsContent>
@@ -446,8 +449,8 @@ export const Admin = ({ onBack }: AdminProps) => {
           <TabsContent value="deploy">
             <SystemFeaturesGuard>
               <div className="space-y-6">
-                <CanaryDeploymentDashboard />
-                <CanaryMetricsCollector />
+                <MemoizedCanaryDeploymentDashboard />
+                <MemoizedCanaryMetricsCollector />
               </div>
             </SystemFeaturesGuard>
           </TabsContent>
@@ -455,7 +458,7 @@ export const Admin = ({ onBack }: AdminProps) => {
           {/* Feature Flags Tab */}
           <TabsContent value="features">
             <SystemFeaturesGuard>
-              <FeatureFlagsAdmin />
+              <MemoizedFeatureFlagsAdmin />
             </SystemFeaturesGuard>
           </TabsContent>
 

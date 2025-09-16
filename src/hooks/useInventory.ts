@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import { InventoryService } from '@/services/inventoryService';
 import { useToast } from '@/components/ui/use-toast';
 import type { Database } from '@/integrations/supabase/types';
@@ -29,21 +30,22 @@ export function useInventory() {
     queryFn: () => InventoryService.getAll(false), // Only show non-archived by default
   });
 
+  const showToast = useCallback((title: string, description: string, variant?: 'default' | 'destructive') => {
+    toast({ title, description, variant });
+  }, [toast]);
+
+  const invalidateQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+  }, [queryClient]);
+
   const createMutation = useMutation({
     mutationFn: InventoryService.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      toast({
-        title: "Item criado",
-        description: "Item adicionado ao inventário com sucesso.",
-      });
+      invalidateQueries();
+      showToast("Item criado", "Item adicionado ao inventário com sucesso.");
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao criar item",
-        description: error.message,
-        variant: "destructive",
-      });
+      showToast("Erro ao criar item", error.message, "destructive");
     },
   });
 
@@ -120,7 +122,7 @@ export function useInventory() {
     },
   });
 
-  return {
+  return useMemo(() => ({
     // Data
     items,
     isLoading,
@@ -139,7 +141,14 @@ export function useInventory() {
     isDeleting: deleteMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
     isSearching: searchMutation.isPending,
-  };
+  }), [
+    items, isLoading, error,
+    createMutation.mutateAsync, createMutation.isPending,
+    updateMutation.mutateAsync, updateMutation.isPending,
+    deleteMutation.mutateAsync, deleteMutation.isPending,
+    updateStatusMutation.mutateAsync, updateStatusMutation.isPending,
+    searchMutation.mutateAsync, searchMutation.isPending
+  ]);
 }
 
 export function useInventoryItem(id: string) {
