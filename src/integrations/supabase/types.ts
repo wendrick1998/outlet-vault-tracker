@@ -1605,6 +1605,10 @@ export type Database = {
         Args: { required_permission: Database["public"]["Enums"]["permission"] }
         Returns: boolean
       }
+      detect_demonstration_items: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       ensure_profile_exists: {
         Args: { user_id: string }
         Returns: undefined
