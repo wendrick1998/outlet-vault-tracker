@@ -98,7 +98,7 @@ export const UserManagement = () => {
     if (!selectedUser) return;
 
     updateProfile.mutate({
-      id: selectedUser.id,
+      userId: selectedUser.id,
       updates: {
         full_name: formData.full_name,
         turno: formData.turno || null,

@@ -56,7 +56,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const { customers = [] } = useCustomers();
   const { createLoan, isCreating } = useLoans();
   const { createPendingLoan } = usePendingLoans();
-  const { createDeviceLeft } = useDevicesLeftAtStore();
+  const { createDeviceLeftAtStore } = useDevicesLeftAtStore();
   
   const selectedReasonData = reasons.find(r => r.id === selectedReason);
   const requiresCustomer = selectedReasonData?.requires_customer || false;
@@ -313,7 +313,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const handleDeviceLeftSubmit = (data: { deviceInfo: string; imei?: string; notes: string }) => {
     if (!pendingLoanId) return;
     
-    createDeviceLeft({
+    createDeviceLeftAtStore({
       loan_id: pendingLoanId,
       model: data.deviceInfo,
       imei: data.imei || null,

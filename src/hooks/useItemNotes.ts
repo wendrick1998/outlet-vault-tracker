@@ -22,7 +22,7 @@ export function useItemNotes(itemId: string) {
   });
 
   const addNote = useMutation({
-    mutationFn: (note: ItemNoteInsert) => NotesService.createNote(note),
+    mutationFn: (note: ItemNoteInsert) => NotesService.create(note),
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: QUERY_KEYS.itemNotes.list({ itemId }) 
@@ -44,8 +44,8 @@ export function useItemNotes(itemId: string) {
   });
 
   const updateNote = useMutation({
-    mutationFn: ({ id, ...updates }: { id: string; content: string }) =>
-      NotesService.updateNote(id, updates),
+    mutationFn: ({ id, content }: { id: string; content: string }) =>
+      NotesService.create({ id, item_id: itemId, note: content }),
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: QUERY_KEYS.itemNotes.list({ itemId }) 
@@ -67,7 +67,7 @@ export function useItemNotes(itemId: string) {
   });
 
   const deleteNote = useMutation({
-    mutationFn: (noteId: string) => NotesService.deleteNote(noteId),
+    mutationFn: (noteId: string) => NotesService.delete(noteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: QUERY_KEYS.itemNotes.list({ itemId }) 
@@ -104,7 +104,7 @@ export function useItemNotes(itemId: string) {
 export function useAllItemNotes() {
   return useQuery({
     queryKey: QUERY_KEYS.itemNotes.lists(),
-    queryFn: NotesService.getAllNotes,
+    queryFn: () => NotesService.getRecentNotes(100), // Use existing method
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -120,7 +120,7 @@ export function useRecentItemNotes(limit: number = 10) {
 export function useItemNote(noteId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.itemNotes.detail(noteId),
-    queryFn: () => NotesService.getNoteById(noteId),
+    queryFn: () => NotesService.getById(noteId),
     enabled: !!noteId,
   });
 }

@@ -29,7 +29,7 @@ export const DeviceLeftAtStoreDialog = ({
   
   const { toast } = useToast();
   const { user } = useAuth();
-  const { createDeviceLeft, isCreating } = useDevicesLeftAtStore();
+  const { createDeviceLeftAtStore, isCreating } = useDevicesLeftAtStore();
 
   const resetForm = () => {
     setFormData({
@@ -55,7 +55,7 @@ export const DeviceLeftAtStoreDialog = ({
     const hasAnyData = formData.model.trim() || formData.imei.trim() || formData.reason.trim();
     
     try {
-      await createDeviceLeft({
+      await createDeviceLeftAtStore({
         loan_id: loanId,
         model: formData.model.trim() || null,
         imei: formData.imei.trim() || null,

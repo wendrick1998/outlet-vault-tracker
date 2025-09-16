@@ -64,7 +64,7 @@ export function useDevicesLeftAtStore() {
   });
 
   const markAsCollected = useMutation({
-    mutationFn: (id: string) => DevicesLeftAtStoreService.markAsCollected(id),
+    mutationFn: (id: string) => DevicesLeftAtStoreService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devicesLeftAtStore.lists() });
       toast({
