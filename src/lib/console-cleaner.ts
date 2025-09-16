@@ -3,7 +3,9 @@
  * Remove/substitui console.logs em produção por logging estruturado
  */
 
-import { isPreview } from './environment';
+// Environment detection inline to avoid circular dependencies
+const isPreview = typeof window !== 'undefined' && 
+  window.location.hostname.startsWith('preview--');
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
