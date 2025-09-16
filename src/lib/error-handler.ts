@@ -1,4 +1,3 @@
-import { useToast } from '@/hooks/use-toast';
 import { logger } from './logger';
 import { isProduction } from './environment';
 
@@ -63,18 +62,10 @@ export class ErrorHandler {
   }
 
   /**
-   * Hook wrapper para usar com useToast
+   * Helper para criar config de toast (sem dependência circular)
    */
-  static useErrorHandler() {
-    const { toast } = useToast();
-
-    return (error: Error | unknown, options: ErrorHandlerOptions = {}) => {
-      const toastConfig = this.handle(error, options);
-      
-      if (toastConfig && options.showToast !== false) {
-        toast(toastConfig);
-      }
-    };
+  static createToastConfig(error: Error | unknown, options: ErrorHandlerOptions = {}) {
+    return this.handle(error, options);
   }
 
   /**
@@ -108,7 +99,7 @@ export class ErrorHandler {
 
 // Export convenience functions
 export const handleError = ErrorHandler.handle;
-export const useErrorHandler = ErrorHandler.useErrorHandler;
+export const createToastConfig = ErrorHandler.createToastConfig;
 export const mutationErrorHandler = ErrorHandler.mutationErrorHandler;
 export const queryErrorHandler = ErrorHandler.queryErrorHandler;
 

@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CustomerService, type SecureCustomer } from '@/services/customerService';
 import { useToast } from '@/hooks/use-toast';
 import { QUERY_KEYS } from '@/lib/query-keys';
-import { handleError, handleSuccess } from '@/lib/error-handler';
 import type { Database } from '@/integrations/supabase/types';
 
 type Customer = Database['public']['Tables']['customers']['Row'];
@@ -33,11 +32,11 @@ export function useCustomers() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao criar cliente",
-        source: 'customers'
+      toast({
+        title: "Erro ao criar cliente",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -53,11 +52,11 @@ export function useCustomers() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao atualizar cliente",
-        source: 'customers'
+      toast({
+        title: "Erro ao atualizar cliente",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -72,11 +71,11 @@ export function useCustomers() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao remover cliente",
-        source: 'customers'
+      toast({
+        title: "Erro ao remover cliente",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -91,11 +90,11 @@ export function useCustomers() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao registrar cliente",
-        source: 'customers'
+      toast({
+        title: "Erro ao registrar cliente",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -110,11 +109,11 @@ export function useCustomers() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao remover registro",
-        source: 'customers'
+      toast({
+        title: "Erro ao remover registro",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -135,11 +134,11 @@ export function useCustomers() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao limpar dados de teste",
-        source: 'customers'
+      toast({
+        title: "Erro ao limpar dados de teste",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 

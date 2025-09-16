@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LoanService, type LoanWithDetails } from '@/services/loanService';
 import { useToast } from '@/hooks/use-toast';
 import { QUERY_KEYS } from '@/lib/query-keys';
-import { handleError, handleSuccess } from '@/lib/error-handler';
 import type { Database } from '@/integrations/supabase/types';
 
 type LoanInsert = Database['public']['Tables']['loans']['Insert'];
@@ -33,11 +32,11 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao criar empréstimo",
-        source: 'loans'
+      toast({
+        title: "Erro ao criar empréstimo",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -54,11 +53,11 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao atualizar empréstimo",
-        source: 'loans'
+      toast({
+        title: "Erro ao atualizar empréstimo",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -75,11 +74,11 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao devolver item",
-        source: 'loans'
+      toast({
+        title: "Erro ao devolver item",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -94,11 +93,11 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao estender empréstimo",
-        source: 'loans'
+      toast({
+        title: "Erro ao estender empréstimo",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -115,11 +114,11 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao registrar venda",
-        source: 'loans'
+      toast({
+        title: "Erro ao registrar venda",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 

@@ -3,7 +3,6 @@ import { useCallback, useMemo } from 'react';
 import { InventoryService } from '@/services/inventoryService';
 import { useToast } from '@/hooks/use-toast';
 import { QUERY_KEYS } from '@/lib/query-keys';
-import { handleError, handleSuccess } from '@/lib/error-handler';
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -53,11 +52,11 @@ export function useInventory() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao atualizar item",
-        source: 'inventory'
+      toast({
+        title: "Erro ao atualizar item",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -71,11 +70,11 @@ export function useInventory() {
       });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao remover item",
-        source: 'inventory'
+      toast({
+        title: "Erro ao remover item",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -86,11 +85,11 @@ export function useInventory() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
     },
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro ao atualizar status",
-        source: 'inventory'
+      toast({
+        title: "Erro ao atualizar status",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -107,11 +106,11 @@ export function useInventory() {
       } 
     }) => InventoryService.searchByIMEI(query, options),
     onError: (error: Error) => {
-      const errorConfig = handleError(error, {
-        toastTitle: "Erro na busca",
-        source: 'inventory'
+      toast({
+        title: "Erro na busca",
+        description: error.message,
+        variant: "destructive",
       });
-      if (errorConfig) toast(errorConfig);
     },
   });
 
