@@ -99,8 +99,8 @@ export const StockItemDialog = ({ open, onOpenChange, item }: StockItemDialogPro
           id: item.id,
           data: {
             ...data,
-          price: data.price ? data.price.toString() : null,
-          cost: data.cost ? data.cost.toString() : null,
+            price: data.price || null,
+            cost: data.cost || null,
             acquisition_date: data.acquisition_date || null,
             warranty_until: data.warranty_until || null,
           },
@@ -108,8 +108,8 @@ export const StockItemDialog = ({ open, onOpenChange, item }: StockItemDialogPro
       } else {
         await createItem({
           ...data,
-            price: data.price ? data.price.toString() : null,
-            cost: data.cost ? data.cost.toString() : null,
+          price: data.price || null,
+          cost: data.cost || null,
           acquisition_date: data.acquisition_date || null,
           warranty_until: data.warranty_until || null,
         });
