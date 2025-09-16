@@ -7,13 +7,26 @@ type CustomerUpdate = Database['public']['Tables']['customers']['Update'];
 
 export class CustomerService {
   static async getAll(): Promise<Customer[]> {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('name', { ascending: true });
+    // Use secure function that masks sensitive data based on user role
+    const { data, error } = await supabase.rpc('get_customers_secure');
 
     if (error) throw error;
-    return data || [];
+    
+    // Convert JSONB array to Customer objects
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      email: item.email,
+      phone: item.phone,
+      cpf: item.cpf,
+      address: item.address,
+      notes: item.notes,
+      is_registered: item.is_registered,
+      loan_limit: item.loan_limit,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      pending_data: item.pending_data
+    }));
   }
 
   static async getRegistered(): Promise<Customer[]> {
@@ -39,36 +52,27 @@ export class CustomerService {
   }
 
   static async searchByName(name: string): Promise<Customer[]> {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .ilike('name', `%${name}%`)
-      .order('name', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
+    // Get all customers securely first, then filter by name
+    const allCustomers = await this.getAll();
+    return allCustomers.filter(customer => 
+      customer.name.toLowerCase().includes(name.toLowerCase())
+    );
   }
 
   static async searchByEmail(email: string): Promise<Customer[]> {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .ilike('email', `%${email}%`)
-      .order('name', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
+    // Get all customers securely first, then filter by email (if user has access)
+    const allCustomers = await this.getAll();
+    return allCustomers.filter(customer => 
+      customer.email && customer.email.toLowerCase().includes(email.toLowerCase())
+    );
   }
 
   static async searchByPhone(phone: string): Promise<Customer[]> {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .ilike('phone', `%${phone}%`)
-      .order('name', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
+    // Get all customers securely first, then filter by phone (if user has access)
+    const allCustomers = await this.getAll();
+    return allCustomers.filter(customer => 
+      customer.phone && customer.phone.includes(phone)
+    );
   }
 
   static async create(customer: CustomerInsert): Promise<Customer> {

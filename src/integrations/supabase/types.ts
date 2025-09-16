@@ -1256,6 +1256,10 @@ export type Database = {
         Args: { customer_id: string }
         Returns: Json
       }
+      get_customers_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: Json[]
+      }
       get_masked_customer_data: {
         Args: { customer_id: string }
         Returns: Json
