@@ -1256,6 +1256,10 @@ export type Database = {
         Args: { customer_id: string }
         Returns: Json
       }
+      get_masked_customer_data: {
+        Args: { customer_id: string }
+        Returns: Json
+      }
       get_security_status: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -1309,6 +1313,14 @@ export type Database = {
           accessed_fields: string[]
           record_id: string
           table_name: string
+        }
+        Returns: undefined
+      }
+      log_sensitive_customer_access: {
+        Args: {
+          access_type: string
+          customer_id: string
+          fields_accessed: string[]
         }
         Returns: undefined
       }
