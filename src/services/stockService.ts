@@ -24,6 +24,20 @@ export class StockService {
             name,
             color
           )
+        ),
+        inventory:inventory_id (
+          id,
+          status,
+          brand,
+          model,
+          color,
+          storage,
+          condition,
+          battery_pct,
+          notes,
+          is_archived,
+          created_at,
+          updated_at
         )
       `);
 
@@ -33,6 +47,11 @@ export class StockService {
 
     if (options?.location && options.location !== 'all') {
       query = query.eq('location', options.location as Database['public']['Enums']['stock_location']);
+    }
+
+    // Se não incluir arquivados, filtrar pelo inventory também
+    if (!options?.includeArchived) {
+      query = query.eq('inventory.is_archived', false);
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });
@@ -64,6 +83,20 @@ export class StockService {
           reason,
           performed_at,
           performed_by
+        ),
+        inventory:inventory_id (
+          id,
+          status,
+          brand,
+          model,
+          color,
+          storage,
+          condition,
+          battery_pct,
+          notes,
+          is_archived,
+          created_at,
+          updated_at
         )
       `)
       .eq('id', id)
@@ -241,10 +274,21 @@ export class StockService {
     sold: number;
     vitrine: number;
     estoque: number;
+    demonstration: number;
+    synced_with_inventory: number;
   }> {
     const { data, error } = await supabase
       .from('stock_items')
-      .select('status, location');
+      .select(`
+        status, 
+        location,
+        inventory_id,
+        stock_item_labels (
+          label:labels (
+            name
+          )
+        )
+      `);
 
     if (error) throw error;
 
@@ -254,7 +298,9 @@ export class StockService {
       reserved: 0,
       sold: 0,
       vitrine: 0,
-      estoque: 0
+      estoque: 0,
+      demonstration: 0,
+      synced_with_inventory: 0
     };
 
     data?.forEach(item => {
@@ -266,6 +312,15 @@ export class StockService {
       // Count by location
       if (item.location === 'vitrine') stats.vitrine++;
       if (item.location === 'estoque') stats.estoque++;
+
+      // Count demonstration items
+      const hasDemo = item.stock_item_labels?.some(
+        (sil: any) => sil.label?.name === 'Demonstração'
+      );
+      if (hasDemo) stats.demonstration++;
+
+      // Count synced with inventory
+      if (item.inventory_id) stats.synced_with_inventory++;
     });
 
     return stats;

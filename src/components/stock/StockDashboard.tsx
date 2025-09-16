@@ -109,7 +109,15 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           value={stats?.available || 0}
           icon={Package}
           variant="success"
-          subtitle="Pronto para venda"
+          subtitle="Pronto para empréstimo"
+          className="lg:col-span-1"
+        />
+        <StatsCard
+          title="Sincronizados"
+          value={stats?.synced_with_inventory || 0}
+          icon={RefreshCw}
+          variant="default"
+          subtitle="Vinculados ao cofre"
           className="lg:col-span-1"
         />
         <StatsCard
@@ -117,23 +125,15 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           value={stats?.reserved || 0}
           icon={AlertCircle}
           variant="warning"
-          subtitle="Aguardando confirmação"
+          subtitle="Em empréstimo"
           className="lg:col-span-1"
         />
         <StatsCard
-          title="Vendidos"
-          value={stats?.sold || 0}
-          icon={ShoppingCart}
-          variant="default"
-          subtitle="Já comercializados"
-          className="lg:col-span-1"
-        />
-        <StatsCard
-          title="Em Vitrine"
-          value={stats?.vitrine || 0}
+          title="Demonstração"
+          value={stats?.demonstration || 0}
           icon={Store}
           variant="default"
-          subtitle="Expostos na loja"
+          subtitle="Etiquetas automáticas"
           className="lg:col-span-1"
         />
         <StatsCard
@@ -152,8 +152,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
         <AlertDescription className="text-green-800">
           <div className="flex items-center justify-between">
             <span>
-              <strong>Sincronização Automática Ativa:</strong> O estoque está integrado com o sistema de empréstimos. 
-              Status dos aparelhos são atualizados automaticamente quando emprestados ou devolvidos.
+              <strong>Sistema Integrado:</strong> Estoque 100% integrado com cofre ({stats?.synced_with_inventory || 0}/{stats?.total || 0} sincronizados). 
+              Empréstimos automáticos • Etiquetas inteligentes ({stats?.demonstration || 0} demonstração) • Sincronização em tempo real.
             </span>
             <RefreshCw className="h-4 w-4 text-green-600" />
           </div>
