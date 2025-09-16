@@ -37,11 +37,9 @@ export const AdminCustomersTab = () => {
   const userRole = profile?.role === 'admin' ? 'admin' : 
                    profile?.role === 'manager' ? 'manager' : 'user';
 
+  // Secure search - only by name for regular display
   const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.cpf?.includes(searchTerm)
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleEdit = (customer: Customer) => {

@@ -33,10 +33,9 @@ export const CustomerSearchInput = ({
   // Filter customers based on search term
   useEffect(() => {
     if (searchTerm.length >= 2) {
+      // Secure search - only by name for non-admin users
       const filtered = customers.filter(customer =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (customer.cpf && customer.cpf.includes(searchTerm)) ||
-        (customer.phone && customer.phone.includes(searchTerm))
+        customer.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredCustomers(filtered);
       setShowResults(true);
@@ -112,16 +111,14 @@ export const CustomerSearchInput = ({
                       <div>
                         <p className="font-medium text-sm">{customer.name}</p>
                         <div className="flex gap-2 mt-1">
-                          {customer.phone && (
-                            <Badge variant="outline" className="text-xs">
-                              {customer.phone}
+                          {customer.is_registered && (
+                            <Badge variant="secondary" className="text-xs">
+                              Registrado
                             </Badge>
                           )}
-                          {customer.cpf && (
-                            <Badge variant="outline" className="text-xs">
-                              CPF: {customer.cpf}
-                            </Badge>
-                          )}
+                          <Badge variant="outline" className="text-xs">
+                            ID: {customer.id.slice(0, 8)}...
+                          </Badge>
                         </div>
                       </div>
                       {customer.is_registered && (

@@ -473,7 +473,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
               </div>
             )}
 
-            {/* Selected customer display */}
+            {/* Selected customer display - secure */}
             {!useGuestCustomer && selectedCustomer && (
               <div className="p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -482,7 +482,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
                       {customers.find(c => c.id === selectedCustomer)?.name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {customers.find(c => c.id === selectedCustomer)?.email}
+                      Cliente selecionado para empréstimo
                     </p>
                   </div>
                   <Button

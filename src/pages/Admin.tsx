@@ -169,10 +169,12 @@ export const Admin = ({ onBack }: AdminProps) => {
           break;
         case "customer":
           const customer = item as Customer;
+          // Use only basic customer info for form initialization
+          // Sensitive data will be loaded separately if needed
           setCustomerForm({
             name: customer.name,
-            phone: customer.phone || "",
-            email: customer.email || ""
+            phone: "", // Clear sensitive data - will be loaded securely if needed
+            email: ""  // Clear sensitive data - will be loaded securely if needed
           });
           break;
       }

@@ -298,16 +298,14 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
                           <div>
                             <p className="font-medium text-sm">{customer.name}</p>
                             <div className="flex gap-2 mt-1">
-                              {customer.phone && (
-                                <Badge variant="outline" className="text-xs">
-                                  {customer.phone}
+                              {customer.is_registered && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Registrado
                                 </Badge>
                               )}
-                              {customer.cpf && (
-                                <Badge variant="outline" className="text-xs">
-                                  CPF: {customer.cpf}
-                                </Badge>
-                              )}
+                              <Badge variant="outline" className="text-xs">
+                                Cliente válido
+                              </Badge>
                               {customer.pending_data && (
                                 <Badge variant="secondary" className="text-xs">
                                   ⚠️ Dados incompletos
