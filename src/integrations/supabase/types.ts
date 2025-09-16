@@ -1256,13 +1256,26 @@ export type Database = {
         Args: { customer_id: string }
         Returns: Json
       }
+      get_customer_secure: {
+        Args: {
+          access_purpose?: Database["public"]["Enums"]["customer_access_purpose"]
+          customer_id: string
+        }
+        Returns: Json
+      }
       get_customers_secure: {
-        Args: Record<PropertyKey, never>
+        Args: {
+          access_purpose?: Database["public"]["Enums"]["customer_access_purpose"]
+        }
         Returns: Json[]
       }
       get_masked_customer_data: {
         Args: { customer_id: string }
         Returns: Json
+      }
+      get_registered_customers_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: Json[]
       }
       get_security_status: {
         Args: Record<PropertyKey, never>
@@ -1332,6 +1345,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      search_customers_secure: {
+        Args: { search_term: string; search_type?: string }
+        Returns: Json[]
+      }
       secure_get_system_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -1366,6 +1383,11 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "user" | "auditor"
+      customer_access_purpose:
+        | "general_view"
+        | "loan_processing"
+        | "administrative"
+        | "search_only"
       granular_role:
         | "admin"
         | "manager"
@@ -1541,6 +1563,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "user", "auditor"],
+      customer_access_purpose: [
+        "general_view",
+        "loan_processing",
+        "administrative",
+        "search_only",
+      ],
       granular_role: [
         "admin",
         "manager",
