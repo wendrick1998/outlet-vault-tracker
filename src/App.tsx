@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Loading } from "@/components/ui/loading";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ReactQueryProvider } from "@/lib/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Header } from "@/components/Header";
@@ -247,6 +248,14 @@ const AppContent = () => {
         } 
       />
       <Route 
+        path="/analytics" 
+        element={
+          <AppLayout>
+            <Analytics onBack={() => navigate('/')} />
+          </AppLayout>
+        } 
+      />
+      <Route 
         path="/conference/:auditId/report" 
         element={
           <AppLayout>
@@ -299,11 +308,13 @@ const AppWrapper = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AppWrapper />
-      <Toaster />
-      <Sonner />
-    </AuthProvider>
+    <ReactQueryProvider>
+      <AuthProvider>
+        <AppWrapper />
+        <Toaster />
+        <Sonner />
+      </AuthProvider>
+    </ReactQueryProvider>
   );
 };
 

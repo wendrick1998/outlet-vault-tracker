@@ -116,7 +116,7 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
       title: "Analytics Avançados", 
       page: "analytics", 
       icon: BarChart3, 
-      available: isAdvancedReportingEnabled 
+      available: true // Sempre disponível agora
     },
   ];
 
