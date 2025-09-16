@@ -1,32 +1,24 @@
-// Environment detection inline to avoid circular dependencies
-const isDevelopment = import.meta.env.DEV;
-const isProduction = import.meta.env.PROD && typeof window !== 'undefined' && 
-  !window.location.hostname.startsWith('preview--');
-import type { LogEntry } from '@/types/api';
+import { isDevelopment, isProduction } from './environment';
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+interface LogEntry {
+  level: LogLevel;
+  message: string;
+  data?: any;
+  timestamp: string;
+  source?: string;
+}
 
 class Logger {
   private logBuffer: LogEntry[] = [];
   private maxBufferSize = 100;
 
-  private createLogEntry(level: LogLevel, message: string, data?: Record<string, unknown> | Error, source?: string): LogEntry {
-    // Handle Error objects by extracting relevant data
-    let processedData: Record<string, unknown> | undefined;
-    if (data instanceof Error) {
-      processedData = {
-        name: data.name,
-        message: data.message,
-        stack: data.stack
-      };
-    } else {
-      processedData = data;
-    }
-
+  private createLogEntry(level: LogLevel, message: string, data?: any, source?: string): LogEntry {
     return {
       level,
       message,
-      data: processedData,
+      data,
       timestamp: new Date().toISOString(),
       source: source || 'app'
     };
@@ -45,7 +37,7 @@ class Logger {
     }
   }
 
-  info(message: string, data?: Record<string, unknown>, source?: string): void {
+  info(message: string, data?: any, source?: string): void {
     const entry = this.createLogEntry('info', message, data, source);
     this.addToBuffer(entry);
     
@@ -54,7 +46,7 @@ class Logger {
     }
   }
 
-  warn(message: string, data?: Record<string, unknown>, source?: string): void {
+  warn(message: string, data?: any, source?: string): void {
     const entry = this.createLogEntry('warn', message, data, source);
     this.addToBuffer(entry);
     
@@ -63,7 +55,7 @@ class Logger {
     }
   }
 
-  error(message: string, error?: Record<string, unknown> | Error, source?: string): void {
+  error(message: string, error?: any, source?: string): void {
     const entry = this.createLogEntry('error', message, error, source);
     this.addToBuffer(entry);
     
@@ -78,7 +70,7 @@ class Logger {
     }
   }
 
-  debug(message: string, data?: Record<string, unknown>, source?: string): void {
+  debug(message: string, data?: any, source?: string): void {
     const entry = this.createLogEntry('debug', message, data, source);
     this.addToBuffer(entry);
     

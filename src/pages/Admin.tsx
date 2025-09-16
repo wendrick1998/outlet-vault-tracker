@@ -1,14 +1,11 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef } from "react";
 import { Settings, Package, Users, UserCheck, Tag, Plus, Edit, Trash2, Upload, TrendingUp, Rocket } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable, ResponsiveTableHeader, ResponsiveTableBody, ResponsiveTableRow } from "@/components/ui/responsive-table";
-import { LoadingSkeleton } from "@/components/ui/loading-system";
-
-// Create table skeleton wrapper for backward compatibility
-const TableRowSkeleton = () => <LoadingSkeleton variant="table" rows={3} />;
+import { TableRowSkeleton } from "@/components/ui/loading-skeletons";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -38,20 +35,17 @@ import { itemSchema, reasonSchema, sellerSchema, customerSchema } from "@/lib/va
 import { FeatureFlagsAdmin } from "@/components/FeatureFlagsAdmin";
 import { FeatureFlagWrapper } from "@/components/ui/feature-flag";
 import { FEATURE_FLAGS } from "@/lib/features";
+import { AdvancedSearch } from "@/components/AdvancedSearch";
+import { BatchOperations } from "@/components/BatchOperations";
+import { InventoryCategories } from "@/components/InventoryCategories";
+import { RoleManagement } from "@/components/RoleManagement";
 import { PermissionGuard, SystemFeaturesGuard } from "@/components/PermissionGuard";
-import { MemoizedOfflineQueue } from "@/components/optimized/MemoizedComponents";
-import { 
-  MemoizedAdvancedSearch,
-  MemoizedBatchOperations,
-  MemoizedInventoryCategories,
-  MemoizedRoleManagement,
-  MemoizedReasonWorkflowManager,
-  MemoizedSmartReporting,
-  MemoizedRealTimeSync,
-  MemoizedCanaryDeploymentDashboard,
-  MemoizedCanaryMetricsCollector,
-  MemoizedFeatureFlagsAdmin
-} from "@/components/optimized/AdminMemoizedComponents";
+import { ReasonWorkflowManager } from "@/components/ReasonWorkflowManager";
+import { SmartReporting } from "@/components/SmartReporting";
+import { RealTimeSync } from "@/components/RealTimeSync";
+import { OfflineQueue } from "@/components/OfflineQueue";
+import { CanaryDeploymentDashboard } from "@/components/CanaryDeploymentDashboard";
+import { CanaryMetricsCollector } from "@/components/CanaryMetricsCollector";
 import { UIInventory } from "./admin/UIInventory";
 import DesignPanel from "./admin/DesignPanel";
 import { UIKit } from "./admin/UIKit";
@@ -135,7 +129,7 @@ export const Admin = ({ onBack }: AdminProps) => {
 
   const [guestCustomerEnabled, setGuestCustomerEnabled] = useState(true);
 
-  const openModal = useCallback((type: AdminModal, item?: InventoryItem | Reason | Seller | Customer) => {
+  const openModal = (type: AdminModal, item?: InventoryItem | Reason | Seller | Customer) => {
     setActiveModal(type);
     
     if (item) {
@@ -190,12 +184,12 @@ export const Admin = ({ onBack }: AdminProps) => {
       setSellerForm({ name: "", phone: "", email: "" });
       setCustomerForm({ name: "", phone: "", email: "" });
     }
-  }, []);
+  };
 
-  const closeModal = useCallback(() => {
+  const closeModal = () => {
     setActiveModal("none");
     setEditingItem(null);
-  }, []);
+  };
 
   const handleSave = async () => {
     try {
@@ -231,8 +225,15 @@ export const Admin = ({ onBack }: AdminProps) => {
           ? "As alterações foram salvas com sucesso" 
           : "Novo item foi adicionado com sucesso"
       });
-      
-      closeModal();
+      if (activeTab !== "main") {
+        return (
+          <>
+            {activeTab === "ui-inventory" && <UIInventory onBack={() => setActiveTab("main")} />}
+            {activeTab === "design-panel" && <DesignPanel onBack={() => setActiveTab("main")} />}
+            {activeTab === "ui-kit" && <UIKit onBack={() => setActiveTab("main")} />}
+          </>
+        );
+      }
     } catch (error) {
       toast({
         title: "Erro",
@@ -312,13 +313,13 @@ export const Admin = ({ onBack }: AdminProps) => {
           <TabsContent value="items">
             <div className="space-y-6">
               {/* Advanced Search */}
-              <MemoizedAdvancedSearch onResults={(results) => console.log('Search results:', results)} />
+              <AdvancedSearch onResults={(results) => console.log('Search results:', results)} />
               
               {/* Batch Operations */}
-              <MemoizedBatchOperations items={items} onRefresh={() => window.location.reload()} />
+              <BatchOperations items={items} onRefresh={() => window.location.reload()} />
               
               {/* Inventory Categories */}
-              <MemoizedInventoryCategories />
+              <InventoryCategories />
               
               <Card>
                 <div className="p-6">
@@ -419,7 +420,7 @@ export const Admin = ({ onBack }: AdminProps) => {
               </Card>
               
               <FeatureFlagWrapper flag={FEATURE_FLAGS.REASON_WORKFLOWS}>
-                <MemoizedReasonWorkflowManager />
+                <ReasonWorkflowManager />
               </FeatureFlagWrapper>
             </div>
           </TabsContent>
@@ -427,7 +428,7 @@ export const Admin = ({ onBack }: AdminProps) => {
           {/* Roles Tab */}
           <FeatureFlagWrapper flag={FEATURE_FLAGS.GRANULAR_PERMISSIONS}>
             <TabsContent value="roles">
-              <MemoizedRoleManagement />
+              <RoleManagement />
             </TabsContent>
           </FeatureFlagWrapper>
 
@@ -435,14 +436,14 @@ export const Admin = ({ onBack }: AdminProps) => {
           <FeatureFlagWrapper flag={FEATURE_FLAGS.ADVANCED_REPORTING}>
             <TabsContent value="reports">
               <div className="space-y-6">
-                <MemoizedSmartReporting />
+                <SmartReporting />
                 
                 <FeatureFlagWrapper flag={FEATURE_FLAGS.REAL_TIME_SYNC}>
-                  <MemoizedRealTimeSync />
+                  <RealTimeSync />
                 </FeatureFlagWrapper>
                 
                 <FeatureFlagWrapper flag={FEATURE_FLAGS.OFFLINE_QUEUE}>
-                  <MemoizedOfflineQueue />
+                  <OfflineQueue />
                 </FeatureFlagWrapper>
               </div>
             </TabsContent>
@@ -452,8 +453,8 @@ export const Admin = ({ onBack }: AdminProps) => {
           <TabsContent value="deploy">
             <SystemFeaturesGuard>
               <div className="space-y-6">
-                <MemoizedCanaryDeploymentDashboard />
-                <MemoizedCanaryMetricsCollector />
+                <CanaryDeploymentDashboard />
+                <CanaryMetricsCollector />
               </div>
             </SystemFeaturesGuard>
           </TabsContent>
@@ -461,7 +462,7 @@ export const Admin = ({ onBack }: AdminProps) => {
           {/* Feature Flags Tab */}
           <TabsContent value="features">
             <SystemFeaturesGuard>
-              <MemoizedFeatureFlagsAdmin />
+              <FeatureFlagsAdmin />
             </SystemFeaturesGuard>
           </TabsContent>
 

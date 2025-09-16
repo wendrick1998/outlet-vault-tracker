@@ -3,10 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LoadingSpinner } from '@/components/ui/loading-system';
 import { Shield, AlertTriangle } from 'lucide-react';
-import { PinService } from '@/services/pinService';
-import { useToast } from '@/hooks/use-toast';
+import { usePinProtection } from '@/hooks/usePinProtection';
 
 interface PinConfirmationModalProps {
   isOpen: boolean;
@@ -27,8 +25,7 @@ export const PinConfirmationModal = ({
 }: PinConfirmationModalProps) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
-  const { toast } = useToast();
+  const { validatePin, isValidating } = usePinProtection();
 
   // Reset estado quando modal abre/fecha
   useEffect(() => {
@@ -74,48 +71,13 @@ export const PinConfirmationModal = ({
       return;
     }
 
-    setIsValidating(true);
-    try {
-      // Validar formato primeiro
-      const formatValidation = PinService.validatePinFormat(pin);
-      if (!formatValidation.valid) {
-        setError(formatValidation.message || 'PIN inválido');
-        setPin('');
-        return;
-      }
-
-      // Validar no backend
-      const result = await PinService.validatePin(pin);
-      
-      if (result.blocked) {
-        setError(result.message);
-        setPin('');
-        return;
-      }
-
-      if (result.not_configured) {
-        toast({
-          title: "PIN não configurado",
-          description: "Configure seu PIN operacional nas configurações antes de continuar.",
-          variant: "destructive"
-        });
-        onClose();
-        return;
-      }
-
-      if (result.valid) {
-        onConfirm();
-        onClose();
-      } else {
-        setError(result.message || 'PIN inválido. Tente novamente.');
-        setPin('');
-      }
-    } catch (error) {
-      console.error('Erro na validação do PIN:', error);
-      setError('Erro interno. Tente novamente.');
+    const isValid = await validatePin(pin);
+    if (isValid) {
+      onConfirm();
+      onClose();
+    } else {
       setPin('');
-    } finally {
-      setIsValidating(false);
+      setError('PIN inválido. Tente novamente.');
     }
   };
 
@@ -165,10 +127,18 @@ export const PinConfirmationModal = ({
                   onChange={handlePinChange}
                 >
                   <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={0} className="w-12 h-12 text-lg">
+                      {pin[0] ? '●' : ''}
+                    </InputOTPSlot>
+                    <InputOTPSlot index={1} className="w-12 h-12 text-lg">
+                      {pin[1] ? '●' : ''}
+                    </InputOTPSlot>
+                    <InputOTPSlot index={2} className="w-12 h-12 text-lg">
+                      {pin[2] ? '●' : ''}
+                    </InputOTPSlot>
+                    <InputOTPSlot index={3} className="w-12 h-12 text-lg">
+                      {pin[3] ? '●' : ''}
+                    </InputOTPSlot>
                   </InputOTPGroup>
                 </InputOTP>
               </div>
@@ -199,8 +169,7 @@ export const PinConfirmationModal = ({
               disabled={pin.length !== 4 || isValidating}
               className="flex-1"
             >
-              {isValidating && <LoadingSpinner size="sm" className="mr-2" />}
-              Confirmar
+              {isValidating ? 'Validando...' : 'Confirmar'}
             </Button>
           </div>
 

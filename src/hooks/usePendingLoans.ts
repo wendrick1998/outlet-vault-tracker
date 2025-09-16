@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PendingLoansService } from '@/services/pendingLoansService';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
-import type { PendingLoanUpdate } from '@/types/api';
 
 type PendingLoanInsert = Database['public']['Tables']['pending_loans']['Insert'];
 
@@ -10,7 +9,7 @@ type PendingLoanInsert = Database['public']['Tables']['pending_loans']['Insert']
 export const PENDING_LOANS_KEYS = {
   all: ['pending-loans'] as const,
   lists: () => [...PENDING_LOANS_KEYS.all, 'list'] as const,
-  list: (filters: Record<string, unknown>) => [...PENDING_LOANS_KEYS.lists(), { filters }] as const,
+  list: (filters: Record<string, any>) => [...PENDING_LOANS_KEYS.lists(), { filters }] as const,
   details: () => [...PENDING_LOANS_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...PENDING_LOANS_KEYS.details(), id] as const,
   stats: () => [...PENDING_LOANS_KEYS.all, 'stats'] as const,
@@ -55,7 +54,11 @@ export const usePendingLoans = () => {
       id, 
       customerData, 
       notes 
-    }: PendingLoanUpdate) => PendingLoansService.resolve(id, customerData, notes),
+    }: { 
+      id: string; 
+      customerData: any; 
+      notes?: string;
+    }) => PendingLoansService.resolve(id, customerData, notes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENDING_LOANS_KEYS.all });
       toast({

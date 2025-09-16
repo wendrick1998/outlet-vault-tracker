@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useLoans } from '@/hooks/useLoans';
 import { usePendingLoans } from '@/hooks/usePendingLoans';
 import { useCustomers } from '@/hooks/useCustomers';

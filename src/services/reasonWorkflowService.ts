@@ -6,7 +6,7 @@ type GranularRole = Database['public']['Enums']['granular_role'];
 
 export class ReasonWorkflowService {
   // Get workflows for a reason
-  static async getWorkflowsForReason(reasonId: string): Promise<ReasonWorkflow[]> {
+  static async getWorkflowsForReason(reasonId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('reason_workflows' as any)
       .select('*')
@@ -14,11 +14,11 @@ export class ReasonWorkflowService {
       .order('step_order', { ascending: true });
 
     if (error) throw error;
-    return (data as unknown as ReasonWorkflow[]) || [];
+    return data || [];
   }
 
   // Create workflow step
-  static async createWorkflowStep(workflow: ReasonWorkflowInsert): Promise<ReasonWorkflow> {
+  static async createWorkflowStep(workflow: ReasonWorkflowInsert): Promise<any> {
     const { data, error } = await supabase
       .from('reason_workflows' as any)
       .insert(workflow)
@@ -26,11 +26,11 @@ export class ReasonWorkflowService {
       .single();
 
     if (error) throw error;
-    return data as unknown as ReasonWorkflow;
+    return data;
   }
 
   // Update workflow step
-  static async updateWorkflowStep(id: string, updates: Partial<ReasonWorkflowInsert>): Promise<ReasonWorkflow> {
+  static async updateWorkflowStep(id: string, updates: Partial<ReasonWorkflowInsert>): Promise<any> {
     const { data, error } = await supabase
       .from('reason_workflows' as any)
       .update(updates)
@@ -39,7 +39,7 @@ export class ReasonWorkflowService {
       .single();
 
     if (error) throw error;
-    return data as unknown as ReasonWorkflow;
+    return data;
   }
 
   // Delete workflow step
@@ -53,18 +53,18 @@ export class ReasonWorkflowService {
   }
 
   // Execute workflow for a loan
-  static async executeWorkflow(loanId: string, reasonId: string): Promise<Record<string, unknown>> {
+  static async executeWorkflow(loanId: string, reasonId: string): Promise<any> {
     const { data, error } = await supabase.rpc('execute_reason_workflow' as any, {
       p_loan_id: loanId,
       p_reason_id: reasonId
     });
 
     if (error) throw error;
-    return (data as Record<string, unknown>) || {};
+    return data;
   }
 
   // Get SLA tracking for loan
-  static async getSLATracking(loanId: string): Promise<SLATracking[]> {
+  static async getSLATracking(loanId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('sla_tracking' as any)
       .select('*')
@@ -72,7 +72,7 @@ export class ReasonWorkflowService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data as unknown as SLATracking[]) || [];
+    return data || [];
   }
 
   // Create SLA tracking
@@ -80,7 +80,7 @@ export class ReasonWorkflowService {
     loanId: string,
     reasonId: string,
     estimatedCompletion: string
-  ): Promise<SLATracking> {
+  ): Promise<any> {
     const { data, error } = await supabase
       .from('sla_tracking' as any)
       .insert({
@@ -92,11 +92,11 @@ export class ReasonWorkflowService {
       .single();
 
     if (error) throw error;
-    return data as unknown as SLATracking;
+    return data;
   }
 
   // Complete SLA
-  static async completeSLA(slaId: string): Promise<SLATracking> {
+  static async completeSLA(slaId: string): Promise<any> {
     const { data, error } = await supabase
       .from('sla_tracking' as any)
       .update({
@@ -108,11 +108,11 @@ export class ReasonWorkflowService {
       .single();
 
     if (error) throw error;
-    return data as unknown as SLATracking;
+    return data;
   }
 
   // Get pending approvals for user
-  static async getPendingApprovals(userId?: string): Promise<MovementApproval[]> {
+  static async getPendingApprovals(userId?: string): Promise<any[]> {
     let query = supabase
       .from('movement_approvals' as any)
       .select('*')
@@ -121,11 +121,11 @@ export class ReasonWorkflowService {
     const { data, error } = await query.order('created_at', { ascending: true });
 
     if (error) throw error;
-    return (data as unknown as MovementApproval[]) || [];
+    return data || [];
   }
 
   // Approve movement
-  static async approveMovement(approvalId: string, notes?: string): Promise<MovementApproval> {
+  static async approveMovement(approvalId: string, notes?: string): Promise<any> {
     const user = await supabase.auth.getUser();
     
     const { data, error } = await supabase
@@ -141,11 +141,11 @@ export class ReasonWorkflowService {
       .single();
 
     if (error) throw error;
-    return data as unknown as MovementApproval;
+    return data;
   }
 
   // Reject movement
-  static async rejectMovement(approvalId: string, reason: string): Promise<MovementApproval> {
+  static async rejectMovement(approvalId: string, reason: string): Promise<any> {
     const { data, error } = await supabase
       .from('movement_approvals' as any)
       .update({
@@ -158,11 +158,11 @@ export class ReasonWorkflowService {
       .single();
 
     if (error) throw error;
-    return data as unknown as MovementApproval;
+    return data;
   }
 
   // Get overdue SLAs
-  static async getOverdueSLAs(): Promise<SLATracking[]> {
+  static async getOverdueSLAs(): Promise<any[]> {
     const { data, error } = await supabase
       .from('sla_tracking' as any)
       .select('*')
@@ -170,7 +170,7 @@ export class ReasonWorkflowService {
       .order('estimated_completion', { ascending: true });
 
     if (error) throw error;
-    return (data as unknown as SLATracking[]) || [];
+    return data || [];
   }
 
   // Check SLA status

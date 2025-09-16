@@ -61,8 +61,8 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
 
   // Load snapshot on mount
   useEffect(() => {
-    if (audit?.filters && typeof audit.filters === 'object' && audit.filters !== null) {
-      InventoryAuditService.createSnapshot(audit.filters as Record<string, unknown>).then(setSnapshot);
+    if (audit?.filters) {
+      InventoryAuditService.createSnapshot(audit.filters).then(setSnapshot);
     }
   }, [audit]);
 

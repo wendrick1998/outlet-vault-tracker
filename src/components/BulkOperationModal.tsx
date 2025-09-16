@@ -13,7 +13,6 @@ import { PinConfirmationModal } from "@/components/PinConfirmationModal";
 import { useInventory } from "@/hooks/useInventory";
 import { usePinProtection } from "@/hooks/usePinProtection";
 import { useToast } from "@/hooks/use-toast";
-import type { BulkOperationData } from '@/types/api';
 import type { Database } from "@/integrations/supabase/types";
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -78,7 +77,7 @@ export const BulkOperationModal = ({
     }
   };
 
-  const handleExecuteOperation = async (operation: OperationType, outflowData?: BulkOperationData) => {
+  const handleExecuteOperation = async (operation: OperationType, outflowData?: any) => {
     if (!operation) return;
 
     setIsProcessing(true);

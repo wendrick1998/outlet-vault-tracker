@@ -3,10 +3,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertTriangle, XCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ScanFeedbackData } from '@/types/api';
 
 interface ScanFeedbackProps {
-  feedback: ScanFeedbackData | null;
+  feedback: {
+    type: 'scanning' | 'success' | 'warning' | 'error';
+    message: string;
+    details: string;
+    item?: any;
+  } | null;
   isScanning: boolean;
 }
 

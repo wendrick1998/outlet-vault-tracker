@@ -1,11 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DevicesLeftAtStoreService } from '@/services/devicesLeftAtStoreService';
 import { useToast } from '@/hooks/use-toast';
-import { QUERY_KEYS } from '@/lib/query-keys';
 import type { Database } from '@/integrations/supabase/types';
 
 type DeviceLeftAtStoreInsert = Database['public']['Tables']['devices_left_at_store']['Insert'];
 type DeviceLeftAtStoreUpdate = Database['public']['Tables']['devices_left_at_store']['Update'];
+
+const QUERY_KEYS = {
+  devicesLeftAtStore: ['devices-left-at-store'] as const,
+  deviceLeftAtStore: (id: string) => [...QUERY_KEYS.devicesLeftAtStore, id] as const,
+  devicesByLoan: (loanId: string) => [...QUERY_KEYS.devicesLeftAtStore, 'loan', loanId] as const,
+};
 
 export function useDevicesLeftAtStore() {
   const { toast } = useToast();
@@ -14,71 +19,63 @@ export function useDevicesLeftAtStore() {
   const {
     data: devicesLeftAtStore = [],
     isLoading,
-    error
+    error,
   } = useQuery({
-    queryKey: QUERY_KEYS.devicesLeftAtStore.lists(),
+    queryKey: QUERY_KEYS.devicesLeftAtStore,
     queryFn: DevicesLeftAtStoreService.getAll,
-    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
-  const createDeviceLeftAtStore = useMutation({
-    mutationFn: (device: DeviceLeftAtStoreInsert) => 
-      DevicesLeftAtStoreService.create(device),
+  const createDeviceLeftMutation = useMutation({
+    mutationFn: DevicesLeftAtStoreService.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devicesLeftAtStore.lists() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devicesLeftAtStore });
       toast({
-        title: "Aparelho registrado",
-        description: "O aparelho foi registrado como deixado na loja com sucesso.",
-        variant: "default",
+        title: 'Aparelho registrado',
+        description: 'Aparelho deixado na loja foi registrado com sucesso.',
       });
     },
-    onError: (error) => {
-      console.error('Error creating device left at store:', error);
+    onError: (error: Error) => {
       toast({
-        title: "Erro ao registrar aparelho",
-        description: "Não foi possível registrar o aparelho como deixado na loja.",
-        variant: "destructive",
+        title: 'Erro ao registrar aparelho',
+        description: error.message,
+        variant: 'destructive',
       });
     },
   });
 
-  const updateDeviceLeftAtStore = useMutation({
-    mutationFn: ({ id, ...updates }: { id: string } & DeviceLeftAtStoreUpdate) =>
-      DevicesLeftAtStoreService.update(id, updates),
+  const updateDeviceLeftMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: DeviceLeftAtStoreUpdate }) =>
+      DevicesLeftAtStoreService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devicesLeftAtStore.lists() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devicesLeftAtStore });
       toast({
-        title: "Aparelho atualizado",
-        description: "As informações do aparelho foram atualizadas com sucesso.",
-        variant: "default",
+        title: 'Aparelho atualizado',
+        description: 'Informações do aparelho foram atualizadas.',
       });
     },
-    onError: (error) => {
-      console.error('Error updating device left at store:', error);
+    onError: (error: Error) => {
       toast({
-        title: "Erro ao atualizar aparelho",
-        description: "Não foi possível atualizar as informações do aparelho.",
-        variant: "destructive",
+        title: 'Erro ao atualizar aparelho',
+        description: error.message,
+        variant: 'destructive',
       });
     },
   });
 
-  const markAsCollected = useMutation({
-    mutationFn: (id: string) => DevicesLeftAtStoreService.delete(id),
+  const deleteDeviceLeftMutation = useMutation({
+    mutationFn: DevicesLeftAtStoreService.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devicesLeftAtStore.lists() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.devicesLeftAtStore });
       toast({
-        title: "Aparelho coletado",
-        description: "O aparelho foi marcado como coletado com sucesso.",
-        variant: "default",
+        title: 'Aparelho removido',
+        description: 'Registro do aparelho foi removido.',
       });
     },
-    onError: (error) => {
-      console.error('Error marking device as collected:', error);
+    onError: (error: Error) => {
       toast({
-        title: "Erro ao marcar como coletado",
-        description: "Não foi possível marcar o aparelho como coletado.",
-        variant: "destructive",
+        title: 'Erro ao remover aparelho',
+        description: error.message,
+        variant: 'destructive',
       });
     },
   });
@@ -87,28 +84,27 @@ export function useDevicesLeftAtStore() {
     devicesLeftAtStore,
     isLoading,
     error,
-    createDeviceLeftAtStore: createDeviceLeftAtStore.mutate,
-    updateDeviceLeftAtStore: updateDeviceLeftAtStore.mutate,
-    markAsCollected: markAsCollected.mutate,
-    isCreating: createDeviceLeftAtStore.isPending,
-    isUpdating: updateDeviceLeftAtStore.isPending,
-    isMarkingAsCollected: markAsCollected.isPending,
+    createDeviceLeft: createDeviceLeftMutation.mutateAsync,
+    updateDeviceLeft: updateDeviceLeftMutation.mutateAsync,
+    deleteDeviceLeft: deleteDeviceLeftMutation.mutateAsync,
+    isCreating: createDeviceLeftMutation.isPending,
+    isUpdating: updateDeviceLeftMutation.isPending,
+    isDeleting: deleteDeviceLeftMutation.isPending,
   };
 }
 
 export function useDeviceLeftAtStore(id: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.devicesLeftAtStore.detail(id),
+    queryKey: QUERY_KEYS.deviceLeftAtStore(id),
     queryFn: () => DevicesLeftAtStoreService.getById(id),
     enabled: !!id,
   });
 }
 
-export function useDevicesLeftAtStoreByLoan(loanId: string) {
+export function useDevicesLeftByLoan(loanId: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.devicesLeftAtStore.list({ loanId }),
+    queryKey: QUERY_KEYS.devicesByLoan(loanId),
     queryFn: () => DevicesLeftAtStoreService.getByLoanId(loanId),
     enabled: !!loanId,
-    staleTime: 1000 * 60, // 1 minute
   });
 }

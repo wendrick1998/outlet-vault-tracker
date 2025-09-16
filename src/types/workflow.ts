@@ -11,8 +11,8 @@ export interface ReasonWorkflow {
   step_name: string;
   step_type: 'approval' | 'notification' | 'auto_action';
   assigned_role?: GranularRole;
-  conditions?: Record<string, unknown>;
-  actions?: Record<string, unknown>;
+  conditions?: any;
+  actions?: any;
   timeout_hours?: number;
   created_at: string;
 }
@@ -23,8 +23,8 @@ export interface ReasonWorkflowInsert {
   step_name: string;
   step_type: 'approval' | 'notification' | 'auto_action';
   assigned_role?: GranularRole | null;
-  conditions?: Record<string, unknown>;
-  actions?: Record<string, unknown>;
+  conditions?: any;
+  actions?: any;
   timeout_hours?: number | null;
 }
 

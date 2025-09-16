@@ -25,36 +25,34 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('react/') || id.includes('react-dom/')) return 'react-core';
+            if (id.includes('@tanstack/react-query')) return 'query';
             if (id.includes('@supabase')) return 'supabase';
-            if (id.includes('@tanstack/react-query')) return 'react-query';
-            if (id.includes('@radix-ui')) return 'radix-ui';
+            if (id.includes('@radix-ui')) return 'ui';
+            if (id.includes('react-router')) return 'router';
+            if (id.includes('recharts')) return 'charts';
+            if (id.includes('react') || id.includes('react-dom')) return 'vendor';
             return 'vendor';
           }
+          if (id.includes('src/components/ui')) return 'ui-components';
+          if (id.includes('src/hooks')) return 'hooks';
+          if (id.includes('src/services')) return 'services';
         },
         chunkFileNames: (chunkInfo) => {
-          // Nomes mais estáveis para prevent 404s
-          const name = chunkInfo.name && chunkInfo.name !== 'index' 
-            ? chunkInfo.name 
+          // More stable chunk naming to prevent 404s
+          if (chunkInfo.name && chunkInfo.name !== 'index') {
+            return `assets/${chunkInfo.name}-[hash].js`;
+          }
+          
+          const facadeModuleId = chunkInfo.facadeModuleId 
+            ? chunkInfo.facadeModuleId.split('/').pop()?.replace('.tsx', '').replace('.ts', '') || 'chunk'
             : 'chunk';
-          return `assets/${name}-[hash].js`;
+          return `assets/${facadeModuleId}-[hash].js`;
         },
-        assetFileNames: (assetInfo) => {
-          // Organizar assets por tipo
-          if (assetInfo.name?.endsWith('.css')) return 'assets/styles/[name]-[hash][extname]';
-          if (assetInfo.name?.match(/\.(png|jpg|jpeg|svg|gif|webp)$/)) return 'assets/images/[name]-[hash][extname]';
-          return 'assets/misc/[name]-[hash][extname]';
-        }
-      },
-      // Tree-shaking mais agressivo
-      treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        unknownGlobalSideEffects: false,
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
-    chunkSizeWarningLimit: 400, // Mais restritivo
-    reportCompressedSize: mode === "development", // Só em dev
+    chunkSizeWarningLimit: 500,
+    reportCompressedSize: false,
   },
   optimizeDeps: {
     include: [
@@ -62,16 +60,8 @@ export default defineConfig(({ mode }) => ({
       "react-dom",
       "react-router-dom",
       "@tanstack/react-query",
-      "@supabase/supabase-js",
-      "lucide-react", // Ícones usados em toda parte
-      "@radix-ui/react-slot", // Base do shadcn
+      "@supabase/supabase-js"
     ],
-    exclude: [
-      // Lazy load estes
-      "recharts",
-      "xlsx", 
-      "papaparse"
-    ]
   },
   test: {
     globals: true,

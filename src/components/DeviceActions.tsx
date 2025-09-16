@@ -1,10 +1,9 @@
 import { Edit, Archive, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { DeviceItem, DeviceActionData } from "@/types/api";
 
 interface DeviceActionsProps {
-  item: DeviceItem;
-  onAction: (action: DeviceActionData) => void;
+  item: any;
+  onAction: (action: { isOpen: boolean; type: 'archive' | 'delete' | 'restore'; item: any }) => void;
 }
 
 export const DeviceActions = ({ item, onAction }: DeviceActionsProps) => {

@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import { SearchService, type SearchResult } from '@/services/searchService';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -45,10 +44,7 @@ export function useAdvancedSearch(filters: {
   status?: Database['public']['Enums']['inventory_status'];
   storage?: string;
 }) {
-  const hasFilters = useMemo(() => 
-    Object.values(filters).some(value => value && String(value).trim()), 
-    [filters]
-  );
+  const hasFilters = Object.values(filters).some(value => value && String(value).trim());
   
   return useQuery({
     queryKey: QUERY_KEYS.advanced(filters),
@@ -57,9 +53,28 @@ export function useAdvancedSearch(filters: {
   });
 }
 
-// Export search functions directly - no need for wrapper hook
-export {
-  useIMEISearch as useSearchByIMEI,
-  useBrandSearch as useSearchByBrand, 
-  useModelSearch as useSearchByModel
-};
+// Custom hook to handle the main search functionality used by components
+export function useItemSearch() {
+  const searchByIMEI = (searchTerm: string) => {
+    return useIMEISearch(searchTerm);
+  };
+
+  const searchByBrand = (brand: string) => {
+    return useBrandSearch(brand);
+  };
+
+  const searchByModel = (model: string) => {
+    return useModelSearch(model);
+  };
+
+  const advancedSearch = (filters: Parameters<typeof useAdvancedSearch>[0]) => {
+    return useAdvancedSearch(filters);
+  };
+
+  return {
+    searchByIMEI,
+    searchByBrand,
+    searchByModel,
+    advancedSearch,
+  };
+}

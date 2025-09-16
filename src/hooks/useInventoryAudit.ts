@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryAuditService } from '@/services/inventoryAuditService';
 import { toast } from 'sonner';
-import type { InventoryAuditUpdate } from '@/types/api';
 
 const AUDIT_KEYS = {
   all: ['inventory-audits'] as const,
@@ -60,7 +59,7 @@ export function useInventoryAudit(auditId?: string) {
 
   // Update audit mutation
   const updateAuditMutation = useMutation({
-    mutationFn: ({ id, updates }: InventoryAuditUpdate) =>
+    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
       InventoryAuditService.updateAudit(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: AUDIT_KEYS.all });

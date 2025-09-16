@@ -8,7 +8,6 @@ import { useIMEISearch } from "@/hooks/useSearch";
 import { useToast } from "@/hooks/use-toast";
 import { CSVXLSXImportDialog } from "./CSVXLSXImportDialog";
 import type { Database } from "@/integrations/supabase/types";
-import type { BatchImportResult } from '@/types/api';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 
@@ -121,7 +120,7 @@ export const BatchItemSelector = ({ onItemSelected, selectedItems }: BatchItemSe
     setImeiInput(cleanValue);
   };
 
-  const handleCSVImportComplete = (result: BatchImportResult) => {
+  const handleCSVImportComplete = (result: any) => {
     toast({
       title: "Importação concluída",
       description: `${result.created} itens foram importados e estão disponíveis no inventário`,

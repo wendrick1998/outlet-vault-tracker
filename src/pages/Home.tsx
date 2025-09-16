@@ -1,10 +1,15 @@
-import { Search, List, Clock, Package, AlertTriangle } from "lucide-react";
+import { Search, List, Clock, BarChart3, Package, AlertTriangle, Bot, Brain } from "lucide-react";
 import { ActionCard } from "@/components/ActionCard";
 import { StatsCard } from "@/components/ui/stats-card";
 import { PendingSalesManager } from "@/components/PendingSalesManager";
 import { useSystemStats } from "@/hooks/useStats";
 import { useActiveLoans } from "@/hooks/useLoans";
 import { usePendingSalesStats } from "@/hooks/usePendingSales";
+import { AIAssistant } from "@/components/AIAssistant";
+import { SmartAnalytics } from "@/components/SmartAnalytics";
+import { PredictiveAlerts } from "@/components/PredictiveAlerts";
+import { SmartNotifications } from "@/components/SmartNotifications";
+import { StockIntelligence } from "@/components/StockIntelligence";
 import { useState } from "react";
 
 interface HomeProps {
@@ -15,6 +20,10 @@ export const Home = ({ onNavigate }: HomeProps) => {
   const { data: systemStats, isLoading: statsLoading } = useSystemStats();
   const { data: activeLoans, isLoading: loansLoading } = useActiveLoans();
   const { data: pendingStats, isLoading: pendingStatsLoading } = usePendingSalesStats();
+  const [showAI, setShowAI] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showPredictions, setShowPredictions] = useState(false);
+  
   const [showPendingSales, setShowPendingSales] = useState(false);
 
 
@@ -56,10 +65,28 @@ export const Home = ({ onNavigate }: HomeProps) => {
           />
         </div>
 
-          {/* Pending Sales Manager */}
-          {showPendingSales && (
-            <div className="mt-6">
-              <PendingSalesManager />
+          {/* Smart Notifications */}
+          <div className="mt-8">
+            <SmartNotifications />
+          </div>
+
+          {/* AI Analytics Panel */}
+      {showPendingSales && (
+        <div className="mt-6">
+          <PendingSalesManager />
+        </div>
+      )}
+
+      {showAnalytics && (
+            <div className="mt-8">
+              <SmartAnalytics />
+            </div>
+          )}
+
+          {/* AI Predictions Panel */}
+          {showPredictions && (
+            <div className="mt-8">
+              <PredictiveAlerts type="all" />
             </div>
           )}
 
@@ -119,6 +146,17 @@ export const Home = ({ onNavigate }: HomeProps) => {
               Erro ao carregar estatísticas
             </div>
           )}
+        </div>
+
+        {/* AI Assistant */}
+        <AIAssistant 
+          isMinimized={!showAI}
+          onToggleMinimized={() => setShowAI(!showAI)}
+        />
+
+        {/* Stock Intelligence */}
+        <div className="mt-8">
+          <StockIntelligence />
         </div>
 
       </main>

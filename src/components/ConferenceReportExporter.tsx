@@ -14,13 +14,12 @@ import {
   AlertTriangle,
   Copy
 } from 'lucide-react';
-import type { ConferenceReportData, ConferenceScan, MissingItem, ConferenceTask } from '@/types/api';
 
 interface ConferenceReportExporterProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   auditId: string;
-  reportData: ConferenceReportData;
+  reportData: any;
 }
 
 export function ConferenceReportExporter({ 
@@ -71,7 +70,7 @@ export function ConferenceReportExporter({
 
   const buildExportData = () => {
     const { audit, scans, missing, tasks } = reportData;
-    const exportData: Record<string, unknown> = {};
+    const exportData: any = {};
 
     if (includeData.auditInfo) {
       exportData.audit = {
@@ -144,7 +143,7 @@ export function ConferenceReportExporter({
     return exportData;
   };
 
-  const exportAsCSV = async (data: Record<string, unknown>) => {
+  const exportAsCSV = async (data: any) => {
     const csvContent = [];
     
     // Summary section
@@ -168,20 +167,20 @@ export function ConferenceReportExporter({
     }
 
     // Scans section
-    if (data.scans && Array.isArray(data.scans) && data.scans.length > 0) {
+    if (data.scans && data.scans.length > 0) {
       csvContent.push('ESCANEAMENTOS');
       csvContent.push('Timestamp,IMEI,Serial,Código Raw,Resultado,Item ID');
-      (data.scans as ConferenceScan[]).forEach((scan) => {
+      data.scans.forEach((scan: any) => {
         csvContent.push(`${scan.timestamp},${scan.imei || ''},${scan.serial || ''},${scan.raw_code},${scan.scan_result},${scan.item_id || ''}`);
       });
       csvContent.push('');
     }
 
     // Missing items section
-    if (data.missing_items && Array.isArray(data.missing_items) && data.missing_items.length > 0) {
+    if (data.missing_items && data.missing_items.length > 0) {
       csvContent.push('ITENS NÃO ENCONTRADOS');
       csvContent.push('Item ID,Razão,Modelo,Marca,IMEI,Status');
-      (data.missing_items as MissingItem[]).forEach((item) => {
+      data.missing_items.forEach((item: any) => {
         const details = item.item_details;
         csvContent.push(`${item.item_id},${item.reason},${details?.model || ''},${details?.brand || ''},${details?.imei || ''},${details?.status || ''}`);
       });
@@ -189,10 +188,10 @@ export function ConferenceReportExporter({
     }
 
     // Tasks section
-    if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
+    if (data.tasks && data.tasks.length > 0) {
       csvContent.push('TAREFAS');
       csvContent.push('ID,Tipo,Descrição,Prioridade,Status,IMEI,Criada em,Resolvida em,Notas de Resolução');
-      (data.tasks as ConferenceTask[]).forEach((task) => {
+      data.tasks.forEach((task: any) => {
         csvContent.push(`${task.id},${task.task_type},${task.description},${task.priority},${task.status},${task.imei || ''},${task.created_at},${task.resolved_at || ''},${task.resolution_notes || ''}`);
       });
     }
@@ -209,7 +208,7 @@ export function ConferenceReportExporter({
     document.body.removeChild(link);
   };
 
-  const exportAsJSON = async (data: Record<string, unknown>) => {
+  const exportAsJSON = async (data: any) => {
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const link = document.createElement('a');

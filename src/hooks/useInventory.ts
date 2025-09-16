@@ -1,13 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
 import { InventoryService } from '@/services/inventoryService';
-import { useToast } from '@/hooks/use-toast';
-import { QUERY_KEYS } from '@/lib/query-keys';
+import { useToast } from '@/components/ui/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
 type InventoryInsert = Database['public']['Tables']['inventory']['Insert'];
 type InventoryUpdate = Database['public']['Tables']['inventory']['Update'];
+
+const QUERY_KEYS = {
+  all: ['inventory'] as const,
+  lists: () => [...QUERY_KEYS.all, 'list'] as const,
+  list: (filters: string) => [...QUERY_KEYS.lists(), filters] as const,
+  details: () => [...QUERY_KEYS.all, 'detail'] as const,
+  detail: (id: string) => [...QUERY_KEYS.details(), id] as const,
+  search: (term: string) => [...QUERY_KEYS.all, 'search', term] as const,
+};
 
 export function useInventory() {
   const { toast } = useToast();
@@ -18,26 +25,25 @@ export function useInventory() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: QUERY_KEYS.inventory.lists(),
+    queryKey: QUERY_KEYS.lists(),
     queryFn: () => InventoryService.getAll(false), // Only show non-archived by default
   });
-
-  const showToast = useCallback((title: string, description: string, variant?: 'default' | 'destructive') => {
-    toast({ title, description, variant });
-  }, [toast]);
-
-  const invalidateQueries = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
-  }, [queryClient]);
 
   const createMutation = useMutation({
     mutationFn: InventoryService.create,
     onSuccess: () => {
-      invalidateQueries();
-      showToast("Item criado", "Item adicionado ao inventário com sucesso.");
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      toast({
+        title: "Item criado",
+        description: "Item adicionado ao inventário com sucesso.",
+      });
     },
     onError: (error: Error) => {
-      showToast("Erro ao criar item", error.message, "destructive");
+      toast({
+        title: "Erro ao criar item",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -45,7 +51,7 @@ export function useInventory() {
     mutationFn: ({ id, data }: { id: string; data: InventoryUpdate }) =>
       InventoryService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
       toast({
         title: "Item atualizado",
         description: "Informações do item atualizadas com sucesso.",
@@ -63,7 +69,7 @@ export function useInventory() {
   const deleteMutation = useMutation({
     mutationFn: InventoryService.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
       toast({
         title: "Item removido",
         description: "Item removido do inventário com sucesso.",
@@ -82,7 +88,7 @@ export function useInventory() {
     mutationFn: ({ id, status }: { id: string; status: Database['public']['Enums']['inventory_status'] }) =>
       InventoryService.updateStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
     },
     onError: (error: Error) => {
       toast({
@@ -114,7 +120,7 @@ export function useInventory() {
     },
   });
 
-  return useMemo(() => ({
+  return {
     // Data
     items,
     isLoading,
@@ -133,19 +139,12 @@ export function useInventory() {
     isDeleting: deleteMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
     isSearching: searchMutation.isPending,
-  }), [
-    items, isLoading, error,
-    createMutation.mutateAsync, createMutation.isPending,
-    updateMutation.mutateAsync, updateMutation.isPending,
-    deleteMutation.mutateAsync, deleteMutation.isPending,
-    updateStatusMutation.mutateAsync, updateStatusMutation.isPending,
-    searchMutation.mutateAsync, searchMutation.isPending
-  ]);
+  };
 }
 
 export function useInventoryItem(id: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.inventory.detail(id),
+    queryKey: QUERY_KEYS.detail(id),
     queryFn: () => InventoryService.getById(id),
     enabled: !!id,
   });
@@ -153,21 +152,21 @@ export function useInventoryItem(id: string) {
 
 export function useAvailableItems() {
   return useQuery({
-    queryKey: QUERY_KEYS.inventory.list({ filters: 'available' }),
+    queryKey: QUERY_KEYS.list('available'),
     queryFn: InventoryService.getAvailable,
   });
 }
 
 export function useLoanedItems() {
   return useQuery({
-    queryKey: QUERY_KEYS.inventory.list({ filters: 'loaned' }),
+    queryKey: QUERY_KEYS.list('loaned'),
     queryFn: InventoryService.getLoaned,
   });
 }
 
 export function useInventorySearch(searchTerm: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.inventory.search(searchTerm),
+    queryKey: QUERY_KEYS.search(searchTerm),
     queryFn: () => InventoryService.searchByIMEI(searchTerm, { includeArchived: false }),
     enabled: !!searchTerm.trim(),
   });

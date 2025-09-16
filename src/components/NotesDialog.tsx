@@ -49,10 +49,7 @@ export const NotesDialog = ({ item, onClose }: NotesDialogProps) => {
       return;
     }
 
-    addNote({
-      item_id: item.id,
-      note: newNote.trim()
-    });
+    addNote(newNote.trim());
   };
 
   return (

@@ -4,12 +4,10 @@ import type { Database } from '@/integrations/supabase/types';
 type AuditLog = Database['public']['Tables']['audit_logs']['Row'];
 type AuditLogInsert = Database['public']['Tables']['audit_logs']['Insert'];
 
-import type { AuditLogEntry } from '@/types/api';
-
 export class AuditService {
   static async logAction(
     action: string,
-    details?: Record<string, unknown>,
+    details?: any,
     tableName?: string,
     recordId?: string
   ): Promise<void> {

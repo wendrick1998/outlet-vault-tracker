@@ -1,16 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PermissionService } from '@/services/permissionService';
-import { useToast } from '@/hooks/use-toast';
-import { QUERY_KEYS } from '@/lib/query-keys';
+import { useToast } from '@/components/ui/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type GranularRole = Database['public']['Enums']['granular_role'];
 type Permission = Database['public']['Enums']['permission'];
 
+const QUERY_KEYS = {
+  permissions: ['permissions'] as const,
+  userPermissions: () => [...QUERY_KEYS.permissions, 'user'] as const,
+  userRoles: (userId: string) => [...QUERY_KEYS.permissions, 'roles', userId] as const,
+  rolePermissions: () => [...QUERY_KEYS.permissions, 'role-permissions'] as const,
+  rolePermission: (role: string) => [...QUERY_KEYS.permissions, 'role', role] as const,
+};
+
 // Hook to check if user has specific permission
 export function useHasPermission(permission: Permission) {
   return useQuery({
-    queryKey: QUERY_KEYS.permissions.list({ permission }),
+    queryKey: [...QUERY_KEYS.userPermissions(), permission],
     queryFn: () => PermissionService.hasPermission(permission),
     retry: false,
   });
@@ -19,7 +26,7 @@ export function useHasPermission(permission: Permission) {
 // Hook to get current user permissions
 export function useCurrentUserPermissions() {
   return useQuery({
-    queryKey: QUERY_KEYS.permissions.lists(),
+    queryKey: QUERY_KEYS.userPermissions(),
     queryFn: PermissionService.getCurrentUserPermissions,
   });
 }
@@ -34,7 +41,7 @@ export function useUserRoleAssignments(userId: string) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: QUERY_KEYS.permissions.detail(userId),
+    queryKey: QUERY_KEYS.userRoles(userId),
     queryFn: () => PermissionService.getUserRoleAssignments(userId),
     enabled: !!userId,
   });
@@ -50,8 +57,8 @@ export function useUserRoleAssignments(userId: string) {
       notes?: string;
     }) => PermissionService.assignUserRole(userId, role, expiresAt, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.permissions.detail(userId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.permissions.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userRoles(userId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPermissions() });
       toast({
         title: 'Papel atribuído',
         description: 'Papel foi atribuído ao usuário com sucesso.',
@@ -69,8 +76,8 @@ export function useUserRoleAssignments(userId: string) {
   const removeRoleMutation = useMutation({
     mutationFn: PermissionService.removeUserRole,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.permissions.detail(userId) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.permissions.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userRoles(userId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPermissions() });
       toast({
         title: 'Papel removido',
         description: 'Papel foi removido do usuário com sucesso.',
@@ -105,7 +112,7 @@ export function useRolePermissions() {
     data: rolePermissions = [],
     isLoading,
   } = useQuery({
-    queryKey: QUERY_KEYS.permissions.list({ type: 'role-permissions' }),
+    queryKey: QUERY_KEYS.rolePermissions(),
     queryFn: PermissionService.getRolePermissions,
   });
 
@@ -118,8 +125,8 @@ export function useRolePermissions() {
       permissions: Permission[];
     }) => PermissionService.updateRolePermissions(role, permissions),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.permissions.list({ type: 'role-permissions' }) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.permissions.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.rolePermissions() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.userPermissions() });
       toast({
         title: 'Permissões atualizadas',
         description: 'Permissões do papel foram atualizadas com sucesso.',
@@ -145,7 +152,7 @@ export function useRolePermissions() {
 // Hook to get permissions for specific role
 export function useRolePermission(role: GranularRole) {
   return useQuery({
-    queryKey: QUERY_KEYS.permissions.detail(`role-${role}`),
+    queryKey: QUERY_KEYS.rolePermission(role),
     queryFn: () => PermissionService.getPermissionsForRole(role),
     enabled: !!role,
   });

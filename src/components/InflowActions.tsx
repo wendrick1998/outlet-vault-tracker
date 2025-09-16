@@ -7,11 +7,11 @@ import { ArrowLeft, Package, CreditCard, AlertTriangle, Shield } from "lucide-re
 import type { Database } from "@/integrations/supabase/types";
 import { useLoans } from "@/hooks/useLoans";
 import { usePendingSales } from "@/hooks/usePendingSales";
+import { usePinProtection } from "@/hooks/usePinProtection";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PinConfirmationModal } from "@/components/PinConfirmationModal";
-import { PinService } from "@/services/pinService";
 import type { LoanWithDetails } from "@/services/loanService";
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
@@ -36,6 +36,12 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   const { createPendingSale, isCreating } = usePendingSales();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
+
+  // Verificar configuração do PIN ao montar componente
+  useEffect(() => {
+    checkPinConfiguration();
+  }, [checkPinConfiguration]);
 
   // Find the active loan for this item
   useEffect(() => {
@@ -78,34 +84,24 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
   const handleSubmit = async () => {
     if (!actionType || !activeLoan) return;
 
+    if (!hasPinConfigured) {
+      toast({
+        title: "PIN não configurado",
+        description: "Configure seu PIN operacional nas configurações do perfil antes de prosseguir.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (actionType === 'sold' && !saleNumber && !canFinishWithoutNumber) {
       // Mostrar opção de finalizar sem número
       setCanFinishWithoutNumber(true);
       return;
     }
 
-    // Sempre verificar PIN de forma fresca (sem cache)
-    try {
-      const pinConfigured = await PinService.hasPinConfigured();
-      if (pinConfigured) {
-        // Preparar ação e abrir modal de PIN
-        setPendingAction(actionType);
-        setShowPinModal(true);
-      } else {
-        toast({
-          title: "PIN não configurado",
-          description: "Configure seu PIN operacional nas configurações do perfil antes de prosseguir.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao verificar PIN:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao verificar configuração de PIN",
-        variant: "destructive",
-      });
-    }
+    // Preparar ação e abrir modal de PIN
+    setPendingAction(actionType);
+    setShowPinModal(true);
   };
 
   const executeAction = async () => {

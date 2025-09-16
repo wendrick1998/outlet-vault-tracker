@@ -4,10 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Upload, Trash2, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { OfflineQueueAction } from '@/types/api';
+
+interface QueuedAction {
+  id: string;
+  type: 'create_loan' | 'update_loan' | 'create_item' | 'update_item';
+  data: any;
+  timestamp: Date;
+  retries: number;
+  status: 'pending' | 'failed' | 'synced';
+}
 
 export const OfflineQueue: React.FC = () => {
-  const [queue, setQueue] = useState<OfflineQueueAction[]>([]);
+  const [queue, setQueue] = useState<QueuedAction[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -16,10 +24,10 @@ export const OfflineQueue: React.FC = () => {
     const storedQueue = localStorage.getItem('offline_queue');
     if (storedQueue) {
       try {
-        const parsedQueue = JSON.parse(storedQueue).map((item: Record<string, unknown>) => ({
+        const parsedQueue = JSON.parse(storedQueue).map((item: any) => ({
           ...item,
-          timestamp: new Date(item.timestamp as string)
-        })) as OfflineQueueAction[];
+          timestamp: new Date(item.timestamp)
+        }));
         setQueue(parsedQueue);
       } catch (error) {
         console.error('Error loading offline queue:', error);
@@ -37,8 +45,8 @@ export const OfflineQueue: React.FC = () => {
     return () => window.removeEventListener('online', handleOnline);
   }, []);
 
-  const addToQueue = (action: Omit<OfflineQueueAction, 'id' | 'timestamp' | 'retries' | 'status'>) => {
-    const newAction: OfflineQueueAction = {
+  const addToQueue = (action: Omit<QueuedAction, 'id' | 'timestamp' | 'retries' | 'status'>) => {
+    const newAction: QueuedAction = {
       ...action,
       id: crypto.randomUUID(),
       timestamp: new Date(),
@@ -97,7 +105,7 @@ export const OfflineQueue: React.FC = () => {
     setIsProcessing(false);
   };
 
-  const executeAction = async (action: OfflineQueueAction): Promise<void> => {
+  const executeAction = async (action: QueuedAction): Promise<void> => {
     // Simulate API call - in real implementation, this would call the actual API
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -122,7 +130,7 @@ export const OfflineQueue: React.FC = () => {
     localStorage.setItem('offline_queue', JSON.stringify(updatedQueue));
   };
 
-  const getActionLabel = (type: OfflineQueueAction['type']): string => {
+  const getActionLabel = (type: QueuedAction['type']): string => {
     switch (type) {
       case 'create_loan': return 'Criar empréstimo';
       case 'update_loan': return 'Atualizar empréstimo';
@@ -132,7 +140,7 @@ export const OfflineQueue: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: OfflineQueueAction['status']) => {
+  const getStatusBadge = (status: QueuedAction['status']) => {
     switch (status) {
       case 'pending':
         return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pendente</Badge>;

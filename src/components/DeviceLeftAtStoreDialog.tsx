@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useDevicesLeftAtStore } from "@/hooks/useDevicesLeftAtStore";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 interface DeviceLeftAtStoreDialogProps {
@@ -29,7 +29,7 @@ export const DeviceLeftAtStoreDialog = ({
   
   const { toast } = useToast();
   const { user } = useAuth();
-  const { createDeviceLeftAtStore, isCreating } = useDevicesLeftAtStore();
+  const { createDeviceLeft, isCreating } = useDevicesLeftAtStore();
 
   const resetForm = () => {
     setFormData({
@@ -55,7 +55,7 @@ export const DeviceLeftAtStoreDialog = ({
     const hasAnyData = formData.model.trim() || formData.imei.trim() || formData.reason.trim();
     
     try {
-      await createDeviceLeftAtStore({
+      await createDeviceLeft({
         loan_id: loanId,
         model: formData.model.trim() || null,
         imei: formData.imei.trim() || null,

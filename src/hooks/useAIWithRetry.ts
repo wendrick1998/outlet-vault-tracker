@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import * as React from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 export interface AIAction {
@@ -255,7 +255,7 @@ export function useAIWithRetry() {
     });
   };
 
-  const getSuggestions = async (actionType: string, itemData: Record<string, unknown>, formData: Record<string, unknown>, context?: string): Promise<AIResponse> => {
+  const getSuggestions = async (actionType: string, itemData: any, formData: any, context?: string) => {
     return executeAIAction({
       type: 'suggest',
       data: { action: actionType, itemData, formData },
@@ -277,7 +277,7 @@ export function useAIWithRetry() {
     });
   };
 
-  const validateLoan = async (itemData: Record<string, unknown>, formData: Record<string, unknown>, context?: string): Promise<AIResponse> => {
+  const validateLoan = async (itemData: any, formData: any, context?: string) => {
     return executeAIAction({
       type: 'validate',
       data: { itemData, formData },

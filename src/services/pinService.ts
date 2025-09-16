@@ -1,14 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Error interface for Supabase errors
-interface SupabaseError {
-  message?: string;
-  details?: string;
-  hint?: string;
-  code?: string;
-  stack?: string;
-}
-
 export interface PinValidationResult {
   valid: boolean;
   blocked?: boolean;
@@ -33,7 +24,7 @@ export class PinService {
         throw new Error('Usuário não autenticado');
       }
 
-      
+      console.log('PIN Setup: Iniciando configuração para usuário:', user.user.id);
 
       const { data, error } = await supabase.rpc('set_operation_pin', {
         user_id: user.user.id,
@@ -50,31 +41,30 @@ export class PinService {
         throw error;
       }
 
-      
+      console.log('PIN Setup Success:', data);
       return data as unknown as PinSetupResult;
-    } catch (error: unknown) {
-      const supabaseError = error as SupabaseError;
+    } catch (error: any) {
       console.error('PIN Setup Complete Error:', {
-        message: supabaseError.message,
-        details: supabaseError.details,
-        hint: supabaseError.hint,
-        code: supabaseError.code,
-        stack: supabaseError.stack
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        stack: error.stack
       });
       
       // Retornar erro mais específico baseado no tipo
       let errorMessage = 'Erro interno ao configurar PIN.';
       
-      if (supabaseError.message?.includes('PIN deve conter')) {
-        errorMessage = supabaseError.message;
-      } else if (supabaseError.message?.includes('PIN muito simples')) {
-        errorMessage = supabaseError.message;
-      } else if (supabaseError.message?.includes('Usuário não encontrado')) {
+      if (error.message?.includes('PIN deve conter')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('PIN muito simples')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('Usuário não encontrado')) {
         errorMessage = 'Usuário não encontrado ou inativo.';
-      } else if (supabaseError.message?.includes('Erro na criptografia')) {
+      } else if (error.message?.includes('Erro na criptografia')) {
         errorMessage = 'Erro na criptografia do PIN. Contate o administrador.';
-      } else if (supabaseError.details) {
-        errorMessage = `Erro no banco de dados: ${supabaseError.details}`;
+      } else if (error.details) {
+        errorMessage = `Erro no banco de dados: ${error.details}`;
       }
 
       return {
@@ -95,7 +85,7 @@ export class PinService {
         throw new Error('Usuário não autenticado');
       }
 
-      
+      console.log('PIN Validation: Iniciando validação para usuário:', user.user.id);
 
       const { data, error } = await supabase.rpc('validate_operation_pin', {
         user_id: user.user.id,
@@ -112,27 +102,26 @@ export class PinService {
         throw error;
       }
 
-      
+      console.log('PIN Validation Success:', data);
       return data as unknown as PinValidationResult;
-    } catch (error: unknown) {
-      const supabaseError = error as SupabaseError;
+    } catch (error: any) {
       console.error('PIN Validation Complete Error:', {
-        message: supabaseError.message,
-        details: supabaseError.details,
-        hint: supabaseError.hint,
-        code: supabaseError.code,
-        stack: supabaseError.stack
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        stack: error.stack
       });
 
       // Retornar erro mais específico
       let errorMessage = 'Erro interno ao validar PIN.';
       
-      if (supabaseError.message?.includes('bloqueado')) {
-        errorMessage = supabaseError.message;
-      } else if (supabaseError.message?.includes('não foi configurado')) {
+      if (error.message?.includes('bloqueado')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('não foi configurado')) {
         errorMessage = 'PIN operacional não foi configurado.';
-      } else if (supabaseError.details) {
-        errorMessage = `Erro no banco de dados: ${supabaseError.details}`;
+      } else if (error.details) {
+        errorMessage = `Erro no banco de dados: ${error.details}`;
       }
 
       return {

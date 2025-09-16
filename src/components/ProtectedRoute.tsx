@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loading } from '@/components/ui/loading';
-import Auth from '@/pages/Auth';
+import { Auth } from '@/pages/Auth';
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 
 interface ProtectedRouteProps {
@@ -18,7 +18,7 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
   }
 
   if (!isAuthenticated) {
-    return fallback || <Auth />;
+    return fallback || <Auth onLoginSuccess={() => {}} />;
   }
 
   // Show change password dialog if user must change password

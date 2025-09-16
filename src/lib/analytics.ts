@@ -1,7 +1,7 @@
 // Enhanced analytics system
 export interface AnalyticsEvent {
   name: string;
-  properties?: Record<string, unknown>;
+  properties?: Record<string, any>;
   timestamp?: number;
   userId?: string;
   sessionId?: string;
@@ -75,7 +75,7 @@ class Analytics {
     }, 10000);
   }
 
-  public track(eventName: string, properties?: Record<string, unknown>) {
+  public track(eventName: string, properties?: Record<string, any>) {
     const event: AnalyticsEvent = {
       name: eventName,
       properties: {
@@ -107,7 +107,7 @@ class Analytics {
     });
   }
 
-  public trackError(error: Error, context?: Record<string, unknown>) {
+  public trackError(error: Error, context?: Record<string, any>) {
     this.track('error', {
       message: error.message,
       stack: error.stack,
@@ -116,7 +116,7 @@ class Analytics {
     });
   }
 
-  public trackUserAction(action: string, target?: string, value?: Record<string, unknown>) {
+  public trackUserAction(action: string, target?: string, value?: any) {
     this.track('user_action', {
       action,
       target,

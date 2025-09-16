@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { AlertTriangle, TrendingUp, Clock, Target, Brain, RefreshCw } from 'lucide-react';
 import { Loading } from '@/components/ui/loading';
 

@@ -17,12 +17,10 @@ interface SearchFilters {
   dateTo: string;
 }
 
-import type { AdvancedSearchFilters } from '@/types/api';
-
 interface AdvancedSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSearch: (filters: AdvancedSearchFilters) => void;
+  onSearch: (filters: any) => void;
   includeArchived: boolean;
 }
 
