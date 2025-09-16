@@ -1350,6 +1350,7 @@ export type Database = {
           created_by: string | null
           id: string
           imei: string
+          inventory_id: string | null
           is_featured: boolean | null
           last_viewed_at: string | null
           location: Database["public"]["Enums"]["stock_location"]
@@ -1378,6 +1379,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           imei: string
+          inventory_id?: string | null
           is_featured?: boolean | null
           last_viewed_at?: string | null
           location?: Database["public"]["Enums"]["stock_location"]
@@ -1406,6 +1408,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           imei?: string
+          inventory_id?: string | null
           is_featured?: boolean | null
           last_viewed_at?: string | null
           location?: Database["public"]["Enums"]["stock_location"]
@@ -1428,6 +1431,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
             referencedColumns: ["id"]
           },
         ]
