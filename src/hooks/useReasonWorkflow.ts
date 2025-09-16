@@ -209,7 +209,7 @@ export function useWorkflowExecution() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pendingApprovals() });
       toast({
         title: 'Workflow executado',
-        description: `${result.steps_executed} passos executados. ${result.approvals_required?.length || 0} aprovações necessárias.`,
+        description: `${(result as any).steps_executed || 0} passos executados. ${Array.isArray((result as any).approvals_required) ? (result as any).approvals_required.length : 0} aprovações necessárias.`,
       });
     },
     onError: (error: Error) => {
