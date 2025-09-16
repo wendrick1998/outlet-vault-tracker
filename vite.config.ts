@@ -25,17 +25,43 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            // Core libraries - keep small and essential
+            if (id.includes('react/') || id.includes('react-dom/')) return 'react';
             if (id.includes('@tanstack/react-query')) return 'query';
             if (id.includes('@supabase')) return 'supabase';
-            if (id.includes('@radix-ui')) return 'ui';
-            if (id.includes('react-router')) return 'router';
+            
+            // UI libraries - group by functionality
+            if (id.includes('@radix-ui')) return 'radix-ui';
+            if (id.includes('lucide-react')) return 'icons';
             if (id.includes('recharts')) return 'charts';
-            if (id.includes('react') || id.includes('react-dom')) return 'vendor';
+            
+            // Router and navigation
+            if (id.includes('react-router')) return 'router';
+            
+            // Form libraries
+            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) return 'forms';
+            
+            // Utilities and smaller libs
+            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) return 'utils';
+            
+            // Date libraries
+            if (id.includes('date-fns')) return 'date';
+            
+            // Large utility libraries
+            if (id.includes('xlsx') || id.includes('papaparse')) return 'data-processing';
+            
+            // Everything else goes to vendor
             return 'vendor';
           }
-          if (id.includes('src/components/ui')) return 'ui-components';
-          if (id.includes('src/hooks')) return 'hooks';
-          if (id.includes('src/services')) return 'services';
+          
+          // Application code splitting by feature
+          if (id.includes('src/components/ui/')) return 'ui-components';
+          if (id.includes('src/components/optimized/')) return 'optimized-components';
+          if (id.includes('src/hooks/')) return 'hooks';
+          if (id.includes('src/services/')) return 'services';
+          if (id.includes('src/pages/admin/')) return 'admin';
+          if (id.includes('src/pages/')) return 'pages';
+          if (id.includes('src/lib/')) return 'lib';
         },
         chunkFileNames: (chunkInfo) => {
           // More stable chunk naming to prevent 404s

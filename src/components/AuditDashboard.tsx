@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuditLogs, useAuditStats } from '@/hooks/useAuditLogs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Database } from '@/integrations/supabase/types';
+import type { AuditDetails } from '@/types/api';
 
 type AuditLog = Database['public']['Tables']['audit_logs']['Row'];
 import { Badge } from '@/components/ui/badge';
@@ -70,7 +71,7 @@ export const AuditDashboard = () => {
     return labels[action] || action;
   };
 
-  const formatDetails = (details: any): React.ReactNode => {
+  const formatDetails = (details: unknown): React.ReactNode => {
     if (!details) return null;
     
     try {

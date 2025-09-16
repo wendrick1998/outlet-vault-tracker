@@ -7,44 +7,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Brain, Users, UserCheck, Calendar, Zap, TrendingUp } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import type { SmartFormData, SmartSuggestion, SmartValidation } from '@/types/api';
 
 type InventoryItem = Database['public']['Tables']['inventory']['Row'];
-type Customer = Database['public']['Tables']['customers']['Row'];
-type Seller = Database['public']['Tables']['sellers']['Row'];
 
 interface SmartFormHelperProps {
   item?: InventoryItem;
-  formData?: any;
-  onSuggestionApply?: (field: string, value: any) => void;
+  formData?: SmartFormData;
+  onSuggestionApply?: (field: string, value: unknown) => void;
   context?: string;
 }
 
-interface SmartSuggestion {
-  id: string;
-  name: string;
-  reason: string;
-  confidence: number;
-  riskLevel: 'low' | 'medium' | 'high';
-}
-
-interface SmartAction {
-  suggestions?: SmartSuggestion[];
-  isValid?: boolean;
-  confidence?: number;
-  risks?: string[];
-  recommendations?: string[];
-  filledFields?: Record<string, any>;
-  suggestedDate?: string;
-  reasoning?: string;
-  alternatives?: Array<{date: string, reason: string}>;
-}
 
 export function SmartFormHelper({ item, formData, onSuggestionApply, context }: SmartFormHelperProps) {
   const [suggestions, setSuggestions] = useState<{
     customers: SmartSuggestion[];
     sellers: SmartSuggestion[];
     returnDate: string | null;
-    validation: SmartAction | null;
+    validation: SmartValidation | null;
   }>({
     customers: [],
     sellers: [],
@@ -52,7 +32,7 @@ export function SmartFormHelper({ item, formData, onSuggestionApply, context }: 
     validation: null
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [autoFillFields, setAutoFillFields] = useState<Record<string, any>>({});
+  const [autoFillFields, setAutoFillFields] = useState<Record<string, unknown>>({});
   const { user } = useAuth();
   const { toast } = useToast();
 
