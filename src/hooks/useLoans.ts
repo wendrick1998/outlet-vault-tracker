@@ -1,18 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LoanService, type LoanWithDetails } from '@/services/loanService';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { QUERY_KEYS } from '@/lib/query-keys';
+import { handleError, handleSuccess } from '@/lib/error-handler';
 import type { Database } from '@/integrations/supabase/types';
 
 type LoanInsert = Database['public']['Tables']['loans']['Insert'];
 type LoanUpdate = Database['public']['Tables']['loans']['Update'];
-
-const QUERY_KEYS = {
-  all: ['loans'] as const,
-  lists: () => [...QUERY_KEYS.all, 'list'] as const,
-  list: (filters: string) => [...QUERY_KEYS.lists(), filters] as const,
-  details: () => [...QUERY_KEYS.all, 'detail'] as const,
-  detail: (id: string) => [...QUERY_KEYS.details(), id] as const,
-};
 
 export function useLoans() {
   const { toast } = useToast();
@@ -23,27 +17,27 @@ export function useLoans() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: QUERY_KEYS.lists(),
+    queryKey: QUERY_KEYS.loans.lists(),
     queryFn: LoanService.getAll,
   });
 
   const createMutation = useMutation({
     mutationFn: LoanService.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.loans.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Empréstimo criado",
         description: "Empréstimo registrado com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao criar empréstimo",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao criar empréstimo",
+        source: 'loans'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -51,20 +45,20 @@ export function useLoans() {
     mutationFn: ({ id, data }: { id: string; data: LoanUpdate }) =>
       LoanService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.loans.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Empréstimo atualizado",
         description: "Informações do empréstimo atualizadas com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao atualizar empréstimo",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao atualizar empréstimo",
+        source: 'loans'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -72,20 +66,20 @@ export function useLoans() {
     mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
       LoanService.returnLoan(id, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.loans.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Item devolvido",
         description: "Item devolvido com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao devolver item",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao devolver item",
+        source: 'loans'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -93,18 +87,18 @@ export function useLoans() {
     mutationFn: ({ id, newDueDate, notes }: { id: string; newDueDate: Date; notes?: string }) =>
       LoanService.extendLoan(id, newDueDate, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.loans.all });
       toast({
         title: "Empréstimo estendido",
         description: "Prazo do empréstimo estendido com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao estender empréstimo",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao estender empréstimo",
+        source: 'loans'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -112,20 +106,20 @@ export function useLoans() {
     mutationFn: ({ id, saleNumber, notes }: { id: string; saleNumber?: string; notes?: string }) =>
       LoanService.sellLoan(id, saleNumber, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.loans.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Venda registrada",
         description: "O item foi marcado como vendido definitivamente.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao registrar venda",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao registrar venda",
+        source: 'loans'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -153,7 +147,7 @@ export function useLoans() {
 
 export function useLoan(id: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.detail(id),
+    queryKey: QUERY_KEYS.loans.detail(id),
     queryFn: () => LoanService.getById(id),
     enabled: !!id,
   });
@@ -161,21 +155,21 @@ export function useLoan(id: string) {
 
 export function useActiveLoans() {
   return useQuery({
-    queryKey: QUERY_KEYS.list('active'),
+    queryKey: QUERY_KEYS.loans.list({ filters: 'active' }),
     queryFn: LoanService.getActive,
   });
 }
 
 export function useOverdueLoans() {
   return useQuery({
-    queryKey: QUERY_KEYS.list('overdue'),
+    queryKey: QUERY_KEYS.loans.list({ filters: 'overdue' }),
     queryFn: LoanService.getOverdue,
   });
 }
 
 export function useLoanHistory(limit = 50) {
   return useQuery({
-    queryKey: QUERY_KEYS.list(`history-${limit}`),
+    queryKey: QUERY_KEYS.loans.list({ filters: `history-${limit}` }),
     queryFn: () => LoanService.getHistory(limit),
   });
 }

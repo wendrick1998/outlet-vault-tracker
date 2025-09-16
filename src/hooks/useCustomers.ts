@@ -1,20 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CustomerService, type SecureCustomer } from '@/services/customerService';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { QUERY_KEYS } from '@/lib/query-keys';
+import { handleError, handleSuccess } from '@/lib/error-handler';
 import type { Database } from '@/integrations/supabase/types';
 
 type Customer = Database['public']['Tables']['customers']['Row'];
 type CustomerInsert = Database['public']['Tables']['customers']['Insert'];
 type CustomerUpdate = Database['public']['Tables']['customers']['Update'];
-
-const QUERY_KEYS = {
-  all: ['customers'] as const,
-  lists: () => [...QUERY_KEYS.all, 'list'] as const,
-  list: (filters: string) => [...QUERY_KEYS.lists(), filters] as const,
-  details: () => [...QUERY_KEYS.all, 'detail'] as const,
-  detail: (id: string) => [...QUERY_KEYS.details(), id] as const,
-  search: (term: string, type: string) => [...QUERY_KEYS.all, 'search', type, term] as const,
-};
 
 export function useCustomers() {
   const { toast } = useToast();
@@ -25,26 +18,26 @@ export function useCustomers() {
     isLoading,
     error,
   } = useQuery<SecureCustomer[]>({
-    queryKey: QUERY_KEYS.lists(),
+    queryKey: QUERY_KEYS.customers.lists(),
     queryFn: CustomerService.getAll,
   });
 
   const createMutation = useMutation({
     mutationFn: CustomerService.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Cliente criado",
         description: "Cliente adicionado com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao criar cliente",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao criar cliente",
+        source: 'customers'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -52,84 +45,84 @@ export function useCustomers() {
     mutationFn: ({ id, data }: { id: string; data: CustomerUpdate }) =>
       CustomerService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Cliente atualizado",
         description: "Informações do cliente atualizadas com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao atualizar cliente",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao atualizar cliente",
+        source: 'customers'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: CustomerService.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Cliente removido",
         description: "Cliente removido com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao remover cliente",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao remover cliente",
+        source: 'customers'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: CustomerService.register,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Cliente registrado",
         description: "Cliente registrado com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao registrar cliente",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao registrar cliente",
+        source: 'customers'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
   const unregisterMutation = useMutation({
     mutationFn: CustomerService.unregister,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       toast({
         title: "Registro removido",
         description: "Registro do cliente removido com sucesso.",
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao remover registro",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao remover registro",
+        source: 'customers'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
   const clearTestDataMutation = useMutation({
     mutationFn: CustomerService.clearTestData,
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.customers.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.stats.all });
       
       let message = `${result.deleted} clientes removidos`;
       if (result.skipped > 0) {
@@ -142,11 +135,11 @@ export function useCustomers() {
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Erro ao limpar dados de teste",
-        description: error.message,
-        variant: "destructive",
+      const errorConfig = handleError(error, {
+        toastTitle: "Erro ao limpar dados de teste",
+        source: 'customers'
       });
+      if (errorConfig) toast(errorConfig);
     },
   });
 
@@ -176,7 +169,7 @@ export function useCustomers() {
 
 export function useCustomer(id: string) {
   return useQuery({
-    queryKey: QUERY_KEYS.detail(id),
+    queryKey: QUERY_KEYS.customers.detail(id),
     queryFn: () => CustomerService.getById(id),
     enabled: !!id,
   });
@@ -184,14 +177,14 @@ export function useCustomer(id: string) {
 
 export function useRegisteredCustomers() {
   return useQuery({
-    queryKey: QUERY_KEYS.list('registered'),
+    queryKey: QUERY_KEYS.customers.list({ filters: 'registered' }),
     queryFn: CustomerService.getRegistered,
   });
 }
 
 export function useCustomerSearch(searchTerm: string, searchType: 'name' | 'email' | 'phone' = 'name') {
   return useQuery({
-    queryKey: QUERY_KEYS.search(searchTerm, searchType),
+    queryKey: QUERY_KEYS.customers.search(searchTerm + searchType),
     queryFn: () => {
       switch (searchType) {
         case 'email':
