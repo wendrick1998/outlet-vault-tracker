@@ -1,80 +1,48 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { SecureCustomerService } from './secureCustomerService';
 
 type Customer = Database['public']['Tables']['customers']['Row'];
 type CustomerInsert = Database['public']['Tables']['customers']['Insert'];
 type CustomerUpdate = Database['public']['Tables']['customers']['Update'];
 
 export class CustomerService {
+  // Secure methods - use SecureCustomerService for data access with proper security controls
   static async getAll(): Promise<Customer[]> {
-    // Use secure function that masks sensitive data based on user role
-    const { data, error } = await supabase.rpc('get_customers_secure');
-
-    if (error) throw error;
-    
-    // Convert JSONB array to Customer objects
-    return (data || []).map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      email: item.email,
-      phone: item.phone,
-      cpf: item.cpf,
-      address: item.address,
-      notes: item.notes,
-      is_registered: item.is_registered,
-      loan_limit: item.loan_limit,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      pending_data: item.pending_data
-    }));
+    return SecureCustomerService.getAll('general_view');
   }
 
   static async getRegistered(): Promise<Customer[]> {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('is_registered', true)
-      .order('name', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
+    return SecureCustomerService.getRegistered();
   }
 
   static async getById(id: string): Promise<Customer | null> {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data;
+    return SecureCustomerService.getById(id, 'general_view');
   }
 
   static async searchByName(name: string): Promise<Customer[]> {
-    // Get all customers securely first, then filter by name
-    const allCustomers = await this.getAll();
-    return allCustomers.filter(customer => 
-      customer.name.toLowerCase().includes(name.toLowerCase())
-    );
+    return SecureCustomerService.searchByName(name);
   }
 
   static async searchByEmail(email: string): Promise<Customer[]> {
-    // Get all customers securely first, then filter by email (if user has access)
-    const allCustomers = await this.getAll();
-    return allCustomers.filter(customer => 
-      customer.email && customer.email.toLowerCase().includes(email.toLowerCase())
-    );
+    return SecureCustomerService.searchByEmail(email);
   }
 
   static async searchByPhone(phone: string): Promise<Customer[]> {
-    // Get all customers securely first, then filter by phone (if user has access)
-    const allCustomers = await this.getAll();
-    return allCustomers.filter(customer => 
-      customer.phone && customer.phone.includes(phone)
-    );
+    return SecureCustomerService.searchByPhone(phone);
   }
 
+  // Method to get customer data specifically for loan processing
+  static async getForLoanProcessing(id: string): Promise<Customer | null> {
+    return SecureCustomerService.getForLoan(id);
+  }
+
+  // Method to get customer data for administrative purposes (full access, heavily audited)
+  static async getForAdministration(id: string): Promise<Customer | null> {
+    return SecureCustomerService.getForAdmin(id);
+  }
+
+  // Administrative operations - these require admin/manager permissions and are audited
   static async create(customer: CustomerInsert): Promise<Customer> {
     const { data, error } = await supabase
       .from('customers')
@@ -83,6 +51,18 @@ export class CustomerService {
       .single();
 
     if (error) throw error;
+    
+    // Log customer creation
+    await supabase.rpc('log_audit_event', {
+      p_action: 'customer_created',
+      p_details: {
+        customer_id: data.id,
+        has_sensitive_data: !!(customer.email || customer.phone || customer.cpf)
+      },
+      p_table_name: 'customers',
+      p_record_id: data.id
+    });
+    
     return data;
   }
 
@@ -95,6 +75,19 @@ export class CustomerService {
       .single();
 
     if (error) throw error;
+    
+    // Log customer update
+    await supabase.rpc('log_audit_event', {
+      p_action: 'customer_updated',
+      p_details: {
+        customer_id: id,
+        updated_fields: Object.keys(customer),
+        has_sensitive_updates: !!(customer.email || customer.phone || customer.cpf || customer.address)
+      },
+      p_table_name: 'customers',
+      p_record_id: id
+    });
+    
     return data;
   }
 
@@ -105,6 +98,16 @@ export class CustomerService {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Log customer deletion
+    await supabase.rpc('log_audit_event', {
+      p_action: 'customer_deleted',
+      p_details: {
+        customer_id: id
+      },
+      p_table_name: 'customers',
+      p_record_id: id
+    });
   }
 
   static async register(id: string): Promise<Customer> {
