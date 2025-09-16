@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { useAI } from '@/hooks/useAI';
+import { useAIWithRetry } from '@/hooks/useAIWithRetry';
 import { isPreview } from '@/lib/environment';
 import { 
   TrendingUp, 
@@ -47,7 +47,7 @@ export function StockIntelligence({ className }: StockIntelligenceProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [retryAfter, setRetryAfter] = useState<number>(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
-  const { executeAIAction, isLoading } = useAI();
+  const { executeAIAction, isLoading } = useAIWithRetry();
   const { toast } = useToast();
 
   const loadStockAnalysis = async (analysisType = 'stock_analysis') => {

@@ -1,6 +1,27 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { useVirtualScroll } from '@/hooks/usePerformance';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+// Inline virtual scroll hook
+function useVirtualScroll(itemCount: number, itemHeight: number, containerHeight: number) {
+  const [scrollTop, setScrollTop] = useState(0);
+
+  const visibleStart = Math.floor(scrollTop / itemHeight);
+  const visibleEnd = Math.min(
+    itemCount - 1,
+    Math.floor((scrollTop + containerHeight) / itemHeight)
+  );
+
+  const totalHeight = itemCount * itemHeight;
+  const offsetY = visibleStart * itemHeight;
+
+  return {
+    visibleStart,
+    visibleEnd,
+    totalHeight,
+    offsetY,
+    setScrollTop,
+  };
+}
 
 interface Column<T> {
   key: keyof T;

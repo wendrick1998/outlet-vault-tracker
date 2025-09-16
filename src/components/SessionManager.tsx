@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { SessionService } from '@/services/sessionService';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SessionData {
   id: string;

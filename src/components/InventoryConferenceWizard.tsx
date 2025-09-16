@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useInventoryAudit } from '@/hooks/useInventoryAudit';
 import { InventoryAuditService } from '@/services/inventoryAuditService';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Search, MapPin, Filter, Package } from 'lucide-react';
 
 interface WizardProps {

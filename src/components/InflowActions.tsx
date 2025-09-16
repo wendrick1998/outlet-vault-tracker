@@ -8,7 +8,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useLoans } from "@/hooks/useLoans";
 import { usePendingSales } from "@/hooks/usePendingSales";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PinConfirmationModal } from "@/components/PinConfirmationModal";
 import { PinService } from "@/services/pinService";

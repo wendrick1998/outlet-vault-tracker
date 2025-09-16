@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Brain, Users, UserCheck, Calendar, Zap, TrendingUp } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import type { SmartFormData, SmartSuggestion, SmartValidation } from '@/types/api';

@@ -15,7 +15,7 @@ import { useLoans } from "@/hooks/useLoans";
 import { usePendingLoans } from "@/hooks/usePendingLoans";
 import { useDevicesLeftAtStore } from "@/hooks/useDevicesLeftAtStore";
 import { useHasPermission } from "@/hooks/usePermissions";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SmartFormHelper } from "@/components/SmartFormHelper";

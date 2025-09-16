@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable, ResponsiveTableHeader, ResponsiveTableBody, ResponsiveTableRow } from "@/components/ui/responsive-table";
-import { TableRowSkeleton } from "@/components/ui/loading-skeletons";
+import { LoadingSkeleton } from "@/components/ui/loading-system";
+
+// Create table skeleton wrapper for backward compatibility
+const TableRowSkeleton = () => <LoadingSkeleton variant="table" rows={3} />;
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
