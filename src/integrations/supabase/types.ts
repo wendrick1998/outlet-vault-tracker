@@ -1601,6 +1601,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      correct_loan_transaction: {
+        Args: {
+          p_correct_status: Database["public"]["Enums"]["loan_status"]
+          p_correction_reason: string
+          p_loan_id: string
+        }
+        Returns: Json
+      }
       current_user_has_permission: {
         Args: { required_permission: Database["public"]["Enums"]["permission"] }
         Returns: boolean

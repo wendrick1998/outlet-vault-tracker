@@ -176,4 +176,15 @@ export class LoanService {
     if (error) throw error;
     return data || [];
   }
+
+  static async correctTransaction(loanId: string, correctStatus: 'active' | 'returned' | 'sold' | 'overdue', reason: string) {
+    const { data, error } = await supabase.rpc('correct_loan_transaction', {
+      p_loan_id: loanId,
+      p_correct_status: correctStatus,
+      p_correction_reason: reason
+    });
+
+    if (error) throw error;
+    return data;
+  }
 }

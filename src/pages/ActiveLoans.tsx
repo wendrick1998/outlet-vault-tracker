@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, AlertTriangle, User, Tag, Search, Filter, ShoppingCart } from "lucide-react";
+import { Clock, AlertTriangle, User, Tag, Search, Filter, ShoppingCart, Edit } from "lucide-react";
 import { useActiveLoans, useLoans } from "@/hooks/useLoans";
 import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
 import { useToast } from "@/hooks/use-toast";
+import { LoanCorrectionModal } from "@/components/LoanCorrectionModal";
 import type { Database } from "@/integrations/supabase/types";
 
 interface ActiveLoansProps {
@@ -39,6 +40,10 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   
   // Loading states for individual actions
   const [loadingStates, setLoadingStates] = useState<{[key: string]: { returning: boolean; selling: boolean }}>({});
+  
+  // Correction modal state
+  const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
+  const [selectedLoanForCorrection, setSelectedLoanForCorrection] = useState<LoanWithDetails | null>(null);
 
   // Filtered loans
   const filteredLoans = useMemo(() => {
@@ -130,6 +135,11 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
     }
   };
 
+  const handleCorrection = (loan: LoanWithDetails) => {
+    setSelectedLoanForCorrection(loan);
+    setCorrectionModalOpen(true);
+  };
+
   const renderLoanCard = (loan: LoanWithDetails) => {
     const item = loan.inventory;
     const reason = loan.reason;
@@ -215,7 +225,7 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 pt-2">
             <Button
               onClick={() => handleReturn(loan.id)}
               disabled={loadingStates[loan.id]?.returning || loadingStates[loan.id]?.selling}
@@ -230,6 +240,14 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
               {loadingStates[loan.id]?.selling ? "Vendendo..." : "Vendido"}
+            </Button>
+            <Button
+              onClick={() => handleCorrection(loan)}
+              disabled={loadingStates[loan.id]?.returning || loadingStates[loan.id]?.selling}
+              variant="outline"
+              size="sm"
+            >
+              <Edit className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -363,6 +381,16 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
             {filteredLoans.map(renderLoanCard)}
           </div>
         )}
+
+        {/* Correction Modal */}
+        <LoanCorrectionModal
+          isOpen={correctionModalOpen}
+          onClose={() => {
+            setCorrectionModalOpen(false);
+            setSelectedLoanForCorrection(null);
+          }}
+          loan={selectedLoanForCorrection}
+        />
       </main>
     </div>
   );
