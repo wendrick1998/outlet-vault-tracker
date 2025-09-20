@@ -16,6 +16,7 @@ import { StockScanner } from "./StockScanner";
 import { StockConferenceWorkflow } from "./StockConferenceWorkflow";
 import { StockReports } from "./StockReports";
 import { StockAnalyticsDashboard } from "./StockAnalyticsDashboard";
+import { BatchStockImporter } from "./BatchStockImporter";
 import { useStock, useStockStats, useStockConferences } from "@/hooks/useStock";
 import { useLabels } from "@/hooks/useCatalogs";
 import { ArrowLeft, Plus, Search, Scan, Package, Store, ShoppingCart, AlertCircle, TrendingUp, BarChart3, RefreshCw, CheckCircle2, X } from "lucide-react";
@@ -198,11 +199,12 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
 
       {/* Main Content */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="items">Itens</TabsTrigger>
           <TabsTrigger value="search">Buscar</TabsTrigger>
+          <TabsTrigger value="import">Importar</TabsTrigger>
           <TabsTrigger value="scanner">Scanner</TabsTrigger>
           <TabsTrigger value="conferences">Conferências</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
@@ -334,6 +336,10 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
 
         <TabsContent value="search">
           <StockSearch />
+        </TabsContent>
+
+        <TabsContent value="import">
+          <BatchStockImporter />
         </TabsContent>
 
         <TabsContent value="scanner" className="space-y-6">
