@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ReactQueryProvider } from "@/lib/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LazyErrorBoundary } from "@/components/ui/lazy-error-boundary";
 import { Header } from "@/components/Header";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -28,7 +29,7 @@ import NotFound from "./pages/NotFound";
 const LazyActiveLoans = lazy(() => import('./pages/ActiveLoans').then(m => ({ default: m.ActiveLoans })));
 const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m.History })));
 const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
-const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate'));
+const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate').then(m => ({ default: m.default })));
 const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow'));
 
 type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference' | 'conference-report' | 'stock' | 'system-monitoring' | 'historical-audits';
@@ -147,11 +148,13 @@ const AppContent = () => {
         path="/search-and-operate" 
         element={
           <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazySearchAndOperate onBack={() => navigate('/')} />
-            </Suspense>
+            <LazyErrorBoundary>
+              <Suspense fallback={<Loading />}>
+                <LazySearchAndOperate onBack={() => navigate('/')} />
+              </Suspense>
+            </LazyErrorBoundary>
           </AppLayout>
-        } 
+        }
       />
       <Route 
         path="/active-loans" 

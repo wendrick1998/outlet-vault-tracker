@@ -38,15 +38,21 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('src/services')) return 'services';
         },
         chunkFileNames: (chunkInfo) => {
-          // More stable chunk naming to prevent 404s
+          // Stable naming strategy to prevent 404s
           if (chunkInfo.name && chunkInfo.name !== 'index') {
-            return `assets/${chunkInfo.name}-[hash].js`;
+            return `assets/[name]-[hash].js`;
           }
           
-          const facadeModuleId = chunkInfo.facadeModuleId 
-            ? chunkInfo.facadeModuleId.split('/').pop()?.replace('.tsx', '').replace('.ts', '') || 'chunk'
-            : 'chunk';
-          return `assets/${facadeModuleId}-[hash].js`;
+          // Use module ID for consistent naming
+          if (chunkInfo.facadeModuleId) {
+            const moduleName = chunkInfo.facadeModuleId
+              .split('/')
+              .pop()
+              ?.replace(/\.(tsx?|jsx?)$/, '') || 'chunk';
+            return `assets/${moduleName}-[hash].js`;
+          }
+          
+          return `assets/chunk-[hash].js`;
         },
         assetFileNames: 'assets/[name]-[hash].[ext]'
       },
