@@ -356,6 +356,7 @@ export type Database = {
           created_at: string
           id: string
           imei: string
+          imei_normalized: string | null
           import_batch_id: string | null
           import_confidence: number | null
           is_archived: boolean
@@ -379,6 +380,7 @@ export type Database = {
           created_at?: string
           id?: string
           imei: string
+          imei_normalized?: string | null
           import_batch_id?: string | null
           import_confidence?: number | null
           is_archived?: boolean
@@ -402,6 +404,7 @@ export type Database = {
           created_at?: string
           id?: string
           imei?: string
+          imei_normalized?: string | null
           import_batch_id?: string | null
           import_confidence?: number | null
           is_archived?: boolean
@@ -487,6 +490,7 @@ export type Database = {
       inventory_audit_scans: {
         Row: {
           audit_id: string
+          code_normalized: string | null
           created_at: string
           id: string
           imei: string | null
@@ -498,6 +502,7 @@ export type Database = {
         }
         Insert: {
           audit_id: string
+          code_normalized?: string | null
           created_at?: string
           id?: string
           imei?: string | null
@@ -509,6 +514,7 @@ export type Database = {
         }
         Update: {
           audit_id?: string
+          code_normalized?: string | null
           created_at?: string
           id?: string
           imei?: string | null
@@ -1350,6 +1356,7 @@ export type Database = {
           created_by: string | null
           id: string
           imei: string
+          imei_normalized: string | null
           inventory_id: string | null
           is_featured: boolean | null
           last_viewed_at: string | null
@@ -1379,6 +1386,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           imei: string
+          imei_normalized?: string | null
           inventory_id?: string | null
           is_featured?: boolean | null
           last_viewed_at?: string | null
@@ -1408,6 +1416,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           imei?: string
+          imei_normalized?: string | null
           inventory_id?: string | null
           is_featured?: boolean | null
           last_viewed_at?: string | null
