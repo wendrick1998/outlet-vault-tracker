@@ -29,6 +29,8 @@ export function useLoans() {
 
   const createMutation = useMutation({
     mutationFn: async (loanData: LoanInsert) => {
+      console.log("🎯 Criando empréstimo:", loanData);
+      
       // Guard: verificar se já existe empréstimo ativo para este item
       const activeLoans = await LoanService.getActive();
       const existingLoan = activeLoans.find(loan => 
@@ -37,12 +39,18 @@ export function useLoans() {
       );
       
       if (existingLoan) {
+        console.error("❌ Empréstimo duplicado:", existingLoan);
         throw new Error('DUPLICATE_LOAN: Este item já possui empréstimo ativo');
       }
       
-      return LoanService.create(loanData);
+      console.log("✅ Nenhum empréstimo ativo, criando novo...");
+      const result = await LoanService.create(loanData);
+      console.log("✅ Empréstimo criado:", result);
+      
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("🎉 Empréstimo criado com sucesso:", data);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -52,6 +60,7 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
+      console.error("❌ Erro ao criar empréstimo:", error);
       const message = error.message.includes('DUPLICATE_LOAN') 
         ? 'Este item já possui empréstimo ativo. Finalize o empréstimo anterior primeiro.'
         : error.message;
@@ -61,6 +70,8 @@ export function useLoans() {
         description: message,
         variant: "destructive",
       });
+      
+      throw error; // Re-throw para permitir captura pelo componente
     },
   });
 
@@ -86,9 +97,12 @@ export function useLoans() {
   });
 
   const returnMutation = useMutation({
-    mutationFn: ({ id, notes }: { id: string; notes?: string }) =>
-      LoanService.returnLoan(id, notes),
-    onSuccess: () => {
+    mutationFn: ({ id, notes }: { id: string; notes?: string }) => {
+      console.log("📦 Devolvendo empréstimo:", { id, notes });
+      return LoanService.returnLoan(id, notes);
+    },
+    onSuccess: (data) => {
+      console.log("✅ Empréstimo devolvido:", data);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -98,6 +112,7 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
+      console.error("❌ Erro ao devolver:", error);
       toast({
         title: "Erro ao devolver item",
         description: error.message,
@@ -126,9 +141,12 @@ export function useLoans() {
   });
 
   const sellMutation = useMutation({
-    mutationFn: ({ id, saleNumber, notes }: { id: string; saleNumber?: string; notes?: string }) =>
-      LoanService.sellLoan(id, saleNumber, notes),
-    onSuccess: () => {
+    mutationFn: ({ id, saleNumber, notes }: { id: string; saleNumber?: string; notes?: string }) => {
+      console.log("💰 Registrando venda:", { id, saleNumber, notes });
+      return LoanService.sellLoan(id, saleNumber, notes);
+    },
+    onSuccess: (data) => {
+      console.log("✅ Venda registrada:", data);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -138,6 +156,7 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
+      console.error("❌ Erro na venda:", error);
       toast({
         title: "Erro ao registrar venda",
         description: error.message,

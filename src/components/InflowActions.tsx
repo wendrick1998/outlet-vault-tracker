@@ -108,8 +108,18 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
     if (!pendingAction || !activeLoan) return;
 
     try {
+      console.log("🔄 Processando retorno/venda:", {
+        action: pendingAction,
+        loanId: activeLoan.id,
+        itemId: item.id,
+        itemModel: item.model,
+        saleNumber: saleNumber
+      });
+
       if (pendingAction === 'sold' && !saleNumber) {
-        // Criar pendência e finalizar empréstimo
+        console.log("💰 Venda sem número - criando pendência");
+        
+        // Criar pendência e finalizar empréstimo  
         await createPendingSale({
           loan_id: activeLoan.id,
           item_id: item.id,
@@ -122,7 +132,7 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
 
         // Atualizar status no inventário para 'sold'
         await supabase
-          .from('inventory')
+          .from('inventory')  
           .update({ status: 'sold' })
           .eq('id', item.id);
 
@@ -132,33 +142,56 @@ export function InflowActions({ item, onComplete, onCancel }: InflowActionsProps
           variant: "default",
         });
       } else {
+        console.log("📦 Fluxo normal de retorno/venda");
+        
         // Fluxo normal
         const notes = pendingAction === 'sold' 
           ? `Vendido - Venda: ${saleNumber}`
           : 'Devolvido ao cofre';
+
+        console.log("🔄 Atualizando empréstimo:", { notes });
 
         // Retornar empréstimo
         await returnLoan({ id: activeLoan.id, notes });
 
         // Atualizar status no inventário
         const newStatus = pendingAction === 'sold' ? 'sold' : 'available';
-        await supabase
+        
+        console.log("📋 Atualizando status do item:", { newStatus });
+        
+        const { error: updateError } = await supabase
           .from('inventory')
           .update({ status: newStatus })
           .eq('id', item.id);
 
+        if (updateError) {
+          console.error("❌ Erro ao atualizar inventário:", updateError);
+          throw updateError;
+        }
+
+        console.log("✅ Item processado com sucesso");
+
         toast({
           title: pendingAction === 'sold' ? "Item marcado como vendido" : "Item devolvido",
-          description: `${item.imei} foi ${pendingAction === 'sold' ? 'marcado como vendido' : 'devolvido ao cofre'}.`,
+          description: `${item.model} foi ${pendingAction === 'sold' ? 'marcado como vendido' : 'devolvido ao cofre'}.`,
         });
       }
 
       onComplete();
-    } catch (error) {
-      console.error('Error updating loan:', error);
+    } catch (error: any) {
+      console.error('❌ Erro ao processar ação:', error);
+      
+      let errorMessage = "Erro ao processar a ação.";
+      
+      if (error?.message?.includes('loan')) {
+        errorMessage = "Erro ao atualizar empréstimo. Verifique se o item está realmente emprestado.";
+      } else if (error?.message?.includes('inventory')) {
+        errorMessage = "Erro ao atualizar status do item no inventário.";
+      }
+      
       toast({
         title: "Erro",
-        description: "Erro ao processar a ação.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

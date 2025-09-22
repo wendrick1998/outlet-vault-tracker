@@ -264,47 +264,68 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   };
 
   const executeOutflow = async () => {
-    const loanData = {
-      item_id: item.id,
-      reason_id: selectedReason,
-      seller_id: selectedSeller,
-      customer_id: useGuestCustomer ? null : (selectedCustomer || null),
-      notes: justification.trim() || null,
-    };
+    try {
+      console.log("🚀 Iniciando saída do cofre:", {
+        item: item.id,  
+        itemModel: item.model,
+        itemStatus: item.status,
+        reason: selectedReason,
+        seller: selectedSeller,
+        customer: selectedCustomer,
+        useGuestCustomer: useGuestCustomer,
+        guestCustomer: guestCustomer,
+        justification: justification
+      });
 
-    createLoan(loanData, {
-      onSuccess: (loan) => {
-        setPendingLoanId(loan.id);
-        
-        // For loans with customers, ask about device left at store
-        if (requiresCustomer && (selectedCustomer || useGuestCustomer)) {
-          // Show device left question first
-          if (deviceLeftQuestion === null) {
-            setDeviceLeftQuestion(true);
-            return;
-          }
-        }
-        
-        // If answered yes to device left question, show dialog
-        if (deviceLeftQuestion === true) {
-          setShowDeviceLeftDialog(true);
-          return;
-        }
-        
+      // Validações extras antes de criar empréstimo
+      if (item.status !== 'available') {
         toast({
-          title: "✅ Saída Registrada",
-          description: `${item.model} saiu do cofre com sucesso`,
-        });
-        onComplete();
-      },
-      onError: () => {
-        toast({
-          title: "❌ Erro na Saída",
-          description: "Falha ao processar saída. Tente novamente.",
+          title: "❌ Item Indisponível",
+          description: `Este item está com status "${item.status}" e não pode sair do cofre.`,
           variant: "destructive"
         });
+        return;
       }
-    });
+
+      const loanData = {
+        item_id: item.id,
+        reason_id: selectedReason,
+        seller_id: selectedSeller,
+        customer_id: useGuestCustomer ? null : (selectedCustomer || null),
+        notes: justification.trim() || null,
+      };
+
+      console.log("📋 Dados do empréstimo:", loanData);
+
+      await createLoan(loanData);
+      
+      console.log("✅ Empréstimo criado com sucesso");
+      
+      toast({
+        title: "✅ Saída Registrada",
+        description: `${item.model} saiu do cofre com sucesso`,
+      });
+      
+      onComplete();
+    } catch (error: any) {
+      console.error("❌ Erro na criação do empréstimo:", error);
+      
+      let errorMessage = "Falha ao processar saída. Tente novamente.";
+      
+      if (error?.message?.includes('DUPLICATE_LOAN')) {
+        errorMessage = "Este aparelho já possui um empréstimo ativo.";
+      } else if (error?.message?.includes('permission')) {
+        errorMessage = "Você não tem permissão para realizar esta operação.";
+      } else if (error?.message?.includes('PIN')) {
+        errorMessage = "Erro com PIN operacional. Verifique as configurações.";
+      }
+      
+      toast({
+        title: "❌ Erro na Saída",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDeviceLeftSubmit = (data: { deviceInfo: string; imei?: string; notes: string }) => {
