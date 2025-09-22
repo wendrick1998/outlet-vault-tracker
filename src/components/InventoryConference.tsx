@@ -51,6 +51,10 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
   const [showTaskManagement, setShowTaskManagement] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  
+  // Novos estados para filtros visuais
+  const [filter, setFilter] = useState<'all' | 'found' | 'missing' | 'inconsistent'>('all');
+  
   const [scanFeedback, setScanFeedback] = useState<{
     type: 'scanning' | 'success' | 'warning' | 'error';
     message: string;
@@ -423,6 +427,48 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
         </CardContent>
       </Card>
 
+      {/* Filtros Visuais */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Filtros de Visualização</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('all')}
+            >
+              Todos ({scans.length})
+            </Button>
+            <Button
+              variant={filter === 'found' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('found')}
+              className="text-green-600 border-green-600 hover:bg-green-50"
+            >
+              Encontrados ({stats.found})
+            </Button>
+            <Button
+              variant={filter === 'inconsistent' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('inconsistent')}
+              className="text-orange-600 border-orange-600 hover:bg-orange-50"
+            >
+              Inconsistentes ({stats.unexpected + stats.incongruent})
+            </Button>
+            <Button
+              variant={filter === 'missing' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('missing')}
+              className="text-red-600 border-red-600 hover:bg-red-50"
+            >
+              Faltantes ({stats.missing})
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Scanner Input */}
       <Card>
         <CardContent className="pt-6">
@@ -460,40 +506,88 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
         <ScanFeedback feedback={scanFeedback} isScanning={isScanning} />
       )}
 
-      {/* Recent Scans */}
+      {/* Recent Scans com filtros aplicados */}
       <Card>
         <CardHeader>
-          <CardTitle>Últimos Escaneamentos</CardTitle>
+          <CardTitle>
+            {filter === 'all' ? 'Últimos Escaneamentos' :
+             filter === 'found' ? 'Itens Encontrados' :
+             filter === 'inconsistent' ? 'Itens Inconsistentes' :
+             'Itens Faltantes'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {scans.slice(0, 10).map((scan) => (
-              <div key={scan.id} className="flex items-center justify-between p-2 rounded border">
-                <div className="flex items-center gap-2">
-                  {scan.scan_result === 'found_expected' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                  {scan.scan_result === 'unexpected_present' && <XCircle className="h-4 w-4 text-orange-600" />}
-                  {scan.scan_result === 'duplicate' && <Copy className="h-4 w-4 text-gray-600" />}
-                  {scan.scan_result === 'status_incongruent' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
-                  
-                  <div>
-                    <div className="font-mono text-sm">{scan.imei || scan.serial}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(scan.timestamp).toLocaleTimeString()}
+            {(() => {
+              let filteredScans = scans;
+              
+              if (filter === 'found') {
+                filteredScans = scans.filter(s => s.scan_result === 'found_expected');
+              } else if (filter === 'inconsistent') {
+                filteredScans = scans.filter(s => 
+                  ['unexpected_present', 'status_incongruent', 'not_found'].includes(s.scan_result)
+                );
+              } else if (filter === 'missing') {
+                // Para missing, mostrar itens do snapshot que não foram encontrados
+                const foundItems = scans.filter(s => s.scan_result === 'found_expected').map(s => s.item_id);
+                const missingItems = snapshot.filter(item => !foundItems.includes(item.id));
+                
+                return missingItems.slice(0, 10).map((item) => (
+                  <div key={`missing-${item.id}`} className="flex items-center justify-between p-2 rounded border border-red-200 bg-red-50">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-red-600" />
+                      <div>
+                        <div className="font-mono text-sm">{item.imei}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.brand} {item.model}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="destructive">Não Encontrado</Badge>
+                  </div>
+                ));
+              }
+              
+              return filteredScans.slice(0, 10).map((scan) => (
+                <div 
+                  key={scan.id} 
+                  className={`flex items-center justify-between p-2 rounded border ${
+                    scan.scan_result === 'found_expected' ? 'border-green-200 bg-green-50' :
+                    scan.scan_result === 'unexpected_present' ? 'border-orange-200 bg-orange-50' :
+                    scan.scan_result === 'status_incongruent' ? 'border-yellow-200 bg-yellow-50' :
+                    scan.scan_result === 'not_found' ? 'border-red-200 bg-red-50' :
+                    'border-gray-200 bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {scan.scan_result === 'found_expected' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                    {scan.scan_result === 'unexpected_present' && <XCircle className="h-4 w-4 text-orange-600" />}
+                    {scan.scan_result === 'duplicate' && <Copy className="h-4 w-4 text-gray-600" />}
+                    {scan.scan_result === 'status_incongruent' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
+                    {scan.scan_result === 'not_found' && <XCircle className="h-4 w-4 text-red-600" />}
+                    
+                    <div>
+                      <div className="font-mono text-sm">{scan.imei || scan.serial}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(scan.timestamp).toLocaleTimeString()}
+                      </div>
                     </div>
                   </div>
+                  <Badge variant={
+                    scan.scan_result === 'found_expected' ? 'default' :
+                    scan.scan_result === 'unexpected_present' ? 'destructive' :
+                    scan.scan_result === 'duplicate' ? 'secondary' : 
+                    scan.scan_result === 'not_found' ? 'destructive' : 'outline'
+                  }>
+                    {scan.scan_result === 'found_expected' && 'Encontrado'}
+                    {scan.scan_result === 'unexpected_present' && 'Fora do Esperado'}
+                    {scan.scan_result === 'duplicate' && 'Duplicado'}
+                    {scan.scan_result === 'status_incongruent' && 'Incongruente'}
+                    {scan.scan_result === 'not_found' && 'Não Encontrado'}
+                  </Badge>
                 </div>
-                <Badge variant={
-                  scan.scan_result === 'found_expected' ? 'default' :
-                  scan.scan_result === 'unexpected_present' ? 'destructive' :
-                  scan.scan_result === 'duplicate' ? 'secondary' : 'outline'
-                }>
-                  {scan.scan_result === 'found_expected' && 'Encontrado'}
-                  {scan.scan_result === 'unexpected_present' && 'Fora do Esperado'}
-                  {scan.scan_result === 'duplicate' && 'Duplicado'}
-                  {scan.scan_result === 'status_incongruent' && 'Incongruente'}
-                </Badge>
-              </div>
-            ))}
+              ));
+            })()}
             {scans.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
                 Nenhum item escaneado ainda

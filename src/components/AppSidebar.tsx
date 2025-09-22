@@ -71,6 +71,12 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
       available: true // Protegido pelo PermissionGuard do componente 
     },
     { 
+      title: "Buscar & Registrar", 
+      page: "search-register", 
+      icon: Search, 
+      available: true 
+    },
+    { 
       title: "Conferência de Inventário", 
       page: "conference", 
       icon: CheckSquare, 

@@ -28,7 +28,20 @@ export function useLoans() {
   });
 
   const createMutation = useMutation({
-    mutationFn: LoanService.create,
+    mutationFn: async (loanData: LoanInsert) => {
+      // Guard: verificar se já existe empréstimo ativo para este item
+      const activeLoans = await LoanService.getActive();
+      const existingLoan = activeLoans.find(loan => 
+        loan.item_id === loanData.item_id && 
+        ['active', 'overdue'].includes(loan.status)
+      );
+      
+      if (existingLoan) {
+        throw new Error('DUPLICATE_LOAN: Este item já possui empréstimo ativo');
+      }
+      
+      return LoanService.create(loanData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -39,9 +52,13 @@ export function useLoans() {
       });
     },
     onError: (error: Error) => {
+      const message = error.message.includes('DUPLICATE_LOAN') 
+        ? 'Este item já possui empréstimo ativo. Finalize o empréstimo anterior primeiro.'
+        : error.message;
+      
       toast({
-        title: "Erro ao criar empréstimo",
-        description: error.message,
+        title: "Erro ao criar empréstimo", 
+        description: message,
         variant: "destructive",
       });
     },
