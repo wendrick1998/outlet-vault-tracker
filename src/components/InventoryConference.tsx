@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { useInventoryAudit } from '@/hooks/useInventoryAudit';
 import { InventoryAuditService } from '@/services/inventoryAuditService';
 import { InventoryService } from '@/services/inventoryService';
 import { ScanFeedback } from './ScanFeedback';
+import { TaskManagement } from './TaskManagement';
+import { AuditResetDialog } from './AuditResetDialog';
 import { 
   Search, 
   CheckCircle, 
@@ -51,6 +53,8 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
   const [showTaskManagement, setShowTaskManagement] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [searchCache, setSearchCache] = useState<Map<string, any[]>>(new Map());
+  const [progressBackup, setProgressBackup] = useState<any>(null);
   
   // Novos estados para filtros visuais
   const [filter, setFilter] = useState<'all' | 'found' | 'missing' | 'inconsistent'>('all');
@@ -88,7 +92,7 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
     setProcessedItems(processed);
   }, [scans]);
 
-  const playSound = (type: 'success' | 'error' | 'warning' | 'duplicate') => {
+  const playSound = useCallback((type: 'success' | 'error' | 'warning' | 'duplicate') => {
     if (!soundEnabled) return;
     
     const frequencies = {
@@ -98,26 +102,30 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
       duplicate: 400
     };
     
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = frequencies[type];
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
-  };
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = frequencies[type];
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.warn('Audio feedback not available:', error);
+    }
+  }, [soundEnabled]);
 
-  const handleScan = async (code: string) => {
+  const handleScan = useCallback(async (code: string) => {
     const now = Date.now();
-    if (now - lastScanTime < 500) return; // Debounce 500ms
+    if (now - lastScanTime < 300) return; // Improved debounce 300ms
     setLastScanTime(now);
 
     if (!code.trim()) return;
@@ -157,10 +165,14 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
     });
 
     try {
-      // Find item in inventory using enhanced search
-      const inventoryItems = await InventoryService.searchByCode(
-        cleanedData.imei || cleanedData.serial!
-      );
+      // Use cache for faster searches
+      const searchKey = cleanedData.imei || cleanedData.serial!;
+      let inventoryItems = searchCache.get(searchKey);
+      
+      if (!inventoryItems) {
+        inventoryItems = await InventoryService.searchByCode(searchKey);
+        setSearchCache(prev => new Map(prev).set(searchKey, inventoryItems));
+      }
 
       let matchedItem = null;
       if (cleanedData.imei) {
@@ -249,8 +261,23 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
       playSound('error');
     } finally {
       setIsScanning(false);
+      
+      // Auto-backup progress every 10 scans
+      if (scans.length % 10 === 0) {
+        setProgressBackup({
+          auditId,
+          scansCount: scans.length,
+          timestamp: now,
+          stats: {
+            found: scans.filter(s => s.scan_result === 'found_expected').length,
+            unexpected: scans.filter(s => s.scan_result === 'unexpected_present').length,
+            duplicates: scans.filter(s => s.scan_result === 'duplicate').length,
+            incongruent: scans.filter(s => s.scan_result === 'status_incongruent').length
+          }
+        });
+      }
     }
-  };
+  }, [auditId, addScan, lastScanTime, playSound, scans, searchCache]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -279,12 +306,9 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
     }
   };
 
-  const resetScans = () => {
-    if (confirm('Tem certeza que deseja reiniciar a conferência?')) {
-      // This would require implementing a reset function
-      toast.info('Funcionalidade de reset em desenvolvimento');
-    }
-  };
+  const resetScans = useCallback(() => {
+    setShowResetDialog(true);
+  }, []);
 
   const handleFinish = async () => {
     if (!audit || isFinishing) return;
@@ -314,6 +338,22 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
     }
   };
 
+  // Memoized stats calculation for performance
+  const stats = useMemo(() => ({
+    total: snapshot.length,
+    scanned: scans.length,
+    found: scans.filter(s => s.scan_result === 'found_expected').length,
+    unexpected: scans.filter(s => s.scan_result === 'unexpected_present').length,
+    duplicates: scans.filter(s => s.scan_result === 'duplicate').length,
+    incongruent: scans.filter(s => s.scan_result === 'status_incongruent').length,
+    missing: snapshot.length - scans.filter(s => s.scan_result === 'found_expected').length
+  }), [snapshot.length, scans]);
+
+  const progress = useMemo(() => 
+    stats.total > 0 ? (stats.found / stats.total) * 100 : 0, 
+    [stats.found, stats.total]
+  );
+
   if (!audit) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -324,18 +364,6 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
       </div>
     );
   }
-
-  const stats = {
-    total: snapshot.length,
-    scanned: scans.length,
-    found: scans.filter(s => s.scan_result === 'found_expected').length,
-    unexpected: scans.filter(s => s.scan_result === 'unexpected_present').length,
-    duplicates: scans.filter(s => s.scan_result === 'duplicate').length,
-    incongruent: scans.filter(s => s.scan_result === 'status_incongruent').length,
-    missing: snapshot.length - scans.filter(s => s.scan_result === 'found_expected').length
-  };
-
-  const progress = stats.total > 0 ? (stats.found / stats.total) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -597,8 +625,36 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
         </CardContent>
       </Card>
 
+      {/* Task Management Modal */}
+      {showTaskManagement && (
+        <TaskManagement 
+          auditId={auditId}
+          isOpen={showTaskManagement}
+          onClose={() => setShowTaskManagement(false)}
+        />
+      )}
+
+      {/* Reset Dialog */}
+      <AuditResetDialog
+        auditId={auditId}
+        isOpen={showResetDialog}
+        onClose={() => setShowResetDialog(false)}
+        onReset={() => {
+          setShowResetDialog(false);
+          // Clear cache and feedback
+          setSearchCache(new Map());
+          setScanFeedback(null);
+          toast.success('Conferência reiniciada');
+        }}
+      />
+
       {/* Actions */}
       <div className="flex justify-end gap-2">
+        {progressBackup && (
+          <div className="text-xs text-muted-foreground mr-4">
+            Último backup: {new Date(progressBackup.timestamp).toLocaleTimeString()}
+          </div>
+        )}
         <Button
           onClick={handleFinish}
           disabled={isFinishing}

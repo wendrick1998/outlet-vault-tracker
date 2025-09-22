@@ -1,127 +1,191 @@
 import React, { useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { RotateCcw, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface AuditResetDialogProps {
+  auditId: string;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (reason: string) => void;
-  auditData?: {
-    location: string;
-    scanCount: number;
-    foundCount: number;
-  };
-  isLoading?: boolean;
+  onReset: () => void;
 }
 
-export function AuditResetDialog({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  auditData,
-  isLoading = false 
-}: AuditResetDialogProps) {
-  const [resetReason, setResetReason] = useState('');
+export function AuditResetDialog({ auditId, isOpen, onClose, onReset }: AuditResetDialogProps) {
+  const [isResetting, setIsResetting] = useState(false);
+  const [confirmations, setConfirmations] = useState({
+    deleteScans: false,
+    resetProgress: false,
+    clearTasks: false
+  });
+  const [confirmText, setConfirmText] = useState('');
 
-  const handleConfirm = () => {
-    if (!resetReason.trim()) {
-      toast.error('Por favor, informe o motivo do reset');
+  const handleReset = async () => {
+    if (!confirmations.deleteScans || !confirmations.resetProgress) {
+      toast.error('Confirme todas as opções necessárias');
       return;
     }
-    
-    onConfirm(resetReason);
-    setResetReason('');
+
+    if (confirmText !== 'RESETAR') {
+      toast.error('Digite "RESETAR" para confirmar');
+      return;
+    }
+
+    try {
+      setIsResetting(true);
+
+      // Delete all scans for this audit
+      if (confirmations.deleteScans) {
+        const { error: scansError } = await supabase
+          .from('inventory_audit_scans')
+          .delete()
+          .eq('audit_id', auditId);
+
+        if (scansError) throw scansError;
+      }
+
+      // Clear tasks if requested
+      if (confirmations.clearTasks) {
+        const { error: tasksError } = await supabase
+          .from('inventory_audit_tasks')
+          .delete()
+          .eq('audit_id', auditId);
+
+        if (tasksError) throw tasksError;
+      }
+
+      // Reset audit counters
+      if (confirmations.resetProgress) {
+        const { error: auditError } = await supabase
+          .from('inventory_audits')
+          .update({
+            found_count: 0,
+            missing_count: 0,
+            unexpected_count: 0,
+            duplicate_count: 0,
+            incongruent_count: 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', auditId);
+
+        if (auditError) throw auditError;
+      }
+
+      toast.success('Conferência reiniciada com sucesso');
+      onReset();
+      onClose();
+      
+      // Reset form
+      setConfirmations({
+        deleteScans: false,
+        resetProgress: false,
+        clearTasks: false
+      });
+      setConfirmText('');
+      
+    } catch (error) {
+      console.error('Error resetting audit:', error);
+      toast.error('Erro ao reiniciar conferência');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
-  const handleCancel = () => {
-    setResetReason('');
-    onClose();
-  };
+  const canProceed = confirmations.deleteScans && 
+                    confirmations.resetProgress && 
+                    confirmText === 'RESETAR';
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-orange-600" />
-            Resetar Conferência
-          </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                Esta ação irá <strong>apagar todos os dados</strong> da conferência atual e 
-                permitir que você recomece do zero.
-              </div>
-            </div>
-            
-            {auditData && (
-              <div className="bg-muted p-3 rounded-lg space-y-1">
-                <div className="text-sm font-medium">Dados que serão perdidos:</div>
-                <div className="text-xs space-y-1">
-                  <div>• Local: {auditData.location}</div>
-                  <div>• Total escaneado: {auditData.scanCount} itens</div>
-                  <div>• Itens encontrados: {auditData.foundCount}</div>
-                  <div>• Todas as tarefas e observações</div>
-                </div>
-              </div>
-            )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+            Reiniciar Conferência
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="space-y-2">
-          <Label htmlFor="resetReason">
-            Motivo do reset <span className="text-red-500">*</span>
-          </Label>
-          <Textarea
-            id="resetReason"
-            placeholder="Explique o motivo para resetar esta conferência..."
-            value={resetReason}
-            onChange={(e) => setResetReason(e.target.value)}
-            rows={3}
-            className="resize-none"
-          />
-          <p className="text-xs text-muted-foreground">
-            Este motivo será registrado no histórico de auditoria.
-          </p>
+        <div className="space-y-4">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Atenção:</strong> Esta ação é irreversível e irá apagar permanentemente 
+              todos os dados de escaneamento da conferência atual.
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="deleteScans"
+                checked={confirmations.deleteScans}
+                onCheckedChange={(checked) => 
+                  setConfirmations(prev => ({ ...prev, deleteScans: !!checked }))
+                }
+              />
+              <label htmlFor="deleteScans" className="text-sm">
+                Apagar todos os escaneamentos realizados
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="resetProgress"
+                checked={confirmations.resetProgress}
+                onCheckedChange={(checked) => 
+                  setConfirmations(prev => ({ ...prev, resetProgress: !!checked }))
+                }
+              />
+              <label htmlFor="resetProgress" className="text-sm">
+                Resetar contadores de progresso
+              </label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="clearTasks"
+                checked={confirmations.clearTasks}
+                onCheckedChange={(checked) => 
+                  setConfirmations(prev => ({ ...prev, clearTasks: !!checked }))
+                }
+              />
+              <label htmlFor="clearTasks" className="text-sm">
+                Limpar tarefas criadas (opcional)
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="confirmText" className="text-sm font-medium block mb-2">
+              Digite "RESETAR" para confirmar:
+            </label>
+            <Input
+              id="confirmText"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="RESETAR"
+              className="font-mono"
+            />
+          </div>
         </div>
 
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleCancel} disabled={isLoading}>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isResetting}>
             Cancelar
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            disabled={isLoading || !resetReason.trim()}
-            className="bg-orange-600 hover:bg-orange-700"
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleReset}
+            disabled={!canProceed || isResetting}
           >
-            {isLoading ? (
-              <>
-                <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
-                Resetando...
-              </>
-            ) : (
-              <>
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Confirmar Reset
-              </>
-            )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+            {isResetting ? 'Reiniciando...' : 'Reiniciar Conferência'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

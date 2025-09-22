@@ -1,201 +1,252 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useInventoryAudit } from '@/hooks/useInventoryAudit';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  CheckCircle2, 
-  Clock, 
   AlertTriangle, 
+  CheckCircle, 
+  Clock, 
+  Plus,
   Filter,
-  User,
-  Calendar,
-  MessageSquare,
-  Plus
+  Search
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface Task {
+  id: string;
+  audit_id: string;
+  task_type: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  item_id?: string;
+  imei?: string;
+  assigned_to?: string;
+  resolved_by?: string;
+  resolved_at?: string;
+  resolution_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface TaskManagementProps {
   auditId: string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-interface TaskFormData {
-  task_type: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  assigned_to?: string;
-  imei?: string;
-}
-
-export function TaskManagement({ auditId }: TaskManagementProps) {
-  const { tasks, createTask, resolveTask } = useInventoryAudit(auditId);
-  const [filter, setFilter] = useState('all');
+export function TaskManagement({ auditId, isOpen, onClose }: TaskManagementProps) {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [newTaskDialog, setNewTaskDialog] = useState(false);
-  const [resolutionDialog, setResolutionDialog] = useState<{open: boolean, taskId?: string}>({open: false});
-  const [resolutionNotes, setResolutionNotes] = useState('');
-  const [newTask, setNewTask] = useState<TaskFormData>({
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [newTask, setNewTask] = useState({
     task_type: '',
     description: '',
-    priority: 'medium'
+    priority: 'medium' as const,
+    imei: ''
   });
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      const matchesFilter = filter === 'all' || task.status === filter;
-      const matchesSearch = !searchTerm || 
-        task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.imei?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.task_type.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      return matchesFilter && matchesSearch;
-    });
-  }, [tasks, filter, searchTerm]);
+  useEffect(() => {
+    if (isOpen) {
+      loadTasks();
+    }
+  }, [isOpen, auditId]);
 
-  const handleCreateTask = async () => {
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('inventory_audit_tasks')
+        .select('*')
+        .eq('audit_id', auditId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTasks((data || []).map(task => ({
+        ...task,
+        priority: task.priority as 'low' | 'medium' | 'high' | 'critical',
+        status: task.status as 'open' | 'in_progress' | 'resolved' | 'closed'
+      })));
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      toast.error('Erro ao carregar tarefas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTask = async () => {
     if (!newTask.task_type || !newTask.description) {
-      toast.error('Preencha todos os campos obrigatórios');
+      toast.error('Preencha os campos obrigatórios');
       return;
     }
 
     try {
-      await createTask({
-        audit_id: auditId,
-        ...newTask
-      });
-      
-      setNewTask({
-        task_type: '',
-        description: '',
-        priority: 'medium'
-      });
-      setNewTaskDialog(false);
+      const { error } = await supabase
+        .from('inventory_audit_tasks')
+        .insert({
+          audit_id: auditId,
+          task_type: newTask.task_type,
+          description: newTask.description,
+          priority: newTask.priority,
+          imei: newTask.imei || null
+        });
+
+      if (error) throw error;
+
       toast.success('Tarefa criada com sucesso');
+      setNewTask({ task_type: '', description: '', priority: 'medium', imei: '' });
+      setShowCreateTask(false);
+      loadTasks();
     } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
+      console.error('Error creating task:', error);
       toast.error('Erro ao criar tarefa');
     }
   };
 
-  const handleResolveTask = async () => {
-    if (!resolutionDialog.taskId || !resolutionNotes.trim()) {
-      toast.error('Adicione observações sobre a resolução');
-      return;
-    }
-
+  const updateTaskStatus = async (taskId: string, status: string, notes?: string) => {
     try {
-      await resolveTask({
-        taskId: resolutionDialog.taskId,
-        notes: resolutionNotes
-      });
-      
-      setResolutionDialog({open: false});
-      setResolutionNotes('');
-      toast.success('Tarefa resolvida com sucesso');
+      const updates: any = { 
+        status,
+        updated_at: new Date().toISOString()
+      };
+
+      if (status === 'resolved' || status === 'closed') {
+        updates.resolved_at = new Date().toISOString();
+        updates.resolved_by = (await supabase.auth.getUser()).data.user?.id;
+        if (notes) updates.resolution_notes = notes;
+      }
+
+      const { error } = await supabase
+        .from('inventory_audit_tasks')
+        .update(updates)
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      toast.success('Status da tarefa atualizado');
+      loadTasks();
     } catch (error) {
-      console.error('Erro ao resolver tarefa:', error);
-      toast.error('Erro ao resolver tarefa');
+      console.error('Error updating task:', error);
+      toast.error('Erro ao atualizar tarefa');
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
+  const filteredTasks = tasks.filter(task => {
+    const matchesFilter = filter === 'all' || 
+      (filter === 'open' && ['open', 'in_progress'].includes(task.status)) ||
+      (filter === 'resolved' && ['resolved', 'closed'].includes(task.status));
+    
+    const matchesSearch = !searchTerm || 
+      task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.imei?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesFilter && matchesSearch;
+  });
+
+  const taskCounts = {
+    all: tasks.length,
+    open: tasks.filter(t => ['open', 'in_progress'].includes(t.status)).length,
+    resolved: tasks.filter(t => ['resolved', 'closed'].includes(t.status)).length
+  };
+
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return <Badge variant="destructive">Alta</Badge>;
-      case 'medium':
-        return <Badge variant="secondary">Média</Badge>;
-      case 'low':
-        return <Badge variant="outline">Baixa</Badge>;
-      default:
-        return <Badge variant="outline">{priority}</Badge>;
+      case 'critical': return 'destructive';
+      case 'high': return 'destructive';
+      case 'medium': return 'secondary';
+      case 'low': return 'outline';
+      default: return 'secondary';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'open':
-        return <Clock className="h-4 w-4 text-orange-600" />;
       case 'resolved':
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case 'closed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'in_progress':
+        return <Clock className="h-4 w-4 text-blue-600" />;
       default:
-        return <AlertTriangle className="h-4 w-4 text-gray-600" />;
+        return <AlertTriangle className="h-4 w-4 text-orange-600" />;
     }
   };
 
-  const taskTypeOptions = [
-    { value: 'item_missing', label: 'Item Ausente' },
-    { value: 'item_damaged', label: 'Item Danificado' },
-    { value: 'wrong_location', label: 'Local Incorreto' },
-    { value: 'status_mismatch', label: 'Status Incorreto' },
-    { value: 'verification_needed', label: 'Verificação Necessária' },
-    { value: 'other', label: 'Outro' }
-  ];
-
   return (
-    <div className="space-y-6">
-      {/* Header and Actions */}
-      <Card>
-        <CardHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Gerenciamento de Tarefas</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Header Actions */}
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Gestão de Tarefas
-            </CardTitle>
-            
-            <Dialog open={newTaskDialog} onOpenChange={setNewTaskDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Tarefa
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Criar Nova Tarefa</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar tarefas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 w-64"
+                />
+              </div>
+              <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
+                <SelectTrigger className="w-32">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas ({taskCounts.all})</SelectItem>
+                  <SelectItem value="open">Abertas ({taskCounts.open})</SelectItem>
+                  <SelectItem value="resolved">Resolvidas ({taskCounts.resolved})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={() => setShowCreateTask(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Tarefa
+            </Button>
+          </div>
+
+          {/* Create Task Form */}
+          {showCreateTask && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Nova Tarefa</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Tipo de Tarefa</label>
-                    <Select value={newTask.task_type} onValueChange={(value) => setNewTask({...newTask, task_type: value})}>
+                    <label className="text-sm font-medium">Tipo</label>
+                    <Select value={newTask.task_type} onValueChange={(value) => 
+                      setNewTask(prev => ({ ...prev, task_type: value }))
+                    }>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {taskTypeOptions.map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="missing_item">Item Faltante</SelectItem>
+                        <SelectItem value="wrong_location">Local Incorreto</SelectItem>
+                        <SelectItem value="status_error">Erro de Status</SelectItem>
+                        <SelectItem value="system_issue">Problema do Sistema</SelectItem>
+                        <SelectItem value="other">Outro</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium">Descrição</label>
-                    <Textarea
-                      value={newTask.description}
-                      onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-                      placeholder="Descreva a tarefa..."
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium">IMEI (opcional)</label>
-                    <Input
-                      value={newTask.imei || ''}
-                      onChange={(e) => setNewTask({...newTask, imei: e.target.value})}
-                      placeholder="IMEI relacionado à tarefa"
-                    />
-                  </div>
-                  
                   <div>
                     <label className="text-sm font-medium">Prioridade</label>
-                    <Select value={newTask.priority} onValueChange={(value: 'low' | 'medium' | 'high') => setNewTask({...newTask, priority: value})}>
+                    <Select value={newTask.priority} onValueChange={(value: any) => 
+                      setNewTask(prev => ({ ...prev, priority: value }))
+                    }>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -203,181 +254,115 @@ export function TaskManagement({ auditId }: TaskManagementProps) {
                         <SelectItem value="low">Baixa</SelectItem>
                         <SelectItem value="medium">Média</SelectItem>
                         <SelectItem value="high">Alta</SelectItem>
+                        <SelectItem value="critical">Crítica</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={handleCreateTask} className="flex-1">
-                      Criar Tarefa
-                    </Button>
-                    <Button variant="outline" onClick={() => setNewTaskDialog(false)}>
-                      Cancelar
-                    </Button>
-                  </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          {/* Filters */}
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-64">
-              <Input
-                placeholder="Buscar tarefas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="open">Abertas</SelectItem>
-                <SelectItem value="resolved">Resolvidas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Summary */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-              <div className="text-lg font-bold text-orange-600">
-                {tasks.filter(t => t.status === 'open').length}
-              </div>
-              <div className="text-xs text-muted-foreground">Tarefas Abertas</div>
-            </div>
-            <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-              <div className="text-lg font-bold text-green-600">
-                {tasks.filter(t => t.status === 'resolved').length}
-              </div>
-              <div className="text-xs text-muted-foreground">Resolvidas</div>
-            </div>
-            <div className="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-              <div className="text-lg font-bold text-red-600">
-                {tasks.filter(t => t.priority === 'high' && t.status === 'open').length}
-              </div>
-              <div className="text-xs text-muted-foreground">Alta Prioridade</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Task List */}
-      <div className="space-y-3">
-        {filteredTasks.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                {filter === 'all' ? 'Nenhuma tarefa encontrada' : `Nenhuma tarefa ${filter === 'open' ? 'aberta' : 'resolvida'}`}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredTasks.map(task => (
-            <Card key={task.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-start gap-3">
-                    {getStatusIcon(task.status)}
-                    <div className="flex-1">
-                      <h4 className="font-medium">
-                        {taskTypeOptions.find(opt => opt.value === task.task_type)?.label || task.task_type}
-                      </h4>
-                      {task.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {getPriorityBadge(task.priority)}
-                    <Badge variant={task.status === 'open' ? 'secondary' : 'default'}>
-                      {task.status === 'open' ? 'Aberta' : 'Resolvida'}
-                    </Badge>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium">IMEI (opcional)</label>
+                  <Input
+                    value={newTask.imei}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, imei: e.target.value }))}
+                    placeholder="IMEI relacionado à tarefa"
+                  />
                 </div>
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(task.created_at).toLocaleString()}
-                    </div>
-                    {task.imei && (
-                      <div className="font-mono bg-muted px-2 py-1 rounded">
-                        IMEI: {task.imei}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {task.status === 'open' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setResolutionDialog({open: true, taskId: task.id})}
-                    >
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Resolver
-                    </Button>
-                  )}
+                <div>
+                  <label className="text-sm font-medium">Descrição</label>
+                  <Textarea
+                    value={newTask.description}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Descreva a tarefa..."
+                    rows={3}
+                  />
                 </div>
-
-                {task.resolution_notes && (
-                  <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 rounded border-l-2 border-green-500">
-                    <div className="flex items-center gap-1 text-xs text-green-700 dark:text-green-400 mb-1">
-                      <MessageSquare className="h-3 w-3" />
-                      Resolução:
-                    </div>
-                    <p className="text-sm">{task.resolution_notes}</p>
-                    {task.resolved_at && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Resolvida em {new Date(task.resolved_at).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                )}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowCreateTask(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={createTask}>
+                    Criar Tarefa
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          )}
 
-      {/* Resolution Dialog */}
-      <Dialog open={resolutionDialog.open} onOpenChange={(open) => setResolutionDialog({open})}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Resolver Tarefa</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Observações da Resolução</label>
-              <Textarea
-                value={resolutionNotes}
-                onChange={(e) => setResolutionNotes(e.target.value)}
-                placeholder="Descreva como a tarefa foi resolvida..."
-                rows={4}
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <Button onClick={handleResolveTask} className="flex-1">
-                Marcar como Resolvida
-              </Button>
-              <Button variant="outline" onClick={() => setResolutionDialog({open: false})}>
-                Cancelar
-              </Button>
-            </div>
+          {/* Tasks List */}
+          <div className="max-h-96 overflow-y-auto space-y-2">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">Carregando tarefas...</div>
+              </div>
+            ) : filteredTasks.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">Nenhuma tarefa encontrada</div>
+              </div>
+            ) : (
+              filteredTasks.map((task) => (
+                <Card key={task.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1">
+                        {getStatusIcon(task.status)}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{task.task_type.replace('_', ' ')}</span>
+                            <Badge variant={getPriorityColor(task.priority)}>
+                              {task.priority}
+                            </Badge>
+                            <Badge variant="outline">
+                              {task.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {task.description}
+                          </p>
+                          {task.imei && (
+                            <p className="text-xs font-mono text-muted-foreground">
+                              IMEI: {task.imei}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Criada em: {new Date(task.created_at).toLocaleString()}
+                          </p>
+                          {task.resolution_notes && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Resolução: {task.resolution_notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        {task.status === 'open' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                          >
+                            Iniciar
+                          </Button>
+                        )}
+                        {task.status === 'in_progress' && (
+                          <Button 
+                            size="sm"
+                            onClick={() => {
+                              const notes = prompt('Notas da resolução (opcional):');
+                              updateTaskStatus(task.id, 'resolved', notes || undefined);
+                            }}
+                          >
+                            Resolver
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
