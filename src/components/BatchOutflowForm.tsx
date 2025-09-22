@@ -100,7 +100,8 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
     setShowQuickForm(true);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useDebounce(async () => {
+    if (isSubmitting) return;
     if (!hasPinConfigured) {
       toast({
         title: "PIN não configurado",
