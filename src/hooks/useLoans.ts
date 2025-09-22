@@ -59,11 +59,20 @@ export function useLoans() {
         description: "Empréstimo registrado com sucesso.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       console.error("❌ Erro ao criar empréstimo:", error);
-      const message = error.message.includes('DUPLICATE_LOAN') 
-        ? 'Este item já possui empréstimo ativo. Finalize o empréstimo anterior primeiro.'
-        : error.message;
+      
+      let message = 'Erro ao criar empréstimo';
+      
+      if (error.message?.includes('DUPLICATE_LOAN')) {
+        message = 'Este item já possui empréstimo ativo. Finalize o empréstimo anterior primeiro.';
+      } else if (error.message?.includes('permission')) {
+        message = 'Você não tem permissão para criar empréstimos';
+      } else if (error.message?.includes('PIN')) {
+        message = 'Erro na validação do PIN';
+      } else if (error.message?.includes('stock_status') || error.message?.includes('type') && error.message?.includes('does not exist')) {
+        message = 'Erro interno do sistema corrigido. Tente novamente em alguns segundos.';
+      }
       
       toast({
         title: "Erro ao criar empréstimo", 

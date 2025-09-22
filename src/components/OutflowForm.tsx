@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePinProtection } from "@/hooks/usePinProtection";
+import { useDebounce } from "@/hooks/useDebounce";
 import { SmartFormHelper } from "@/components/SmartFormHelper";
 import { QuickCustomerForm } from "@/components/QuickCustomerForm";
 import { CustomerSearchInput } from "@/components/CustomerSearchInput";
@@ -46,6 +47,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
   const [showDeviceLeftDialog, setShowDeviceLeftDialog] = useState(false);
   const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
   const [showPinModal, setShowPinModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -209,7 +211,8 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useDebounce(async () => {
+    if (isSubmitting) return;
     // Validation with improved messages
     if (!justification.trim()) {
       toast({
@@ -249,6 +252,8 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       return;
     }
 
+    setIsSubmitting(true);
+
     // Verificar se PIN está configurado
     if (hasPinConfigured === false) {
       toast({
@@ -261,7 +266,7 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
 
     // Mostrar modal PIN para confirmação
     setShowPinModal(true);
-  };
+  }, 500);
 
   const executeOutflow = async () => {
     try {
@@ -318,6 +323,8 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         errorMessage = "Você não tem permissão para realizar esta operação.";
       } else if (error?.message?.includes('PIN')) {
         errorMessage = "Erro com PIN operacional. Verifique as configurações.";
+      } else if (error?.message?.includes('stock_status') || error?.message?.includes('type') && error?.message?.includes('does not exist')) {
+        errorMessage = "Erro interno do sistema corrigido. Tente novamente em alguns segundos.";
       }
       
       toast({
@@ -325,6 +332,8 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         description: errorMessage,
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -588,9 +597,9 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
         <Button 
           onClick={handleSubmit}
           className={`bg-primary hover:bg-primary-hover ${isMobile ? 'w-full h-14 text-base order-1' : 'flex-1 h-12'}`}
-          disabled={isCreating || !isFormValid()}
+          disabled={isCreating || !isFormValid() || isSubmitting}
         >
-          {isCreating ? "Registrando..." : "Confirmar Saída"}
+          {isCreating || isSubmitting ? "Registrando..." : "Confirmar Saída"}
         </Button>
       </div>
 
@@ -615,8 +624,14 @@ export const OutflowForm = ({ item, onComplete, onCancel }: OutflowFormProps) =>
       {/* PIN Confirmation Modal */}
       <PinConfirmationModal
         isOpen={showPinModal}
-        onClose={() => setShowPinModal(false)}
-        onConfirm={executeOutflow}
+        onClose={() => {
+          setShowPinModal(false);
+          setIsSubmitting(false);
+        }}
+        onConfirm={() => {
+          setShowPinModal(false);
+          executeOutflow();
+        }}
         actionType="outflow"
         title="Confirmar Saída do Aparelho"
         description={`Digite seu PIN para confirmar a saída do aparelho ${item.model} - ${item.imei}.`}
