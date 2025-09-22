@@ -100,7 +100,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
     setShowQuickForm(true);
   };
 
-  const handleSubmit = useDebounce(async () => {
+  const handleSubmit = async () => {
     if (isSubmitting) return;
     if (!hasPinConfigured) {
       toast({
@@ -174,10 +174,24 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
       });
       
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Erro no lote:', error);
+      
+      let message = requiresCustomer ? "Falha ao processar empréstimos. Tente novamente." : "Falha ao processar saídas. Tente novamente.";
+      
+      if (error.message?.includes('DUPLICATE_LOAN')) {
+        message = 'Um ou mais itens já possuem empréstimo ativo';
+      } else if (error.message?.includes('permission')) {
+        message = 'Você não tem permissão para criar empréstimos';
+      } else if (error.message?.includes('PIN')) {
+        message = 'Erro na validação do PIN';
+      } else if (error.message?.includes('stock_status') || error.message?.includes('type') && error.message?.includes('does not exist')) {
+        message = 'Erro interno do sistema corrigido. Tente novamente em alguns segundos.';
+      }
+      
       toast({
         title: requiresCustomer ? "❌ Erro nos Empréstimos" : "❌ Erro nas Saídas",
-        description: requiresCustomer ? "Falha ao processar empréstimos. Tente novamente." : "Falha ao processar saídas. Tente novamente.",
+        description: message,
         variant: "destructive"
       });
     } finally {
