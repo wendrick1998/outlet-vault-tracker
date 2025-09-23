@@ -1,6 +1,5 @@
 import { useState, Suspense, lazy, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
-import { useServiceWorkerUpdate } from '@/lib/useServiceWorkerUpdate';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
