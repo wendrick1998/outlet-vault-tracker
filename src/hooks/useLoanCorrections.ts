@@ -22,7 +22,7 @@ export const useLoanCorrections = () => {
 
   const correctLoanMutation = useMutation({
     mutationFn: async ({ loanId, correctStatus, reason }: CorrectLoanParams) => {
-      const { data, error } = await supabase.rpc('correct_loan_transaction', {
+      const { data, error } = await supabase.rpc('correct_loan_simple', {
         p_loan_id: loanId,
         p_correct_status: correctStatus,
         p_correction_reason: reason

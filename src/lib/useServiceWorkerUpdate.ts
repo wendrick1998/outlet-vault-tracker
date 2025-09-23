@@ -10,10 +10,7 @@ export function useServiceWorkerUpdate() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    // Reload when new SW takes control
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
-    });
+    // Don't auto-reload, let user decide when to update
 
     navigator.serviceWorker.ready.then(registration => {
       // Check if there's already a waiting SW

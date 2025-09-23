@@ -178,7 +178,7 @@ export class LoanService {
   }
 
   static async correctTransaction(loanId: string, correctStatus: 'active' | 'returned' | 'sold' | 'overdue', reason: string) {
-    const { data, error } = await supabase.rpc('correct_loan_transaction', {
+    const { data, error } = await supabase.rpc('correct_loan_simple', {
       p_loan_id: loanId,
       p_correct_status: correctStatus,
       p_correction_reason: reason

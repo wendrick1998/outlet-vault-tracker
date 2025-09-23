@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useServiceWorkerUpdate } from '@/lib/useServiceWorkerUpdate';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { Loading } from "@/components/ui/loading";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ReactQueryProvider } from "@/lib/react-query";
@@ -98,7 +99,15 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasUpdate, apply } = useServiceWorkerUpdate();
+
+  // Register service worker once in production
+  useEffect(() => {
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('SW registered'))
+        .catch((error) => console.log('SW registration failed:', error));
+    }
+  }, []);
 
   // Prefetch History page on mount
   useEffect(() => {
@@ -107,22 +116,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {hasUpdate && (
-        <div 
-          role="status" 
-          aria-live="polite"
-          className="fixed bottom-3 left-1/2 -translate-x-1/2 rounded-lg border bg-card p-3 shadow-lg z-50"
-        >
-          Nova versão disponível. 
-          <button 
-            className="underline ml-2 hover:no-underline" 
-            onClick={apply}
-            aria-label="Atualizar aplicação para a nova versão"
-          >
-            Atualizar
-          </button>
-        </div>
-      )}
+      <UpdatePrompt />
       <Routes>
       {/* Public routes */}
       <Route path="/auth" element={<Auth onLoginSuccess={() => navigate('/')} />} />
