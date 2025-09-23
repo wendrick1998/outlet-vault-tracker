@@ -1610,7 +1610,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      correct_loan_transaction: {
+      correct_loan_simple: {
         Args: {
           p_correct_status: Database["public"]["Enums"]["loan_status"]
           p_correction_reason: string
