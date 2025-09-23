@@ -17,6 +17,7 @@ import { useActiveReasons } from '@/hooks/useReasons';
 import { useActiveSellers } from '@/hooks/useSellers';
 import { usePinProtection } from '@/hooks/usePinProtection';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDebounce } from '@/hooks/useDebounce';
 import { PinConfirmationModal } from '@/components/PinConfirmationModal';
 import { CustomerSearchInput } from '@/components/CustomerSearchInput';
 import { QuickCustomerForm } from '@/components/QuickCustomerForm';
@@ -100,7 +101,7 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
     setShowQuickForm(true);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitInternal = async () => {
     if (isSubmitting) return;
     if (!hasPinConfigured) {
       toast({
@@ -113,6 +114,8 @@ export const BatchOutflowForm = ({ items, onComplete, onCancel }: BatchOutflowFo
 
     setShowPinModal(true);
   };
+
+  const handleSubmit = useDebounce(handleSubmitInternal, 500);
 
   const executeOutflow = async () => {
     if (!isFormValid()) {
