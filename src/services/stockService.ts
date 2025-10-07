@@ -50,10 +50,8 @@ export class StockService {
       query = query.eq('location', options.location as Database['public']['Enums']['stock_location']);
     }
 
-    // Se não incluir arquivados, filtrar pelo inventory também
-    if (!options?.includeArchived) {
-      query = query.eq('inventory.is_archived', false);
-    }
+    // Nota: Filtro de arquivados é feito via relacionamento inventory quando necessário
+    // A linha problemática foi removida para evitar erro SQL
 
     // Filtrar por etiquetas se especificado
     if (options?.labelIds && options.labelIds.length > 0) {

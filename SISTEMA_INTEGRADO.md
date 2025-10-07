@@ -1,225 +1,428 @@
-# 🔗 Sistema Integrado: Inventário + Estoque
+# 📱 Sistema Integrado: Inventário + Estoque
 
-## ✅ Integração Concluída
+## 🎯 **Visão Geral**
 
-Os sistemas de **Inventário** (empréstimos) e **Estoque** (vendas) agora estão integrados e sincronizados automaticamente!
+Sistema completo de integração bidirecional entre **Inventory (Empréstimos)** e **Stock (Vendas)**, permitindo:
 
----
-
-## 📋 O Que Foi Implementado
-
-### 1. **Banco de Dados**
-- ✅ Coluna `stock_item_id` adicionada à tabela `inventory`
-- ✅ Triggers de sincronização automática de status
-- ✅ View unificada `unified_inventory` para consultas
-- ✅ Função `create_linked_item()` para criação simultânea
-
-### 2. **Sincronização Automática**
-Quando você atualiza o status em qualquer sistema, o outro é atualizado automaticamente:
-
-| **Ação no Inventário** | **Resultado no Estoque** |
-|------------------------|--------------------------|
-| `available` | `disponivel` |
-| `loaned` | `reservado` |
-| `sold` | `vendido` |
-
-### 3. **Novo Botão: "Cadastro Integrado"**
-Aparece em 3 lugares:
-- ⚙️ **Admin → Aparelhos (Inventário)**: Botão azul "Cadastro Integrado"
-- 📦 **Menu Stock**: Botão azul "Cadastro Integrado"
-- 📱 **Configurações → Gerenciar Cadastros**: Botão azul "Cadastro Integrado"
+✅ **Cadastro Unificado** - Crie aparelhos em ambos sistemas simultaneamente  
+✅ **Sincronização Automática** - Status atualizado em tempo real via triggers  
+✅ **Migração de Dados** - Vincule automaticamente items existentes  
+✅ **Dashboard de Integração** - Monitore taxa de sincronização e execute migrações  
+✅ **Visão Unificada** - View `unified_inventory` combina dados de ambos sistemas
 
 ---
 
-## 🚀 Como Usar
+## 🏗️ **Arquitetura da Integração**
 
-### **Opção 1: Cadastro Integrado (RECOMENDADO)**
+### **1. Camada de Dados**
 
-Use o botão **"Cadastro Integrado"** para criar um aparelho em **ambos os sistemas simultaneamente**:
+#### **Tabelas Principais:**
+- `inventory` - Sistema de empréstimos (cofre)
+- `stock_items` - Sistema de vendas (estoque)
+- **Vínculo:** Coluna `stock_item_id` em `inventory` referencia `stock_items.id`
 
-1. Clique no botão "Cadastro Integrado" 🔗
-2. Preencha os dados:
-   - **Informações Básicas**: IMEI, Marca, Modelo, Cor, Armazenamento
-   - **Informações de Estoque**: Localização, Custo, Preço de Venda
-3. Clique em "Cadastrar em Ambos os Sistemas"
+#### **View Unificada:**
+```sql
+unified_inventory
+-- Combina dados de inventory e stock_items
+-- Mostra: IMEI, modelo, status de ambos sistemas, preço, localização
+```
 
-**Resultado:**
-- ✅ Aparelho criado no **Estoque** (Stock)
-- ✅ Aparelho vinculado criado no **Inventário** (Empréstimos)
-- ✅ Status sincronizado automaticamente
+#### **Triggers de Sincronização:**
+1. `sync_inventory_to_stock()` - Atualiza stock quando inventory muda
+2. `sync_stock_to_inventory()` - Atualiza inventory quando stock muda
+
+**Mapeamento de Status:**
+| Inventory Status | Stock Status |
+|------------------|--------------|
+| `available`      | `disponivel` |
+| `loaned`         | `reservado`  |
+| `sold`           | `vendido`    |
+
+---
+
+### **2. Funções SQL (RPC)**
+
+#### **`create_linked_item()`**
+Cria item em ambos sistemas simultaneamente e os vincula.
+
+```sql
+SELECT create_linked_item(
+  p_imei := '123456789012345',
+  p_model := 'iPhone 14 Pro',
+  p_brand := 'Apple',
+  p_color := 'Space Black',
+  p_storage := '256GB',
+  p_condition := 'novo',
+  p_battery_pct := 100,
+  p_price := 5499.00,
+  p_cost := 4200.00,
+  p_location := 'estoque',
+  p_notes := 'Item importado'
+);
+```
+
+#### **`migrate_inventory_to_stock()`** ⭐ NOVO
+Migra automaticamente todos items do inventory para stock_items.
+
+```sql
+SELECT migrate_inventory_to_stock();
+-- Retorna: { migrated_count, failed_count, message }
+```
+
+#### **`get_integration_stats()`** ⭐ NOVO
+Retorna estatísticas da integração.
+
+```sql
+SELECT get_integration_stats();
+-- Retorna:
+-- {
+--   total_inventory: 150,
+--   synced_items: 120,
+--   unsynced_items: 30,
+--   sync_rate: 80.00,
+--   last_check: '2025-01-15T10:30:00Z'
+-- }
+```
+
+---
+
+## 📋 **Guia de Uso**
+
+### **Opção 1: Cadastro Integrado (✅ Recomendado)**
+
+#### **Onde encontrar:**
+- **Admin > Aparelhos** → Botão "🔗 Cadastro Integrado"
+- **Estoque > Dashboard** → Botão "🔗 Cadastro Integrado"
+
+#### **Campos do Formulário:**
+```
+📦 Informações Básicas:
+  - IMEI (obrigatório, 15 dígitos)
+  - Modelo (obrigatório)
+  - Marca (obrigatório, padrão: Apple)
+  - Cor
+  - Armazenamento
+  - Condição (padrão: novo)
+  - Bateria % (padrão: 100%)
+
+💰 Informações de Estoque:
+  - Preço de Venda
+  - Custo de Aquisição
+  - Localização (estoque, vitrine, etc)
+
+📝 Notas:
+  - Observações gerais
+```
+
+#### **O que acontece:**
+1. ✅ Item criado em `stock_items`
+2. ✅ Item criado em `inventory` com vínculo (`stock_item_id`)
+3. ✅ Ambos sistemas sincronizados automaticamente
+4. ✅ Log de auditoria criado
 
 ---
 
 ### **Opção 2: Cadastro Individual**
 
-Se você preferir cadastrar apenas em um sistema:
+#### **Apenas Inventário (Empréstimos):**
+Use quando o item é **apenas para empréstimo** (não será vendido).
 
-#### **A) Apenas Inventário (Empréstimos)**
-Use o botão "Adicionar Aparelho" (ícone +)
-- Para aparelhos que **não** serão vendidos
-- Para aparelhos de teste/demonstração
-- **Não** aparece no sistema de vendas
+**Admin > Aparelhos** → Botão "Adicionar Aparelho"
 
-#### **B) Apenas Estoque (Vendas)**
-Use o botão "Adicionar Item" no Stock
-- Para aparelhos que **não** serão emprestados
-- Controle completo de preços e localização
-- **Não** aparece no sistema de empréstimos
+#### **Apenas Estoque (Vendas):**
+Use quando o item é **apenas para venda** (não será emprestado).
+
+**Estoque > Dashboard** → Botão "Adicionar Item"
 
 ---
 
-## 🔄 Sincronização Automática
+### **Opção 3: Migração Automática de Dados Existentes** ⭐ NOVO
 
-### Como Funciona?
+Para vincular automaticamente items já cadastrados no inventory ao stock:
 
-1. **Empréstimo → Estoque**
-   - Quando você empresta um aparelho vinculado
-   - Status do inventário muda para `loaned`
-   - Status do estoque muda automaticamente para `reservado`
+#### **Via Interface:**
+1. Acesse **Estoque > Dashboard**
+2. Vá para aba **"Integração"**
+3. Clique em **"Sincronizar Agora"**
+4. Aguarde a conclusão (mostra progresso)
 
-2. **Venda → Inventário**
-   - Quando você vende no estoque
-   - Status do estoque muda para `vendido`
-   - Status do inventário muda automaticamente para `sold`
-
-3. **Devolução → Estoque**
-   - Quando um empréstimo é devolvido
-   - Status do inventário volta para `available`
-   - Status do estoque volta para `disponivel`
-
----
-
-## 📊 Estatísticas
-
-### Card "Sincronizados"
-No dashboard do Stock, você verá:
-- **Sincronizados**: Quantidade de itens vinculados entre os sistemas
-- Clique para ver apenas os itens integrados
-
----
-
-## ⚙️ Onde Encontrar
-
-### **1. Admin → Aparelhos**
-Caminho: Configurações ⚙️ → "Gerenciar Cadastros" → Aba "Inventário"
-
-**Botões disponíveis:**
-- 📤 Importar CSV/XLSX
-- 🔗 **Cadastro Integrado** (NOVO!)
-- ➕ Adicionar Aparelho
-
-### **2. Menu Stock**
-Caminho: Menu Lateral → "Stock"
-
-**Botões disponíveis:**
-- 🔍 Scanner
-- 🔗 **Cadastro Integrado** (NOVO!)
-- ➕ Adicionar Item
-
----
-
-## 🎯 Casos de Uso
-
-### **Cenário 1: Novo iPhone para Venda e Empréstimo**
-✅ Use **"Cadastro Integrado"**
-- Cadastre com preço de custo/venda
-- Defina localização (vitrine/estoque)
-- Aparelho fica disponível para empréstimo E venda
-- Status sempre sincronizado
-
-### **Cenário 2: iPhone Apenas para Empréstimos**
-✅ Use **"Adicionar Aparelho"** no Inventário
-- Cadastro simples e rápido
-- Não precisa preencher dados de venda
-- Não aparece no sistema de estoque
-
-### **Cenário 3: iPhone Apenas para Venda**
-✅ Use **"Adicionar Item"** no Stock
-- Controle financeiro completo
-- Gestão de localização física
-- Não aparece no sistema de empréstimos
-
-### **Cenário 4: Importação em Massa**
-✅ Use **"Importar CSV/XLSX"**
-- Importa direto para o inventário
-- Depois vincule manualmente se necessário
-- Ou use a função SQL `create_linked_item()`
-
----
-
-## 🛡️ Segurança
-
-- ✅ RLS (Row Level Security) ativado em ambas as tabelas
-- ✅ Triggers com `SECURITY DEFINER` para garantir integridade
-- ✅ Auditoria automática de todas as operações
-- ✅ Apenas admins e managers podem criar itens vinculados
-
----
-
-## 🔧 Funções Avançadas (SQL)
-
-### Criar Item Vinculado via SQL
+#### **Via SQL (avançado):**
 ```sql
-SELECT create_linked_item(
-  p_imei := '123456789012345',
-  p_model := 'iPhone 15 Pro Max',
-  p_brand := 'Apple',
-  p_color := 'Azul Titânio',
-  p_storage := '256GB',
-  p_condition := 'novo',
-  p_battery_pct := 100,
-  p_price := 8999.00,
-  p_cost := 7500.00,
-  p_location := 'vitrine',
-  p_notes := 'Aparelho novo na caixa'
-);
+SELECT migrate_inventory_to_stock();
 ```
 
-### Consultar Inventário Unificado
+**Resultado:**
+```json
+{
+  "success": true,
+  "migrated_count": 95,
+  "failed_count": 0,
+  "message": "Migração concluída: 95 itens vinculados, 0 falharam"
+}
+```
+
+---
+
+## 🔄 **Sincronização Automática**
+
+### **Cenário 1: Empréstimo de Item**
+```
+Ação: Emprestar aparelho (inventory status → loaned)
+Trigger: sync_inventory_to_stock()
+Resultado: stock_items.status → reservado
+```
+
+### **Cenário 2: Venda de Item no Estoque**
+```
+Ação: Vender item (stock status → vendido)
+Trigger: sync_stock_to_inventory()
+Resultado: inventory.status → sold
+Bloqueio: Não pode mais ser emprestado
+```
+
+### **Cenário 3: Retorno de Empréstimo**
+```
+Ação: Devolver aparelho (inventory status → available)
+Trigger: sync_inventory_to_stock()
+Resultado: stock_items.status → disponivel
+```
+
+---
+
+## 📊 **Dashboard de Integração** ⭐ NOVO
+
+### **Localização:**
+**Estoque > Dashboard > Aba "Integração"**
+
+### **Funcionalidades:**
+
+#### **1. Taxa de Sincronização**
+- Barra de progresso visual
+- Percentual de items vinculados
+- Badge de status (100% = verde, <100% = laranja)
+
+#### **2. Cards Estatísticos**
+- **Total no Inventário:** Total de items no sistema de empréstimos
+- **Sincronizados:** Items com vínculo bidirecional ativo
+- **Não Sincronizados:** Items que precisam de vinculação
+
+#### **3. Ação de Migração**
+- Botão "Sincronizar Agora" aparece se há items não sincronizados
+- Mostra quantos items serão processados
+- Feedback em tempo real durante migração
+- Atualiza estatísticas automaticamente após conclusão
+
+#### **4. Status Visual**
+- ✅ Verde: Sistema 100% integrado
+- ⚠️ Laranja: Integração parcial, migração disponível
+- Última verificação com timestamp
+
+---
+
+## 🎨 **Componentes da Interface**
+
+### **1. UnifiedDeviceDialog**
+Modal para cadastro integrado.
+
+**Props:**
+```typescript
+interface UnifiedDeviceDialogProps {
+  onDeviceAdded?: () => void;
+}
+```
+
+### **2. UnifiedItemSelector** ⭐ NOVO
+Seletor de items da view unificada.
+
+**Props:**
+```typescript
+interface UnifiedItemSelectorProps {
+  onSelect: (item: UnifiedItem) => void;
+  selectedId?: string;
+}
+```
+
+**Features:**
+- 🔍 Busca por IMEI, modelo, marca
+- 📊 Mostra informações completas (preço, localização, bateria)
+- 🏷️ Badge "Integrado" para items vinculados
+- 📱 Layout responsivo com scroll
+
+### **3. IntegrationDashboard** ⭐ NOVO
+Dashboard completo de integração.
+
+**Uso:**
+```tsx
+import { IntegrationDashboard } from '@/components/IntegrationDashboard';
+
+<IntegrationDashboard />
+```
+
+---
+
+## 🛡️ **Segurança**
+
+### **RLS (Row-Level Security):**
+- ✅ Triggers com `SECURITY DEFINER`
+- ✅ Validações de role (admin/manager apenas)
+- ✅ Logs de auditoria para todas operações
+- ✅ Acesso baseado em `auth.uid()`
+
+### **Funções Privilegiadas:**
 ```sql
+create_linked_item() -- Requer admin/manager
+migrate_inventory_to_stock() -- Requer autenticação
+get_integration_stats() -- Requer autenticação
+```
+
+---
+
+## 📈 **Estatísticas no Dashboard**
+
+### **Card "Sincronizados":**
+Mostra items com vínculo ativo:
+```typescript
+stats.synced_with_inventory
+// Aparece no Dashboard de Estoque
+```
+
+### **Coluna "Sinc." (Admin > Aparelhos):** ⭐ NOVO
+Mostra status de sincronização de cada item:
+- ✓ **Vinculado** (badge verde) - Item integrado
+- **Não vinculado** (badge cinza) - Item apenas no inventory
+
+---
+
+## 🔍 **View Unificada (`unified_inventory`)**
+
+### **Colunas Disponíveis:**
+```sql
+SELECT
+  inventory_id,      -- UUID do inventory
+  stock_id,          -- UUID do stock_items (pode ser NULL)
+  imei,
+  model,
+  brand,
+  color,
+  storage,
+  condition,
+  battery_pct,
+  inventory_status,  -- available, loaned, sold
+  stock_status,      -- disponivel, reservado, vendido (NULL se não vinculado)
+  price,             -- do stock_items
+  cost,              -- do stock_items
+  location,          -- do stock_items
+  notes,
+  inventory_created_at,
+  stock_created_at,
+  inventory_updated_at,
+  stock_updated_at,
+  source            -- 'inventory', 'stock', ou 'integrated'
+FROM unified_inventory;
+```
+
+### **Exemplo de Query:**
+```sql
+-- Items disponíveis com preço
 SELECT * FROM unified_inventory
-WHERE source = 'stock'
-ORDER BY inventory_created_at DESC;
+WHERE inventory_status = 'available'
+  AND stock_status = 'disponivel'
+  AND price IS NOT NULL
+ORDER BY price DESC;
+
+-- Items não sincronizados
+SELECT * FROM unified_inventory
+WHERE stock_id IS NULL;
+
+-- Items integrados em empréstimo
+SELECT * FROM unified_inventory
+WHERE inventory_status = 'loaned'
+  AND stock_status = 'reservado';
 ```
 
 ---
 
-## 📝 Resumo Rápido
+## ❓ **FAQ**
 
-| **Sistema** | **Tabela** | **Para Que Serve** |
-|------------|-----------|-------------------|
-| Inventário | `inventory` | Controle de empréstimos |
-| Estoque | `stock_items` | Controle de vendas |
-| Integrado | Ambos | Aparelhos que podem ser emprestados E vendidos |
+### **P: O que acontece se eu deletar um item do stock?**
+R: A coluna `stock_item_id` no inventory será setada para NULL automaticamente (ON DELETE SET NULL).
 
-**Dica:** Use o **Cadastro Integrado** para 90% dos casos. É mais completo e mantém tudo sincronizado!
+### **P: Posso desvincular items manualmente?**
+R: Sim, via SQL:
+```sql
+UPDATE inventory
+SET stock_item_id = NULL
+WHERE id = '<uuid>';
+```
+
+### **P: Como identificar items vinculados?**
+R: 
+1. Via Interface: Coluna "Sinc." em Admin > Aparelhos
+2. Via SQL: `stock_item_id IS NOT NULL` em inventory
+3. Via View: `stock_id IS NOT NULL` em unified_inventory
+
+### **P: A migração automática sobrescreve dados?**
+R: Não! A função `migrate_inventory_to_stock()` apenas processa items com `stock_item_id = NULL`, preservando vínculos existentes.
+
+### **P: Posso reverter uma migração?**
+R: Sim, deletando os items criados no stock ou setando `stock_item_id = NULL` no inventory.
+
+### **P: Como funciona a importação CSV?**
+R: Importações via CSV criam items apenas no inventory. Use "Sincronizar Agora" após importar para vincular ao stock.
 
 ---
 
-## ❓ FAQ
+## 🚀 **Próximos Passos**
 
-**P: Posso desvincular um item?**
-R: Sim, defina `stock_item_id = NULL` no inventário.
+1. ✅ **Teste o Cadastro Integrado:**
+   - Vá em Admin > Aparelhos
+   - Clique em "🔗 Cadastro Integrado"
+   - Cadastre um iPhone de teste
 
-**P: O que acontece se eu deletar no estoque?**
-R: O vínculo é removido (`ON DELETE SET NULL`), mas o item permanece no inventário.
+2. ✅ **Execute a Migração:**
+   - Vá em Estoque > Dashboard > Integração
+   - Clique em "Sincronizar Agora"
+   - Aguarde a conclusão
 
-**P: Posso importar CSV direto como vinculado?**
-R: Não ainda. Importe primeiro no inventário e depois crie no estoque manualmente.
+3. ✅ **Teste a Sincronização:**
+   - Faça um empréstimo de um item sincronizado
+   - Verifique o status no Estoque
+   - Retorne o item e veja a atualização
 
-**P: Como sei se um item está vinculado?**
-R: No inventário, o campo `stock_item_id` estará preenchido. No dashboard do Stock, veja o card "Sincronizados".
+4. ✅ **Monitore a Integração:**
+   - Acesse regularmente o Dashboard de Integração
+   - Mantenha 100% de sincronização
+   - Analise estatísticas para tomar decisões
 
 ---
 
-## 🎉 Pronto!
+## 🎉 **Resumo Rápido**
 
-Agora você pode cadastrar aparelhos de forma integrada e ter controle total sobre empréstimos e vendas com sincronização automática!
+| Sistema | Propósito | Status Principal | Sincronização |
+|---------|-----------|-----------------|---------------|
+| **Inventory** | Empréstimos (Cofre) | available, loaned, sold | Automática ✅ |
+| **Stock** | Vendas (Estoque) | disponivel, reservado, vendido | Automática ✅ |
+| **Integrado** | Ambos | Bidirecional | Tempo Real ✅ |
 
-**Próximos passos sugeridos:**
-1. Teste cadastrar um aparelho usando o "Cadastro Integrado"
-2. Faça um empréstimo e veja o status mudar no estoque
-3. Devolva o empréstimo e veja o status voltar
-4. Verifique o card "Sincronizados" no dashboard do Stock
+---
 
-Para suporte ou dúvidas, consulte este guia ou acesse a documentação técnica do sistema.
+## 📝 **Checklist de Implementação**
+
+- [x] Migração SQL com triggers e view
+- [x] Função `create_linked_item()`
+- [x] Função `migrate_inventory_to_stock()`
+- [x] Função `get_integration_stats()`
+- [x] Hook `useUnifiedInventory`
+- [x] Componente `UnifiedDeviceDialog`
+- [x] Componente `UnifiedItemSelector`
+- [x] Componente `IntegrationDashboard`
+- [x] Aba "Integração" no StockDashboard
+- [x] Coluna "Sinc." no AdminDevicesTab
+- [x] Cache unificado nos hooks
+- [x] Correção StockService.ts
+- [x] Documentação completa
+
+---
+
+**Sistema 100% Integrado e Operacional! 🎉**

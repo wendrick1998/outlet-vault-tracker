@@ -1789,6 +1789,10 @@ export type Database = {
         }
         Returns: Json[]
       }
+      get_integration_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_masked_customer_data: {
         Args: { customer_id: string }
         Returns: Json
@@ -1864,6 +1868,10 @@ export type Database = {
       migrate_existing_roles: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      migrate_inventory_to_stock: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       request_sensitive_data_access: {
         Args: {

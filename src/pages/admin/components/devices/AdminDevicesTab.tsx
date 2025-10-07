@@ -218,13 +218,14 @@ export const AdminDevicesTab = () => {
                 <TableHead>Condição</TableHead>
                 <TableHead>Bateria</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Sinc.</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     Nenhum aparelho encontrado
                   </TableCell>
                 </TableRow>
@@ -254,6 +255,17 @@ export const AdminDevicesTab = () => {
                          item.status === 'loaned' ? 'Emprestado' : 
                          item.status === 'sold' ? 'Vendido' : item.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {item.stock_item_id ? (
+                        <Badge variant="default" className="text-xs">
+                          ✓ Vinculado
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          Não vinculado
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <DeviceActions item={item} onAction={setConfirmModal} />

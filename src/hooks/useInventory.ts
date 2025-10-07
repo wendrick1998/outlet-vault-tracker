@@ -33,6 +33,8 @@ export function useInventory() {
     mutationFn: InventoryService.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['unified-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['stock'] });
       toast({
         title: "Item criado",
         description: "Item adicionado ao inventário com sucesso.",
@@ -52,6 +54,8 @@ export function useInventory() {
       InventoryService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['unified-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['stock'] });
       toast({
         title: "Item atualizado",
         description: "Informações do item atualizadas com sucesso.",

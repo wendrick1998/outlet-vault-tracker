@@ -12,6 +12,7 @@ import { StockItemCard } from "./StockItemCard";
 import { StockItemDialog } from "./StockItemDialog";
 import { StockSearch } from "./StockSearch";
 import { UnifiedDeviceDialog } from "@/components/UnifiedDeviceDialog";
+import { IntegrationDashboard } from "@/components/IntegrationDashboard";
 import { StockConferenceCard } from "./StockConferenceCard";
 import { StockScanner } from "./StockScanner";
 import { StockConferenceWorkflow } from "./StockConferenceWorkflow";
@@ -201,8 +202,9 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
 
       {/* Main Content */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="integration">Integração</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="items">Itens</TabsTrigger>
           <TabsTrigger value="search">Buscar</TabsTrigger>
@@ -244,6 +246,10 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="integration" className="space-y-6">
+          <IntegrationDashboard />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
