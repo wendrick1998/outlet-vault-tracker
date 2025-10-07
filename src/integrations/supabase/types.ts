@@ -363,6 +363,7 @@ export type Database = {
           model: string
           notes: string | null
           status: Database["public"]["Enums"]["inventory_status"]
+          stock_item_id: string | null
           storage: string | null
           storage_id: string | null
           suffix: string | null
@@ -387,6 +388,7 @@ export type Database = {
           model: string
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
+          stock_item_id?: string | null
           storage?: string | null
           storage_id?: string | null
           suffix?: string | null
@@ -411,6 +413,7 @@ export type Database = {
           model?: string
           notes?: string | null
           status?: Database["public"]["Enums"]["inventory_status"]
+          stock_item_id?: string | null
           storage?: string | null
           storage_id?: string | null
           suffix?: string | null
@@ -438,6 +441,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_conditions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["stock_id"]
           },
           {
             foreignKeyName: "inventory_storage_id_fkey"
@@ -484,6 +501,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_missing_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["inventory_id"]
           },
         ]
       }
@@ -538,6 +562,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_scans_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["inventory_id"]
           },
         ]
       }
@@ -604,6 +635,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_audit_tasks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["inventory_id"]
           },
         ]
       }
@@ -690,6 +728,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_notes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["inventory_id"]
           },
         ]
       }
@@ -780,6 +825,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["inventory_id"]
           },
           {
             foreignKeyName: "loans_reason_id_fkey"
@@ -906,6 +958,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_loans_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["inventory_id"]
           },
           {
             foreignKeyName: "pending_loans_loan_id_fkey"
@@ -1236,6 +1295,13 @@ export type Database = {
             referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stock_conference_scans_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["stock_id"]
+          },
         ]
       }
       stock_conferences: {
@@ -1340,6 +1406,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_item_labels_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["stock_id"]
           },
         ]
       }
@@ -1449,6 +1522,13 @@ export type Database = {
             referencedRelation: "inventory"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stock_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["inventory_id"]
+          },
         ]
       }
       stock_movements: {
@@ -1509,6 +1589,13 @@ export type Database = {
             referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stock_movements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "unified_inventory"
+            referencedColumns: ["stock_id"]
+          },
         ]
       }
       user_role_assignments: {
@@ -1567,7 +1654,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      unified_inventory: {
+        Row: {
+          battery_pct: number | null
+          brand: string | null
+          color: string | null
+          condition: string | null
+          cost: number | null
+          imei: string | null
+          inventory_created_at: string | null
+          inventory_id: string | null
+          inventory_status:
+            | Database["public"]["Enums"]["inventory_status"]
+            | null
+          inventory_updated_at: string | null
+          location: Database["public"]["Enums"]["stock_location"] | null
+          model: string | null
+          notes: string | null
+          price: number | null
+          shelf_position: string | null
+          source: string | null
+          stock_created_at: string | null
+          stock_id: string | null
+          stock_status: Database["public"]["Enums"]["stock_status"] | null
+          stock_updated_at: string | null
+          storage: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       anonymize_user: {
@@ -1615,6 +1729,22 @@ export type Database = {
           p_correct_status: Database["public"]["Enums"]["loan_status"]
           p_correction_reason: string
           p_loan_id: string
+        }
+        Returns: Json
+      }
+      create_linked_item: {
+        Args: {
+          p_battery_pct?: number
+          p_brand: string
+          p_color?: string
+          p_condition?: string
+          p_cost?: number
+          p_imei: string
+          p_location?: Database["public"]["Enums"]["stock_location"]
+          p_model: string
+          p_notes?: string
+          p_price?: number
+          p_storage?: string
         }
         Returns: Json
       }

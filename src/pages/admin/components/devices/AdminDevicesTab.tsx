@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useDevicesAdmin } from "@/hooks/useDevicesAdmin";
 import { Loading } from "@/components/ui/loading";
 import { AddDeviceDialog } from "@/components/AddDeviceDialog";
+import { UnifiedDeviceDialog } from "@/components/UnifiedDeviceDialog";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -124,6 +125,7 @@ export const AdminDevicesTab = () => {
               <Upload className="h-4 w-4" />
               Importar CSV/XLSX
             </Button>
+            <UnifiedDeviceDialog onDeviceAdded={() => window.location.reload()} />
             <AddDeviceDialog onDeviceAdded={() => window.location.reload()} />
           </div>
         </div>

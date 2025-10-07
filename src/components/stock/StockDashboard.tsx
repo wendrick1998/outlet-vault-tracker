@@ -11,6 +11,7 @@ import { StatsCard } from "@/components/ui/stats-card";
 import { StockItemCard } from "./StockItemCard";
 import { StockItemDialog } from "./StockItemDialog";
 import { StockSearch } from "./StockSearch";
+import { UnifiedDeviceDialog } from "@/components/UnifiedDeviceDialog";
 import { StockConferenceCard } from "./StockConferenceCard";
 import { StockScanner } from "./StockScanner";
 import { StockConferenceWorkflow } from "./StockConferenceWorkflow";
@@ -117,6 +118,7 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
             <Scan className="h-4 w-4" />
             Scanner
           </Button>
+          <UnifiedDeviceDialog onDeviceAdded={() => window.location.reload()} />
           <Button
             onClick={() => setIsItemDialogOpen(true)}
             className="gap-2"
