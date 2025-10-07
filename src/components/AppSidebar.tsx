@@ -12,7 +12,8 @@ import {
   ClipboardList,
   TrendingUp,
   Activity,
-  User
+  User,
+  Shield
 } from "lucide-react";
 
 import { useLocation } from "react-router-dom";
@@ -140,6 +141,12 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
       page: "admin", 
       icon: Users, 
       available: isAdminCadastrosEnabled && isAdmin 
+    },
+    { 
+      title: "Auditoria Dados Sensíveis", 
+      page: "admin/sensitive-data-audit", 
+      icon: Shield, 
+      available: isManagerOrAdmin 
     },
   ];
 

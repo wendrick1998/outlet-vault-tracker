@@ -17,10 +17,12 @@ import {
   Filter,
   Download,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react';
 import { RoleGuard } from '@/components/RoleGuard';
 import { InconsistencyMonitor } from '@/components/InconsistencyMonitor';
+import { SensitiveDataAudit } from '@/components/SensitiveDataAudit';
 
 export const AuditDashboard = () => {
   const [selectedAction, setSelectedAction] = useState<string>('');
@@ -119,6 +121,10 @@ export const AuditDashboard = () => {
             <TabsTrigger value="inconsistencies">
               <AlertTriangle className="h-4 w-4 mr-1" />
               Inconsistências
+            </TabsTrigger>
+            <TabsTrigger value="sensitive">
+              <Lock className="h-4 w-4 mr-1" />
+              Dados Sensíveis
             </TabsTrigger>
           </TabsList>
 
@@ -335,6 +341,10 @@ export const AuditDashboard = () => {
 
           <TabsContent value="inconsistencies">
             <InconsistencyMonitor />
+          </TabsContent>
+
+          <TabsContent value="sensitive">
+            <SensitiveDataAudit />
           </TabsContent>
         </Tabs>
       </div>

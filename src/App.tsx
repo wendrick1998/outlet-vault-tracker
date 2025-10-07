@@ -32,6 +32,7 @@ const LazyHistory = lazy(() => import('./pages/History').then(m => ({ default: m
 const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate').then(m => ({ default: m.default })));
 const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow'));
+const LazySensitiveDataAudit = lazy(() => import('./pages/admin/SensitiveDataAuditPage'));
 
 type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'conference' | 'conference-report' | 'stock' | 'system-monitoring' | 'historical-audits' | 'search-register';
 
@@ -289,6 +290,16 @@ const AppContent = () => {
         element={
           <AppLayout>
             <SystemMonitoring />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/admin/sensitive-data-audit" 
+        element={
+          <AppLayout>
+            <Suspense fallback={<Loading />}>
+              <LazySensitiveDataAudit />
+            </Suspense>
           </AppLayout>
         } 
       />
