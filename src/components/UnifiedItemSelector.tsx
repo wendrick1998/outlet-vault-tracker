@@ -39,7 +39,7 @@ export const UnifiedItemSelector = ({ onSelect, selectedId }: UnifiedItemSelecto
       const { data, error } = await supabase
         .from('unified_inventory')
         .select('*')
-        .eq('inventory_status', 'available')
+        .or('inventory_status.eq.available,source.eq.inventory_only')
         .order('inventory_created_at', { ascending: false });
 
       if (error) throw error;

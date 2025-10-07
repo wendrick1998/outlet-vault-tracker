@@ -46,17 +46,23 @@ export const useUnifiedInventory = () => {
       return result;
     },
     onSuccess: (data) => {
-      // Invalidar todas as queries relacionadas (incluindo nested keys)
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['stock'] });
-      queryClient.invalidateQueries({ queryKey: ['unified-inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['integration-stats'] });
-      
-      // Invalidar queries específicas que podem estar em cache
-      queryClient.invalidateQueries({ queryKey: ['inventory', 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory', 'available'] });
-      queryClient.invalidateQueries({ queryKey: ['stock', 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['stock', 'stats'] });
+      // Invalidar queries com exact: false para pegar nested keys
+      queryClient.invalidateQueries({ 
+        queryKey: ['inventory'], 
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['stock'], 
+        exact: false 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['integration-stats'],
+        exact: false
+      });
+      // Forçar reload da unified_inventory
+      queryClient.refetchQueries({ 
+        queryKey: ['unified-inventory'] 
+      });
       
       toast({
         title: "✅ Aparelho cadastrado com sucesso!",

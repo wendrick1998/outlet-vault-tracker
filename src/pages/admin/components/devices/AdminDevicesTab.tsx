@@ -262,15 +262,42 @@ export const AdminDevicesTab = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {item.stock_item_id ? (
-                        <Badge variant="default" className="text-xs">
-                          ✓ Vinculado
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">
-                          Não vinculado
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {item.stock_item_id ? (
+                          <Badge variant="default" className="text-xs">
+                            ✓ Vinculado
+                          </Badge>
+                        ) : (
+                          <>
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              Não vinculado
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs"
+                              onClick={async () => {
+                                try {
+                                  const { data, error } = await supabase.rpc('migrate_inventory_to_stock');
+                                  if (error) throw error;
+                                  toast({
+                                    title: "Sincronização iniciada",
+                                    description: "Aguarde alguns segundos e atualize a página.",
+                                  });
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Erro na sincronização",
+                                    description: error.message,
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              🔗 Sync
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <DeviceActions item={item} onAction={setConfirmModal} />

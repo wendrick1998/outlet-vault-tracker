@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Link2, Database, CheckCircle2, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -132,7 +143,7 @@ export const IntegrationDashboard = () => {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions with confirmation dialog */}
         {stats && stats.unsynced_items > 0 && (
           <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
             <div>
@@ -141,23 +152,49 @@ export const IntegrationDashboard = () => {
                 Vincular {stats.unsynced_items} itens do inventário ao sistema de estoque
               </p>
             </div>
-            <Button 
-              onClick={handleMigration} 
-              disabled={isMigrating}
-              className="gap-2"
-            >
-              {isMigrating ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <Link2 className="h-4 w-4" />
-                  Sincronizar Agora
-                </>
-              )}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  disabled={isMigrating}
+                  className="gap-2"
+                >
+                  {isMigrating ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Sincronizando...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-4 w-4" />
+                      Sincronizar Agora
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar Sincronização</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação vinculará <strong>{stats.unsynced_items} itens</strong> do inventário ao sistema de estoque.
+                    <br /><br />
+                    Após a sincronização:
+                    <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                      <li>Os itens aparecerão em ambos os sistemas</li>
+                      <li>Mudanças de status serão sincronizadas automaticamente</li>
+                      <li>Este processo é irreversível</li>
+                    </ul>
+                    <br />
+                    Deseja continuar?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleMigration}>
+                    Confirmar Sincronização
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
 
