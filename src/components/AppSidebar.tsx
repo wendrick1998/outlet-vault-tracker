@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Store,
   CheckSquare,
+  ClipboardList,
   TrendingUp,
   Activity,
   User
@@ -79,7 +80,7 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
     { 
       title: "Conferência de Inventário", 
       page: "conference", 
-      icon: CheckSquare, 
+      icon: ClipboardList, 
       available: true 
     },
     { 
