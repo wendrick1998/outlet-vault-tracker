@@ -384,6 +384,7 @@ export type Database = {
       }
       inventory: {
         Row: {
+          batch_id: string | null
           battery_pct: number | null
           brand: string
           brand_id: string | null
@@ -409,6 +410,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          batch_id?: string | null
           battery_pct?: number | null
           brand: string
           brand_id?: string | null
@@ -434,6 +436,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          batch_id?: string | null
           battery_pct?: number | null
           brand?: string
           brand_id?: string | null
@@ -459,6 +462,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_brand_id_fkey"
             columns: ["brand_id"]
@@ -1533,6 +1543,7 @@ export type Database = {
         Row: {
           acquisition_date: string | null
           apple_model_id: string | null
+          batch_id: string | null
           battery_pct: number | null
           brand: string
           color: string | null
@@ -1563,6 +1574,7 @@ export type Database = {
         Insert: {
           acquisition_date?: string | null
           apple_model_id?: string | null
+          batch_id?: string | null
           battery_pct?: number | null
           brand?: string
           color?: string | null
@@ -1593,6 +1605,7 @@ export type Database = {
         Update: {
           acquisition_date?: string | null
           apple_model_id?: string | null
+          batch_id?: string | null
           battery_pct?: number | null
           brand?: string
           color?: string | null
@@ -1621,6 +1634,13 @@ export type Database = {
           warranty_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_items_created_by_fkey"
             columns: ["created_by"]
@@ -1708,6 +1728,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "unified_inventory"
             referencedColumns: ["stock_id"]
+          },
+        ]
+      }
+      supplier_batches: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          purchase_date: string | null
+          supplier_name: string
+          total_cost: number | null
+          total_items: number | null
+          warranty_months: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          purchase_date?: string | null
+          supplier_name: string
+          total_cost?: number | null
+          total_items?: number | null
+          warranty_months?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          purchase_date?: string | null
+          supplier_name?: string
+          total_cost?: number | null
+          total_items?: number | null
+          warranty_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1855,19 +1919,35 @@ export type Database = {
         Returns: Json
       }
       create_linked_item: {
-        Args: {
-          p_battery_pct?: number
-          p_brand: string
-          p_color?: string
-          p_condition?: string
-          p_cost?: number
-          p_imei: string
-          p_location?: Database["public"]["Enums"]["stock_location"]
-          p_model: string
-          p_notes?: string
-          p_price?: number
-          p_storage?: string
-        }
+        Args:
+          | {
+              p_batch_id?: string
+              p_battery_pct?: number
+              p_brand: string
+              p_color?: string
+              p_condition?: string
+              p_cost?: number
+              p_imei: string
+              p_location?: Database["public"]["Enums"]["stock_location"]
+              p_model: string
+              p_notes?: string
+              p_price?: number
+              p_storage?: string
+              p_supplier_name?: string
+            }
+          | {
+              p_battery_pct?: number
+              p_brand: string
+              p_color?: string
+              p_condition?: string
+              p_cost?: number
+              p_imei: string
+              p_location?: Database["public"]["Enums"]["stock_location"]
+              p_model: string
+              p_notes?: string
+              p_price?: number
+              p_storage?: string
+            }
         Returns: Json
       }
       current_user_has_permission: {
