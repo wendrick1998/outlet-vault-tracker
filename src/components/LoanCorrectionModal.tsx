@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,14 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
   const [pin, setPin] = useState('');
 
   const { correctLoan, isCorrecting, isError, error, correctionLimit, remainingCorrections } = useLoanCorrections();
-  const { hasPinConfigured } = usePinProtection();
+  const { hasPinConfigured, checkPinConfiguration } = usePinProtection();
+
+  // Verificar configuração de PIN quando o modal abrir
+  useEffect(() => {
+    if (isOpen) {
+      checkPinConfiguration();
+    }
+  }, [isOpen, checkPinConfiguration]);
 
   const isCriticalChange = loan && selectedStatus && (
     (loan.status === 'sold' && ['active', 'returned'].includes(selectedStatus)) ||
@@ -185,8 +192,26 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
               </div>
             </div>
 
-            {/* PIN Field (se configurado) */}
-            {hasPinConfigured && (
+            {/* PIN Field - Estados de verificação */}
+            {hasPinConfigured === null && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Verificando configuração de PIN...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {hasPinConfigured === false && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>PIN não configurado!</strong> Configure seu PIN operacional em Perfil → Segurança antes de realizar correções críticas.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {hasPinConfigured === true && (
               <div className="space-y-2">
                 <Label htmlFor="pin" className="flex items-center gap-2">
                   <Lock className="h-4 w-4" />
