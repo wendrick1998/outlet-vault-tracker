@@ -7,11 +7,14 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useInventoryAudit } from '@/hooks/useInventoryAudit';
+import { useRealtimeAudit } from '@/hooks/useRealtimeAudit';
 import { InventoryAuditService } from '@/services/inventoryAuditService';
 import { InventoryService } from '@/services/inventoryService';
 import { ScanFeedback } from './ScanFeedback';
 import { TaskManagement } from './TaskManagement';
 import { AuditResetDialog } from './AuditResetDialog';
+import { CameraScanner } from './CameraScanner';
+import { getOfflineScanQueue } from '@/lib/OfflineScanQueue';
 import { 
   Search, 
   CheckCircle, 
@@ -23,7 +26,10 @@ import {
   Play,
   Pause,
   RotateCcw,
-  ClipboardList
+  ClipboardList,
+  Wifi,
+  WifiOff,
+  Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -42,6 +48,10 @@ interface ScanResult {
 
 export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
   const { audit, scans, addScan, finishAudit, isScanning: isMutating } = useInventoryAudit(auditId);
+  
+  // Enable realtime sync
+  useRealtimeAudit(auditId);
+  
   const [scanInput, setScanInput] = useState('');
   const [snapshot, setSnapshot] = useState<any[]>([]);
   const [processedItems, setProcessedItems] = useState<Set<string>>(new Set());
@@ -55,6 +65,9 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
   const [isResetting, setIsResetting] = useState(false);
   const [searchCache, setSearchCache] = useState<Map<string, any[]>>(new Map());
   const [progressBackup, setProgressBackup] = useState<any>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [pendingSync, setPendingSync] = useState(0);
+  const [cameraMode, setCameraMode] = useState(false);
   
   // Novos estados para filtros visuais
   const [filter, setFilter] = useState<'all' | 'found' | 'missing' | 'inconsistent'>('all');
@@ -66,6 +79,53 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
     item?: any;
   } | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('Conexão restaurada. Sincronizando...');
+      syncOfflineScans();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.warning('Modo offline ativado. Scans serão salvos localmente.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check pending scans on mount
+    updatePendingCount();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const updatePendingCount = async () => {
+    const queue = getOfflineScanQueue();
+    const count = await queue.getPendingCount();
+    setPendingSync(count);
+  };
+
+  const syncOfflineScans = async () => {
+    const queue = getOfflineScanQueue();
+    const result = await queue.sync(async (data) => {
+      return new Promise<void>((resolve, reject) => {
+        addScan(data, {
+          onSuccess: () => resolve(),
+          onError: (error) => reject(error)
+        });
+      });
+    });
+    
+    if (result.total > 0) {
+      toast.success(`Sincronizados ${result.success} scans offline`);
+      updatePendingCount();
+    }
+  };
 
   // Load snapshot on mount
   useEffect(() => {
@@ -233,15 +293,23 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
         });
       }
 
-      // Add scan to database
+      // Add scan to database with location validation
+      const locationFound = matchedItem?.location || audit?.location_expected;
       addScan({
         audit_id: auditId,
         raw_code: code,
         imei: cleanedData.imei,
         serial: cleanedData.serial,
         item_id: matchedItem?.id,
-        scan_result: scanResult as any
+        scan_result: scanResult as any,
+        location_found: locationFound
       });
+
+      // Check location mismatch
+      if (audit?.location_expected && matchedItem?.location && 
+          matchedItem.location !== audit.location_expected) {
+        toast.warning(`Item em local diferente: ${matchedItem.location} (esperado: ${audit.location_expected})`);
+      }
 
       playSound(soundType);
       
@@ -383,6 +451,25 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
               >
                 {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </Button>
+              {!isOnline && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <WifiOff className="h-3 w-3" />
+                  Offline {pendingSync > 0 && `(${pendingSync})`}
+                </Badge>
+              )}
+              {isOnline && pendingSync > 0 && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Wifi className="h-3 w-3" />
+                  Sincronizando... ({pendingSync})
+                </Badge>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCameraMode(!cameraMode)}
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -497,37 +584,48 @@ export function InventoryConference({ auditId, onFinish }: ConferenceProps) {
         </CardContent>
       </Card>
 
+      {/* Camera Scanner */}
+      {cameraMode && (
+        <CameraScanner
+          onScan={handleScan}
+          isActive={isActive && cameraMode}
+          onToggle={() => setCameraMode(!cameraMode)}
+        />
+      )}
+
       {/* Scanner Input */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-muted-foreground" />
-              <span className="font-medium">Scanner</span>
-              <Badge variant={isActive ? "default" : "secondary"}>
-                {isActive ? "Ativo" : "Pausado"}
-              </Badge>
+      {!cameraMode && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Search className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">Scanner</span>
+                <Badge variant={isActive ? "default" : "secondary"}>
+                  {isActive ? "Ativo" : "Pausado"}
+                </Badge>
+              </div>
+              <Input
+                ref={scanInputRef}
+                value={scanInput}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder={isActive ? "Escaneie códigos, IMEI ou números de série..." : "Scanner pausado"}
+                disabled={!isActive || isScanning}
+                className="text-lg font-mono"
+              />
+              {isActive && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Suporte para códigos de barras, IMEI e números de série. Mantenha o foco no campo.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
-            <Input
-              ref={scanInputRef}
-              value={scanInput}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              placeholder={isActive ? "Escaneie códigos, IMEI ou números de série..." : "Scanner pausado"}
-              disabled={!isActive || isScanning}
-              className="text-lg font-mono"
-            />
-            {isActive && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Suporte para códigos de barras, IMEI e números de série. Mantenha o foco no campo.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Scan Feedback */}
       {scanFeedback && (

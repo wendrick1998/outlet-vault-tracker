@@ -231,11 +231,10 @@ export class InventoryAuditService {
 
   // Snapshot creation using unified_inventory
   static async createSnapshot(filters: any = {}): Promise<any[]> {
+    // Usar unified_inventory para pegar tanto itens de inventory quanto stock_items
     let query = supabase
       .from('unified_inventory')
-      .select('*')
-      .or('stock_status.is.null,stock_status.neq.vendido')
-      .or('inventory_status.is.null,inventory_status.neq.sold');
+      .select('*');
 
     // Apply filters
     if (filters.location) {
@@ -255,7 +254,14 @@ export class InventoryAuditService {
       throw error;
     }
 
-    return data || [];
+    // Frontend filter to exclude sold items (better for complex OR logic)
+    const filtered = (data || []).filter(item => {
+      const isStockSold = item.stock_status === 'vendido';
+      const isInventorySold = item.inventory_status === 'sold';
+      return !isStockSold && !isInventorySold;
+    });
+
+    return filtered;
   }
 
   // Generate report data

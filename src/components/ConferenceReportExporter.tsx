@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { 
   Download, 
   FileText, 
@@ -29,7 +31,7 @@ export function ConferenceReportExporter({
   reportData 
 }: ConferenceReportExporterProps) {
   const { toast } = useToast();
-  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json' | 'pdf'>('csv');
   const [includeData, setIncludeData] = useState({
     summary: true,
     scans: true,
@@ -48,8 +50,10 @@ export function ConferenceReportExporter({
       
       if (exportFormat === 'csv') {
         await exportAsCSV(exportData);
-      } else {
+      } else if (exportFormat === 'json') {
         await exportAsJSON(exportData);
+      } else {
+        await exportAsPDF(exportData);
       }
 
       toast({
@@ -221,6 +225,132 @@ export function ConferenceReportExporter({
     document.body.removeChild(link);
   };
 
+  const exportAsPDF = async (data: any) => {
+    const doc = new jsPDF();
+    const { audit, scans, missing_items, tasks } = data;
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text('Relatório de Conferência de Inventário', 14, 20);
+    
+    // Audit info
+    doc.setFontSize(12);
+    doc.text(`Local: ${audit.location}`, 14, 35);
+    doc.text(`Status: ${audit.status}`, 14, 42);
+    doc.text(`Iniciado em: ${new Date(audit.started_at).toLocaleString('pt-BR')}`, 14, 49);
+    if (audit.finished_at) {
+      doc.text(`Finalizado em: ${new Date(audit.finished_at).toLocaleString('pt-BR')}`, 14, 56);
+    }
+    
+    let yPos = 70;
+    
+    // Summary
+    if (data.summary) {
+      doc.setFontSize(14);
+      doc.text('Resumo', 14, yPos);
+      yPos += 10;
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Métrica', 'Valor']],
+        body: [
+          ['Taxa de Conclusão', `${data.summary.completion_percentage}%`],
+          ['Itens Esperados', data.summary.total_items_expected],
+          ['Itens Encontrados', data.summary.items_found],
+          ['Itens Faltantes', data.summary.items_missing],
+          ['Itens Inesperados', data.summary.items_unexpected],
+          ['Scans Duplicados', data.summary.duplicate_scans],
+          ['Status Incongruente', data.summary.status_incongruent]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] }
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Scans
+    if (scans && scans.length > 0) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text('Escaneamentos', 14, yPos);
+      yPos += 10;
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Data/Hora', 'IMEI', 'Resultado']],
+        body: scans.slice(0, 50).map((scan: any) => [
+          new Date(scan.timestamp).toLocaleString('pt-BR'),
+          scan.imei || scan.serial || '-',
+          scan.scan_result
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] }
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Missing items
+    if (missing_items && missing_items.length > 0) {
+      if (yPos > 250 || scans?.length > 30) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text('Itens Não Encontrados', 14, yPos);
+      yPos += 10;
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Modelo', 'Marca', 'IMEI', 'Razão']],
+        body: missing_items.map((item: any) => [
+          item.item_details?.model || '-',
+          item.item_details?.brand || '-',
+          item.item_details?.imei || '-',
+          item.reason
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [231, 76, 60] }
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Tasks
+    if (tasks && tasks.length > 0) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.text('Tarefas', 14, yPos);
+      yPos += 10;
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Tipo', 'Descrição', 'Status', 'Prioridade']],
+        body: tasks.map((task: any) => [
+          task.task_type,
+          task.description,
+          task.status,
+          task.priority
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [243, 156, 18] }
+      });
+    }
+    
+    // Save PDF
+    doc.save(`conferencia_${auditId}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -238,7 +368,7 @@ export function ConferenceReportExporter({
               <CardTitle className="text-base">Formato de Exportação</CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup value={exportFormat} onValueChange={(value: 'csv' | 'json') => setExportFormat(value)}>
+              <RadioGroup value={exportFormat} onValueChange={(value: 'csv' | 'json' | 'pdf') => setExportFormat(value)}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="csv" id="csv" />
                   <Label htmlFor="csv" className="flex items-center gap-2 cursor-pointer">
@@ -251,6 +381,13 @@ export function ConferenceReportExporter({
                   <Label htmlFor="json" className="flex items-center gap-2 cursor-pointer">
                     <FileText className="h-4 w-4" />
                     JSON (dados estruturados)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pdf" id="pdf" />
+                  <Label htmlFor="pdf" className="flex items-center gap-2 cursor-pointer">
+                    <Download className="h-4 w-4" />
+                    PDF (relatório formatado)
                   </Label>
                 </div>
               </RadioGroup>

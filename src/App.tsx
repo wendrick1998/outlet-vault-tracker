@@ -269,7 +269,7 @@ const AppContent = () => {
         } 
       />
       <Route 
-        path="/conference/:auditId/report" 
+        path="/conference/report/:auditId" 
         element={
           <AppLayout>
             <ConferenceReport />
