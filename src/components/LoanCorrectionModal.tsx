@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Shield } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { AlertTriangle, Shield, AlertCircle, Clock, Lock } from "lucide-react";
 import type { LoanWithDetails } from "@/services/loanService";
 import { useLoanCorrections, type LoanStatus } from "@/hooks/useLoanCorrections";
 import { usePinProtection } from "@/hooks/usePinProtection";
-import { PinConfirmationModal } from "@/components/PinConfirmationModal";
 
 interface LoanCorrectionModalProps {
   isOpen: boolean;
@@ -20,49 +21,45 @@ interface LoanCorrectionModalProps {
 export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<LoanStatus | ''>('');
   const [reason, setReason] = useState('');
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pendingCorrection, setPendingCorrection] = useState<{status: LoanStatus, reason: string} | null>(null);
+  const [pin, setPin] = useState('');
 
-  const { correctLoan, isCorreting } = useLoanCorrections();
+  const { correctLoan, isCorreting, correctionLimit, remainingCorrections } = useLoanCorrections();
   const { hasPinConfigured } = usePinProtection();
+
+  const isCriticalChange = loan && selectedStatus && (
+    (loan.status === 'sold' && ['active', 'returned'].includes(selectedStatus)) ||
+    (['active', 'returned'].includes(loan.status) && selectedStatus === 'sold')
+  );
 
   const handleSubmit = () => {
     if (!selectedStatus || !reason.trim() || !loan) {
       return;
     }
 
-    if (hasPinConfigured) {
-      setPendingCorrection({ status: selectedStatus as LoanStatus, reason: reason.trim() });
-      setShowPinModal(true);
-    } else {
-      executeCorrection(selectedStatus as LoanStatus, reason.trim());
+    // Validar justificativa mínima (10 caracteres)
+    if (reason.trim().length < 10) {
+      return;
     }
-  };
 
-  const executeCorrection = (status: LoanStatus, correctionReason: string) => {
-    if (!loan) return;
-    
+    // Validar PIN se configurado
+    if (hasPinConfigured && pin.length !== 4) {
+      return;
+    }
+
     correctLoan({
       loanId: loan.id,
-      correctStatus: status,
-      reason: correctionReason
+      correctStatus: selectedStatus as LoanStatus,
+      reason: reason.trim(),
+      pin: hasPinConfigured ? pin : undefined
     });
     
     handleClose();
   };
 
-  const handlePinConfirmed = () => {
-    if (pendingCorrection) {
-      executeCorrection(pendingCorrection.status, pendingCorrection.reason);
-    }
-    setShowPinModal(false);
-    setPendingCorrection(null);
-  };
-
   const handleClose = () => {
     setSelectedStatus('');
     setReason('');
-    setPendingCorrection(null);
+    setPin('');
     onClose();
   };
 
@@ -100,6 +97,19 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Limite de correções */}
+            {remainingCorrections <= 2 && (
+              <Alert variant={remainingCorrections === 0 ? "destructive" : "default"}>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  {remainingCorrections === 0 
+                    ? "Limite diário de correções atingido (5/dia)"
+                    : `Restam ${remainingCorrections} correções disponíveis hoje`
+                  }
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="text-sm font-medium text-amber-800">
                 IMEI: {loan.inventory?.imei}
@@ -130,17 +140,61 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
               </Select>
             </div>
 
+            {/* Alerta de mudança crítica */}
+            {isCriticalChange && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Correção Crítica!</strong> Esta mudança envolve status "Vendido" e será destacada para gerentes.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="reason">Motivo da Correção *</Label>
+              <Label htmlFor="reason">
+                Motivo da Correção * 
+                <span className="text-xs text-muted-foreground ml-2">
+                  (mínimo 10 caracteres)
+                </span>
+              </Label>
               <Textarea
                 id="reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Descreva o motivo da correção..."
+                placeholder="Descreva detalhadamente o motivo da correção..."
                 rows={3}
                 className="resize-none"
               />
+              <div className="text-xs text-muted-foreground">
+                {reason.trim().length}/10 caracteres
+              </div>
             </div>
+
+            {/* PIN Field (se configurado) */}
+            {hasPinConfigured && (
+              <div className="space-y-2">
+                <Label htmlFor="pin" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  PIN Operacional *
+                </Label>
+                <InputOTP
+                  maxLength={4}
+                  value={pin}
+                  onChange={setPin}
+                  className="justify-center"
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                </InputOTP>
+                <p className="text-xs text-muted-foreground">
+                  Digite seu PIN de 4 dígitos para confirmar
+                </p>
+              </div>
+            )}
 
             <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded">
               ⚠️ Esta ação será registrada no sistema de auditoria e não pode ser desfeita.
@@ -153,7 +207,13 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!selectedStatus || !reason.trim() || isCorreting}
+              disabled={
+                !selectedStatus || 
+                reason.trim().length < 10 || 
+                (hasPinConfigured && pin.length !== 4) ||
+                isCorreting || 
+                remainingCorrections === 0
+              }
               className="bg-amber-600 hover:bg-amber-700"
             >
               <Shield className="h-4 w-4 mr-2" />
@@ -162,17 +222,6 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <PinConfirmationModal
-        isOpen={showPinModal}
-        onClose={() => {
-          setShowPinModal(false);
-          setPendingCorrection(null);
-        }}
-        onConfirm={handlePinConfirmed}
-        title="Confirmação de Correção"
-        description="Digite seu PIN para confirmar a correção do lançamento."
-      />
     </>
   );
 }

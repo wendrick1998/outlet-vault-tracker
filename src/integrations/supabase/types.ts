@@ -210,6 +210,44 @@ export type Database = {
         }
         Relationships: []
       }
+      correction_limits: {
+        Row: {
+          correction_count: number
+          created_at: string
+          id: string
+          last_correction_at: string
+          updated_at: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          correction_count?: number
+          created_at?: string
+          id?: string
+          last_correction_at?: string
+          updated_at?: string
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          correction_count?: number
+          created_at?: string
+          id?: string
+          last_correction_at?: string
+          updated_at?: string
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correction_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -779,6 +817,69 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      loan_corrections: {
+        Row: {
+          corrected_at: string
+          corrected_by: string
+          correction_reason: string
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          is_critical: boolean
+          loan_id: string
+          manager_notified: boolean
+          new_status: Database["public"]["Enums"]["loan_status"]
+          pin_validated: boolean
+          previous_status: Database["public"]["Enums"]["loan_status"]
+          user_agent: string | null
+        }
+        Insert: {
+          corrected_at?: string
+          corrected_by: string
+          correction_reason: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_critical?: boolean
+          loan_id: string
+          manager_notified?: boolean
+          new_status: Database["public"]["Enums"]["loan_status"]
+          pin_validated?: boolean
+          previous_status: Database["public"]["Enums"]["loan_status"]
+          user_agent?: string | null
+        }
+        Update: {
+          corrected_at?: string
+          corrected_by?: string
+          correction_reason?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_critical?: boolean
+          loan_id?: string
+          manager_notified?: boolean
+          new_status?: Database["public"]["Enums"]["loan_status"]
+          pin_validated?: boolean
+          previous_status?: Database["public"]["Enums"]["loan_status"]
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_corrections_corrected_by_fkey"
+            columns: ["corrected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_corrections_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       loans: {
         Row: {
@@ -1741,6 +1842,15 @@ export type Database = {
           p_correct_status: Database["public"]["Enums"]["loan_status"]
           p_correction_reason: string
           p_loan_id: string
+        }
+        Returns: Json
+      }
+      correct_loan_with_audit: {
+        Args: {
+          p_correction_reason: string
+          p_loan_id: string
+          p_new_status: Database["public"]["Enums"]["loan_status"]
+          p_pin?: string
         }
         Returns: Json
       }
