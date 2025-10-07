@@ -1976,7 +1976,7 @@ export type Database = {
       }
       cleanup_expired_access_sessions: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
+        Returns: number
       }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
@@ -2067,7 +2067,7 @@ export type Database = {
         Returns: Json
       }
       get_customer_with_session_validation: {
-        Args: { customer_id: string; session_id?: string }
+        Args: { p_customer_id: string; p_session_id: string }
         Returns: Json
       }
       get_customers_secure: {
@@ -2162,9 +2162,9 @@ export type Database = {
       }
       request_sensitive_data_access: {
         Args: {
-          business_reason: string
-          customer_id: string
-          requested_fields: string[]
+          p_business_reason: string
+          p_customer_id: string
+          p_requested_fields: string[]
         }
         Returns: Json
       }
