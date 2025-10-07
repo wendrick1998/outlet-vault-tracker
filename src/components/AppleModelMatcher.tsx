@@ -20,7 +20,11 @@ interface MatchResult {
   confidence: number;
 }
 
-export const AppleModelMatcher = () => {
+interface AppleModelMatcherProps {
+  onMatch?: (result: MatchResult) => void;
+}
+
+export const AppleModelMatcher = ({ onMatch }: AppleModelMatcherProps = {}) => {
   const [inputText, setInputText] = useState("");
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -35,6 +39,11 @@ export const AppleModelMatcher = () => {
       
       const match = matchAppleModel(value);
       setMatchResult(match);
+      
+      // Se há callback e match com boa confiança, chamar
+      if (onMatch && match && match.confidence >= 0.6) {
+        onMatch(match);
+      }
     } else {
       setSuggestions([]);
       setMatchResult(null);
@@ -46,6 +55,11 @@ export const AppleModelMatcher = () => {
     const match = matchAppleModel(suggestion);
     setMatchResult(match);
     setSuggestions([]);
+    
+    // Chamar callback se disponível
+    if (onMatch && match) {
+      onMatch(match);
+    }
   };
 
   const getConfidenceColor = (confidence: number) => {
