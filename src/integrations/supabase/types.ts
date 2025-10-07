@@ -863,6 +863,42 @@ export type Database = {
         }
         Relationships: []
       }
+      loan_correction_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_message: string
+          alert_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          triggered_at: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_message: string
+          alert_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          triggered_at?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_message?: string
+          alert_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          triggered_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       loan_corrections: {
         Row: {
           corrected_at: string

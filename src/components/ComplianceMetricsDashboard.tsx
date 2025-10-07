@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useInconsistencyMonitor } from '@/hooks/useInconsistencyMonitor';
+import { useInconsistencyMonitor, useInconsistencyHistory } from '@/hooks/useInconsistencyMonitor';
 import { useSensitiveAccessMetrics } from '@/hooks/useSensitiveDataAccess';
 import { Shield, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -8,7 +8,8 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export const ComplianceMetricsDashboard = () => {
-  const { inconsistencies, history } = useInconsistencyMonitor();
+  const { inconsistencies } = useInconsistencyMonitor();
+  const { data: historyData = [] } = useInconsistencyHistory(7);
   const { data: accessMetrics } = useSensitiveAccessMetrics(30);
 
   // Calcular score de conformidade LGPD (0-100)
@@ -32,8 +33,8 @@ export const ComplianceMetricsDashboard = () => {
   const complianceScore = calculateComplianceScore();
 
   // Dados para gráfico de tendência de inconsistências
-  const inconsistencyTrendData = history.slice(-7).map((item, index) => ({
-    day: `Dia ${index + 1}`,
+  const inconsistencyTrendData = historyData.map((item) => ({
+    day: item.date,
     count: item.count
   }));
 
