@@ -7,11 +7,6 @@ import {
   BarChart3, 
   Settings, 
   Users, 
-  Bot, 
-  Mic, 
-  Bell,
-  Brain,
-  ChevronRight,
   Store,
   CheckSquare,
   ClipboardList,
@@ -148,32 +143,8 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
     },
   ];
 
-  const aiItems = [
-    { 
-      title: "Assistente IA", 
-      page: "ai-assistant", 
-      icon: Bot, 
-      available: true 
-    },
-    { 
-      title: "Comandos de Voz", 
-      page: "voice-commands", 
-      icon: Mic, 
-      available: true 
-    },
-    { 
-      title: "Notificações IA", 
-      page: "smart-notifications", 
-      icon: Bell, 
-      available: true 
-    },
-    { 
-      title: "Previsões IA", 
-      page: "predictions", 
-      icon: Brain, 
-      available: true 
-    },
-  ];
+  // IA removida do sistema conforme solicitado
+  const aiItems: any[] = [];
 
   const renderMenuItems = (items: typeof dashboardItems) => {
     return items
@@ -275,18 +246,7 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* IA & Automação */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2">
-            <Bot className="h-4 w-4" />
-            {state !== "collapsed" && "IA & Automação"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {renderMenuItems(aiItems)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* IA removida do sistema */}
 
         {/* Administração - Only for managers and admins */}
         {isManagerOrAdmin && (

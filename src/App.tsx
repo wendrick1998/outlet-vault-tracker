@@ -33,7 +33,7 @@ const LazyAdmin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Adm
 const LazySearchAndOperate = lazy(() => import('./pages/SearchAndOperate').then(m => ({ default: m.default })));
 const LazyBatchOutflow = lazy(() => import('./pages/BatchOutflow'));
 
-type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'ai-assistant' | 'voice-commands' | 'smart-notifications' | 'predictions' | 'conference' | 'conference-report' | 'stock' | 'system-monitoring' | 'historical-audits';
+type AppPage = 'home' | 'search-and-operate' | 'active-loans' | 'history' | 'admin' | 'profile' | 'settings' | 'analytics' | 'conference' | 'conference-report' | 'stock' | 'system-monitoring' | 'historical-audits' | 'search-register';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
