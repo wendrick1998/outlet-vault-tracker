@@ -139,7 +139,7 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
       
       const userWantsTradeIn = await new Promise<boolean>((resolve) => {
         setShowTradeInQuestion(true);
-        setTradeInResolver(() => resolve);
+        setTradeInResolver(() => (value: boolean) => resolve(value));
       });
 
       if (userWantsTradeIn) {
