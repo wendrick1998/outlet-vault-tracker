@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Calendar, Search, Filter, Download } from "lucide-react";
+import { Calendar, Search, Filter, Download, Edit2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useLoans } from "@/hooks/useLoans";
 import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
+import { useLoanCorrections } from "@/hooks/useLoanCorrections";
+import { useAuth } from "@/contexts/AuthContext";
+import { LoanCorrectionModal } from "@/components/LoanCorrectionModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Database } from "@/integrations/supabase/types";
@@ -35,10 +38,25 @@ export const History = ({ onBack }: HistoryProps) => {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [filterReason, setFilterReason] = useState<string>("all");
   const [filterSeller, setFilterSeller] = useState<string>("all");
+  const [selectedLoanForCorrection, setSelectedLoanForCorrection] = useState<LoanWithDetails | null>(null);
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
 
   const { loans, isLoading } = useLoans();
   const { data: reasons = [] } = useActiveReasons();
   const { data: sellers = [] } = useActiveSellers();
+  const { profile } = useAuth();
+  
+  const canCorrect = profile?.role === 'admin' || profile?.role === 'manager' || profile?.can_withdraw;
+
+  const handleCorrection = (loan: LoanWithDetails) => {
+    setSelectedLoanForCorrection(loan);
+    setShowCorrectionModal(true);
+  };
+
+  const handleCloseCorrectionModal = () => {
+    setShowCorrectionModal(false);
+    setSelectedLoanForCorrection(null);
+  };
 
   const filteredLoans = useMemo(() => {
     let filtered = [...loans];
@@ -258,6 +276,7 @@ export const History = ({ onBack }: HistoryProps) => {
                     <TableHead>Cliente</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Finalização</TableHead>
+                    {canCorrect && <TableHead>Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -283,6 +302,18 @@ export const History = ({ onBack }: HistoryProps) => {
                       <TableCell className="font-mono text-sm">
                         {loan.returned_at ? formatDate(loan.returned_at) : "—"}
                       </TableCell>
+                      {canCorrect && (
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleCorrection(loan)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -299,6 +330,12 @@ export const History = ({ onBack }: HistoryProps) => {
         </>
         )}
       </main>
+
+      <LoanCorrectionModal
+        isOpen={showCorrectionModal}
+        onClose={handleCloseCorrectionModal}
+        loan={selectedLoanForCorrection}
+      />
     </div>
   );
 };
