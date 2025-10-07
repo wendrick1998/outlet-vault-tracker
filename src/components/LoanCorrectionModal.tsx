@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { AlertTriangle, Shield, AlertCircle, Clock, Lock } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import type { LoanWithDetails } from "@/services/loanService";
 import { useLoanCorrections, type LoanStatus } from "@/hooks/useLoanCorrections";
 import { usePinProtection } from "@/hooks/usePinProtection";
@@ -23,7 +24,7 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
   const [reason, setReason] = useState('');
   const [pin, setPin] = useState('');
 
-  const { correctLoan, isCorreting, correctionLimit, remainingCorrections } = useLoanCorrections();
+  const { correctLoan, isCorrecting, isError, error, correctionLimit, remainingCorrections } = useLoanCorrections();
   const { hasPinConfigured } = usePinProtection();
 
   const isCriticalChange = loan && selectedStatus && (
@@ -51,9 +52,23 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
       correctStatus: selectedStatus as LoanStatus,
       reason: reason.trim(),
       pin: hasPinConfigured ? pin : undefined
+    }, {
+      onSuccess: () => {
+        handleClose();
+      },
+      onError: (error: any) => {
+        const errorMsg = error?.message?.toLowerCase() || '';
+        if (errorMsg.includes('bloqueado') || errorMsg.includes('blocked')) {
+          toast({
+            title: "🔒 PIN Bloqueado",
+            description: "Múltiplas tentativas incorretas detectadas. Aguarde 15 minutos antes de tentar novamente.",
+            variant: "destructive",
+            duration: 8000
+          });
+        }
+        // Modal permanece aberto para o usuário ver o erro
+      }
     });
-    
-    handleClose();
   };
 
   const handleClose = () => {
@@ -211,13 +226,13 @@ export function LoanCorrectionModal({ isOpen, onClose, loan }: LoanCorrectionMod
                 !selectedStatus || 
                 reason.trim().length < 10 || 
                 (hasPinConfigured && pin.length !== 4) ||
-                isCorreting || 
+                isCorrecting || 
                 remainingCorrections === 0
               }
               className="bg-amber-600 hover:bg-amber-700"
             >
               <Shield className="h-4 w-4 mr-2" />
-              {isCorreting ? 'Corrigindo...' : 'Confirmar Correção'}
+              {isCorrecting ? 'Corrigindo...' : 'Confirmar Correção'}
             </Button>
           </DialogFooter>
         </DialogContent>

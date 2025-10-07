@@ -13,8 +13,7 @@ import {
   TrendingUp,
   Activity,
   User,
-  Shield,
-  Upload
+  Shield
 } from "lucide-react";
 
 import { useLocation } from "react-router-dom";
@@ -109,16 +108,6 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
     },
   ];
 
-  const importItems = [
-    { 
-      title: "Importar em Massa", 
-      page: "stock", 
-      icon: Upload, 
-      available: true,
-      badge: "Novo"
-    },
-  ];
-
   const reportsItems = [
     { 
       title: "Histórico", 
@@ -161,8 +150,6 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
     },
   ];
 
-  // IA removida do sistema conforme solicitado
-  const aiItems: any[] = [];
 
   const renderMenuItems = (items: typeof dashboardItems) => {
     return items
@@ -251,19 +238,6 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Importação */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            {state !== "collapsed" && "Importação"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {renderMenuItems(importItems)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         {/* Relatórios */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2">
@@ -276,8 +250,6 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* IA removida do sistema */}
 
         {/* Administração - Only for managers and admins */}
         {isManagerOrAdmin && (

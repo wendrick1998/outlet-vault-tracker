@@ -97,7 +97,9 @@ export const useLoanCorrections = () => {
 
   return {
     correctLoan: correctLoanMutation.mutate,
-    isCorreting: correctLoanMutation.isPending,
+    isCorrecting: correctLoanMutation.isPending,
+    isError: correctLoanMutation.isError,
+    error: correctLoanMutation.error,
     correctionLimit,
     remainingCorrections,
   };

@@ -105,8 +105,8 @@ const AppContent = () => {
   useEffect(() => {
     if ('serviceWorker' in navigator && import.meta.env.PROD) {
       navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('SW registered'))
-        .catch((error) => console.log('SW registration failed:', error));
+        .then(() => import.meta.env.DEV && console.log('SW registered'))
+        .catch((error) => import.meta.env.DEV && console.log('SW registration failed:', error));
     }
   }, []);
 
@@ -199,36 +199,6 @@ const AppContent = () => {
       />
       <Route 
         path="/admin" 
-        element={
-          <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyAdmin onBack={() => navigate('/')} />
-            </Suspense>
-          </AppLayout>
-        } 
-      />
-      <Route 
-        path="/admin/ui-inventory" 
-        element={
-          <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyAdmin onBack={() => navigate('/')} />
-            </Suspense>
-          </AppLayout>
-        } 
-      />
-      <Route 
-        path="/admin/design" 
-        element={
-          <AppLayout>
-            <Suspense fallback={<Loading />}>
-              <LazyAdmin onBack={() => navigate('/')} />
-            </Suspense>
-          </AppLayout>
-        } 
-      />
-      <Route 
-        path="/admin/ui-kit" 
         element={
           <AppLayout>
             <Suspense fallback={<Loading />}>
