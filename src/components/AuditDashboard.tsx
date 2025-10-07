@@ -16,9 +16,11 @@ import {
   Calendar,
   Filter,
   Download,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { RoleGuard } from '@/components/RoleGuard';
+import { InconsistencyMonitor } from '@/components/InconsistencyMonitor';
 
 export const AuditDashboard = () => {
   const [selectedAction, setSelectedAction] = useState<string>('');
@@ -114,6 +116,10 @@ export const AuditDashboard = () => {
           <TabsList>
             <TabsTrigger value="logs">Logs de Atividade</TabsTrigger>
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
+            <TabsTrigger value="inconsistencies">
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              Inconsistências
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats" className="space-y-4">
@@ -325,6 +331,10 @@ export const AuditDashboard = () => {
                 )}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="inconsistencies">
+            <InconsistencyMonitor />
           </TabsContent>
         </Tabs>
       </div>

@@ -45,8 +45,8 @@ export const SensitiveDataDisplay = ({ customer, userRole }: SensitiveDataDispla
     setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_customer_with_session_validation', {
-        customer_id: customer.id,
-        session_id: sessionId
+        p_customer_id: customer.id,
+        p_session_id: sessionId
       });
 
       if (error) throw error;

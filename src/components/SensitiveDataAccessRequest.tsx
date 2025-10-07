@@ -68,9 +68,9 @@ export const SensitiveDataAccessRequest = ({
 
     try {
       const { data, error } = await supabase.rpc('request_sensitive_data_access', {
-        customer_id: customerId,
-        requested_fields: requestedFields,
-        business_reason: businessReason.trim()
+        p_customer_id: customerId,
+        p_requested_fields: requestedFields,
+        p_business_reason: businessReason.trim()
       });
 
       if (error) throw error;

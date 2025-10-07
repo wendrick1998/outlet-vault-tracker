@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { OptimizedPerformanceCard } from './optimized/OptimizedPerformanceCard';
 import { VirtualList } from './optimized/VirtualList';
 import { useInventoryAudit } from '@/hooks/useInventoryAudit';
+import { useInconsistencyMonitor } from '@/hooks/useInconsistencyMonitor';
 import { 
   Shield, 
   AlertTriangle, 
@@ -22,6 +23,9 @@ export function SecurityDashboard() {
   const [timeRange, setTimeRange] = useState('24h');
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Monitor inconsistências
+  const { count: inconsistencyCount, severity } = useInconsistencyMonitor(true);
 
   // Mock security data - in production this would come from the security service
   const securityMetrics = {
@@ -29,7 +33,7 @@ export function SecurityDashboard() {
     failedLogins: 3,
     activeSessions: 8,
     recentAudits: 15,
-    systemHealth: 'OK' as 'OK' | 'WARNING' | 'ALERT'
+    systemHealth: (severity === 'critical' ? 'ALERT' : severity === 'warning' ? 'WARNING' : 'OK') as 'OK' | 'WARNING' | 'ALERT'
   };
 
   const recentEvents = [
@@ -123,7 +127,7 @@ export function SecurityDashboard() {
       </Card>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <OptimizedPerformanceCard
           title="Usuários Ativos"
           value={securityMetrics.activeUsers}
@@ -157,6 +161,15 @@ export function SecurityDashboard() {
           description="Conferências (7 dias)"
           changeType="increase"
           change={15}
+        />
+        
+        <OptimizedPerformanceCard
+          title="Inconsistências"
+          value={inconsistencyCount}
+          icon={AlertTriangle}
+          description="Loans vs Inventory"
+          changeType={severity === 'critical' ? 'increase' : severity === 'warning' ? 'neutral' : 'decrease'}
+          change={severity === 'critical' ? 100 : undefined}
         />
       </div>
 
