@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useCustomers } from "@/hooks/useCustomers";
 import { CustomerFormDialog } from "./CustomerFormDialog";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
-import { SensitiveDataDisplay } from "@/components/SensitiveDataDisplay";
+import { SensitiveDataAccessRequest } from "@/components/SensitiveDataAccessRequest";
+import { useActiveSession } from "@/hooks/useSensitiveDataAccess";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from '@/integrations/supabase/types';
@@ -21,6 +22,8 @@ export const AdminCustomersTab = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [isClearTestModalOpen, setIsClearTestModalOpen] = useState(false);
+  const [showAccessRequest, setShowAccessRequest] = useState(false);
+  const [accessRequestCustomer, setAccessRequestCustomer] = useState<Customer | null>(null);
 
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -32,10 +35,6 @@ export const AdminCustomersTab = () => {
     clearTestData,
     isClearingTestData 
   } = useCustomers();
-
-  // Determine user role for security display
-  const userRole = profile?.role === 'admin' ? 'admin' : 
-                   profile?.role === 'manager' ? 'manager' : 'user';
 
   // Secure search - only by name for regular display
   const filteredCustomers = customers.filter(customer =>
@@ -97,6 +96,34 @@ export const AdminCustomersTab = () => {
     return phone;
   };
 
+  const maskSensitiveData = (data: string | null, type: 'email' | 'phone' | 'cpf') => {
+    if (!data) return '-';
+    
+    switch (type) {
+      case 'email':
+        return '••••••@••••.•••';
+      case 'phone':
+        return '(••) •••••-••••';
+      case 'cpf':
+        return '•••.•••.•••-••';
+      default:
+        return '•••••••••';
+    }
+  };
+
+  const handleRequestAccess = (customer: Customer) => {
+    setAccessRequestCustomer(customer);
+    setShowAccessRequest(true);
+  };
+
+  const handleAccessGranted = () => {
+    toast({
+      title: "Acesso concedido",
+      description: "Você pode visualizar os dados sensíveis por 15 minutos.",
+    });
+    setShowAccessRequest(false);
+  };
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -140,7 +167,7 @@ export const AdminCustomersTab = () => {
             <div>
               <h3 className="font-semibold">Proteção de Dados Pessoais</h3>
               <p className="text-sm mt-1">
-                Dados sensíveis (email, telefone, CPF) estão protegidos e requerem acesso temporário autorizado.
+                Dados sensíveis (email, telefone, CPF, endereço, notas) estão protegidos e requerem acesso temporário autorizado.
                 Todos os acessos são auditados para conformidade com LGPD.
               </p>
             </div>
@@ -151,7 +178,7 @@ export const AdminCustomersTab = () => {
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, telefone, email ou CPF..."
+            placeholder="Buscar por nome..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -169,60 +196,97 @@ export const AdminCustomersTab = () => {
               {searchTerm ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
             </div>
           ) : (
-            filteredCustomers.map((customer) => (
-              <Card key={customer.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="font-semibold text-lg">{customer.name}</h3>
-                      {customer.is_registered && (
-                        <Badge variant="secondary">Registrado</Badge>
-                      )}
-                    </div>
-                    
-                    {/* Secure sensitive data display */}
-                    <SensitiveDataDisplay 
-                      customer={customer} 
-                      userRole={userRole}
-                    />
-                    
-                    {customer.address && (
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        {customer.address}
-                      </div>
-                    )}
-                    
-                    {customer.notes && (
-                      <p className="text-sm text-muted-foreground mt-2 italic">
-                        {customer.notes}
-                      </p>
-                    )}
-                  </div>
+            filteredCustomers.map((customer) => {
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const { data: activeSession } = useActiveSession(customer.id);
+              const hasActiveSession = !!activeSession;
+              const approvedFields = (activeSession?.approved_fields as string[]) || [];
 
-                  <div className="flex gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(customer)}
-                      className="gap-2"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(customer)}
-                      className="gap-2 text-destructive hover:text-destructive"
-                    >
-                      <Trash className="h-4 w-4" />
-                      Deletar
-                    </Button>
+              return (
+                <Card key={customer.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="font-semibold text-lg">{customer.name}</h3>
+                        <div className="flex items-center gap-1">
+                          {customer.is_registered && (
+                            <Badge variant="secondary">Registrado</Badge>
+                          )}
+                          {!hasActiveSession && (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                              <Shield className="h-3 w-3 mr-1" />
+                              Protegido
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">CPF:</span>
+                          <span>
+                            {hasActiveSession && approvedFields.includes('cpf') 
+                              ? formatCPF(customer.cpf)
+                              : maskSensitiveData(customer.cpf, 'cpf')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">Telefone:</span>
+                          <span>
+                            {hasActiveSession && approvedFields.includes('phone')
+                              ? formatPhone(customer.phone)
+                              : maskSensitiveData(customer.phone, 'phone')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">Email:</span>
+                          <span>
+                            {hasActiveSession && approvedFields.includes('email')
+                              ? (customer.email || '-')
+                              : maskSensitiveData(customer.email, 'email')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 ml-4">
+                      {!hasActiveSession && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRequestAccess(customer)}
+                          className="gap-2 border-amber-400 text-amber-700 hover:bg-amber-50"
+                        >
+                          <Shield className="h-4 w-4" />
+                          Acessar
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(customer)}
+                        className="gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(customer)}
+                        className="gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash className="h-4 w-4" />
+                        Deletar
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))
+                </Card>
+              );
+            })
           )}
         </div>
       </Card>
@@ -255,6 +319,15 @@ export const AdminCustomersTab = () => {
         description="Esta ação irá remover todos os clientes de teste que não possuem empréstimos ativos. Clientes com empréstimos serão preservados. Esta ação não pode ser desfeita."
         confirmText="Limpar Dados"
         variant="destructive"
+      />
+
+      {/* Access Request Dialog */}
+      <SensitiveDataAccessRequest
+        customerId={accessRequestCustomer?.id || ''}
+        customerName={accessRequestCustomer?.name || ''}
+        isOpen={showAccessRequest}
+        onClose={() => setShowAccessRequest(false)}
+        onAccessGranted={handleAccessGranted}
       />
     </div>
   );

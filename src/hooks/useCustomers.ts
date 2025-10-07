@@ -209,3 +209,11 @@ export function useCustomerSearch(searchTerm: string, searchType: 'name' | 'emai
     enabled: !!searchTerm.trim(),
   });
 }
+
+export function useCustomerSecure(id: string, sessionId?: string) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.detail(id), 'secure', sessionId],
+    queryFn: () => CustomerService.getCustomerSecure(id, sessionId),
+    enabled: !!id,
+  });
+}

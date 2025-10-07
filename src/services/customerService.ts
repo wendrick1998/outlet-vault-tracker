@@ -42,6 +42,71 @@ export class CustomerService {
     return SecureCustomerService.getForAdmin(id);
   }
 
+  // Method to get customer data with session-based access control
+  static async getCustomerSecure(id: string, sessionId?: string): Promise<Customer | null> {
+    if (!sessionId) {
+      // Return masked data if no session
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name, is_registered, loan_limit, created_at, updated_at')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      return {
+        ...data,
+        email: null,
+        phone: null,
+        cpf: null,
+        address: null,
+        notes: null,
+        pending_data: null
+      } as Customer;
+    }
+
+    // Validate session and return data based on approved fields
+    const { data: session, error: sessionError } = await supabase
+      .from('sensitive_data_access_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('customer_id', id)
+      .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (sessionError || !session) {
+      throw new Error('Sessão inválida ou expirada');
+    }
+
+    // Get full customer data
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    // Mask fields not approved in session
+    const approvedFields = session.approved_fields as string[];
+    const maskedData = { ...data };
+
+    if (!approvedFields.includes('email')) maskedData.email = null;
+    if (!approvedFields.includes('phone')) maskedData.phone = null;
+    if (!approvedFields.includes('cpf')) maskedData.cpf = null;
+    if (!approvedFields.includes('address')) maskedData.address = null;
+    if (!approvedFields.includes('notes')) maskedData.notes = null;
+
+    // Update session used_at timestamp
+    await supabase
+      .from('sensitive_data_access_sessions')
+      .update({ used_at: new Date().toISOString() })
+      .eq('id', sessionId);
+
+    return maskedData;
+  }
+
   // Administrative operations - these require admin/manager permissions and are audited
   static async create(customer: CustomerInsert): Promise<Customer> {
     const { data, error } = await supabase
