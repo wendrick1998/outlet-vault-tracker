@@ -1,3 +1,10 @@
+/**
+ * @deprecated
+ * Este componente foi substituído por AddDeviceFlow.tsx
+ * Mantido apenas para compatibilidade temporária.
+ * Use AddDeviceFlow para novos desenvolvimentos.
+ */
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

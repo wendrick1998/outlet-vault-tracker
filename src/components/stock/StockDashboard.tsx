@@ -11,7 +11,8 @@ import { StatsCard } from "@/components/ui/stats-card";
 import { StockItemCard } from "./StockItemCard";
 import { StockItemDialog } from "./StockItemDialog";
 import { StockSearch } from "./StockSearch";
-import { UnifiedDeviceDialog } from "@/components/UnifiedDeviceDialog";
+import { AddDeviceFlow } from "@/components/AddDeviceFlow";
+import { useQueryClient } from "@tanstack/react-query";
 import { IntegrationDashboard } from "@/components/IntegrationDashboard";
 import { StockConferenceCard } from "./StockConferenceCard";
 import { StockScanner } from "./StockScanner";
@@ -35,6 +36,7 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState("dashboard");
+  const queryClient = useQueryClient();
 
   const { items, isLoading } = useStock({
     status: selectedStatus !== "all" ? selectedStatus : undefined,
@@ -119,14 +121,14 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
             <Scan className="h-4 w-4" />
             Scanner
           </Button>
-          <UnifiedDeviceDialog onDeviceAdded={() => window.location.reload()} />
-          <Button
-            onClick={() => setIsItemDialogOpen(true)}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Adicionar Item
-          </Button>
+          <AddDeviceFlow
+            defaultOrigin="purchase"
+            onDeviceAdded={() => {
+              queryClient.invalidateQueries({ queryKey: ['stock'], exact: false });
+              queryClient.invalidateQueries({ queryKey: ['inventory'], exact: false });
+              queryClient.invalidateQueries({ queryKey: ['unified-inventory'] });
+            }}
+          />
         </div>
       </div>
 

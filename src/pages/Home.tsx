@@ -1,10 +1,13 @@
-import { Search, List, Clock, BarChart3, Package, AlertTriangle } from "lucide-react";
+import { Search, List, Clock, BarChart3, Package, AlertTriangle, Plus } from "lucide-react";
 import { ActionCard } from "@/components/ActionCard";
 import { StatsCard } from "@/components/ui/stats-card";
 import { PendingSalesManager } from "@/components/PendingSalesManager";
+import { AddDeviceFlow } from "@/components/AddDeviceFlow";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSystemStats } from "@/hooks/useStats";
 import { useActiveLoans } from "@/hooks/useLoans";
 import { usePendingSalesStats } from "@/hooks/usePendingSales";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 interface HomeProps {
@@ -15,8 +18,10 @@ export const Home = ({ onNavigate }: HomeProps) => {
   const { data: systemStats, isLoading: statsLoading } = useSystemStats();
   const { data: activeLoans, isLoading: loansLoading } = useActiveLoans();
   const { data: pendingStats, isLoading: pendingStatsLoading } = usePendingSalesStats();
+  const queryClient = useQueryClient();
   
   const [showPendingSales, setShowPendingSales] = useState(false);
+  const [showAddDeviceFlow, setShowAddDeviceFlow] = useState(false);
 
 
   return (
@@ -30,13 +35,20 @@ export const Home = ({ onNavigate }: HomeProps) => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <ActionCard
             title="🔍 Buscar & Operar"
             description="Busque aparelhos e realize operações individuais ou em lote"
             icon={Search}
             onClick={() => onNavigate('search-and-operate')}
             variant="primary"
+          />
+
+          <ActionCard
+            title="➕ Adicionar Aparelho"
+            description="Cadastre novos aparelhos no sistema"
+            icon={Plus}
+            onClick={() => setShowAddDeviceFlow(true)}
           />
 
           <ActionCard
@@ -56,6 +68,20 @@ export const Home = ({ onNavigate }: HomeProps) => {
             variant="default"
           />
         </div>
+
+        {/* Add Device Modal */}
+        <Dialog open={showAddDeviceFlow} onOpenChange={setShowAddDeviceFlow}>
+          <DialogContent className="max-w-3xl">
+            <AddDeviceFlow
+              onDeviceAdded={() => {
+                setShowAddDeviceFlow(false);
+                queryClient.invalidateQueries({ queryKey: ['stats'] });
+                queryClient.invalidateQueries({ queryKey: ['inventory'], exact: false });
+                queryClient.invalidateQueries({ queryKey: ['stock'], exact: false });
+              }}
+            />
+          </DialogContent>
+        </Dialog>
 
           {/* Vendas Pendentes */}
       {showPendingSales && (

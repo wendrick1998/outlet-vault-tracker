@@ -16,8 +16,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDevicesAdmin } from "@/hooks/useDevicesAdmin";
 import { Loading } from "@/components/ui/loading";
-import { AddDeviceDialog } from "@/components/AddDeviceDialog";
-import { UnifiedDeviceDialog } from "@/components/UnifiedDeviceDialog";
+import { AddDeviceFlow } from "@/components/AddDeviceFlow";
+import { useQueryClient } from "@tanstack/react-query";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -38,6 +38,7 @@ export const AdminDevicesTab = () => {
   }>({ isOpen: false, type: 'archive', item: null });
 
   const { devices: items, isLoading, archiveDevice, deleteDevice, isDeleting } = useDevicesAdmin(showArchived);
+  const queryClient = useQueryClient();
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.imei?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,8 +126,14 @@ export const AdminDevicesTab = () => {
               <Upload className="h-4 w-4" />
               Importar CSV/XLSX
             </Button>
-            <UnifiedDeviceDialog onDeviceAdded={() => window.location.reload()} />
-            <AddDeviceDialog onDeviceAdded={() => window.location.reload()} />
+            <AddDeviceFlow
+              defaultOrigin="trade"
+              onDeviceAdded={() => {
+                queryClient.invalidateQueries({ queryKey: ['inventory'], exact: false });
+                queryClient.invalidateQueries({ queryKey: ['stock'], exact: false });
+                queryClient.invalidateQueries({ queryKey: ['unified-inventory'] });
+              }}
+            />
           </div>
         </div>
 
