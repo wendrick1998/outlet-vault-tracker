@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Activity,
   User,
-  Shield
+  Shield,
+  Upload
 } from "lucide-react";
 
 import { useLocation } from "react-router-dom";
@@ -105,6 +106,16 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
       page: "stock", 
       icon: Store, 
       available: true 
+    },
+  ];
+
+  const importItems = [
+    { 
+      title: "Importar em Massa", 
+      page: "stock", 
+      icon: Upload, 
+      available: true,
+      badge: "Novo"
     },
   ];
 
@@ -236,6 +247,19 @@ export function AppSidebar({ onNavigate, currentPage }: AppSidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               {renderMenuItems(stockItems)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Importação */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            {state !== "collapsed" && "Importação"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderMenuItems(importItems)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
