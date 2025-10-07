@@ -1,5 +1,6 @@
 import { StockDashboard } from "@/components/stock/StockDashboard";
 import { QuickImportCard } from "@/components/stock/QuickImportCard";
+import { ImportHistory } from "@/components/stock/ImportHistory";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload } from "lucide-react";
 
@@ -20,6 +21,9 @@ export const Stock = ({ onBack }: StockProps) => {
 
       {/* Quick Import Card */}
       <QuickImportCard />
+
+      {/* Import History */}
+      <ImportHistory />
 
       {/* Stock Dashboard */}
       <StockDashboard onBack={onBack} />

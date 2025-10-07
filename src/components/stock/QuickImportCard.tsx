@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Upload, Download, FileText, TrendingUp, CheckCircle } from 'lucide-react';
+import { Upload, Download, FileText, TrendingUp, CheckCircle, FileSpreadsheet } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CSVXLSXImportDialog } from '@/components/CSVXLSXImportDialog';
+import { ImportTutorial } from './ImportTutorial';
+import { downloadXLSXTemplate } from '@/utils/createXLSXTemplate';
 
 interface QuickImportCardProps {
   lastImportDate?: Date | null;
@@ -16,7 +18,12 @@ export const QuickImportCard = ({
 }: QuickImportCardProps) => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
-  const downloadTemplate = (type: 'basico' | 'completo') => {
+  const downloadTemplate = (type: 'basico' | 'completo' | 'xlsx') => {
+    if (type === 'xlsx') {
+      downloadXLSXTemplate();
+      return;
+    }
+
     const fileName = type === 'basico' 
       ? 'cofre-modelo-basico.csv' 
       : 'cofre-modelo-completo.csv';
@@ -51,7 +58,10 @@ export const QuickImportCard = ({
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Animated Tutorial */}
+          <ImportTutorial />
+
           {/* Last Import Stats */}
           {lastImportDate && (
             <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
@@ -85,12 +95,24 @@ export const QuickImportCard = ({
             <div className="space-y-2">
               <Button
                 variant="outline"
+                onClick={() => downloadTemplate('xlsx')}
+                className="w-full justify-start bg-green-50 hover:bg-green-100 dark:bg-green-950/20 dark:hover:bg-green-950/30 border-green-200 dark:border-green-900"
+                size="sm"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Modelo Excel (XLSX)</span>
+                  <span className="text-[10px] opacity-70">Formatado com validações</span>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => downloadTemplate('basico')}
                 className="w-full justify-start"
                 size="sm"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Modelo Básico
+                CSV Básico
               </Button>
               <Button
                 variant="outline"
@@ -99,7 +121,7 @@ export const QuickImportCard = ({
                 size="sm"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Modelo Completo
+                CSV Completo
               </Button>
             </div>
           </div>
