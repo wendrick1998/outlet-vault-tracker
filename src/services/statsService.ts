@@ -29,10 +29,10 @@ export class StatsService {
     try {
       // Execute all queries in parallel for better performance
       const [inventoryStats, loanStats, customerStats, sellerStats] = await Promise.all([
-        this.getInventoryStats(),
-        this.getLoanStats(), 
-        this.getCustomerStats(),
-        this.getSellerStats()
+        StatsService.getInventoryStats(),
+        StatsService.getLoanStats(), 
+        StatsService.getCustomerStats(),
+        StatsService.getSellerStats()
       ]);
 
       return {
