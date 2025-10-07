@@ -254,11 +254,12 @@ export class InventoryAuditService {
       throw error;
     }
 
-    // Frontend filter to exclude sold items (better for complex OR logic)
+    // Frontend filter to exclude sold items and NULL locations
     const filtered = (data || []).filter(item => {
       const isStockSold = item.stock_status === 'vendido';
       const isInventorySold = item.inventory_status === 'sold';
-      return !isStockSold && !isInventorySold;
+      const hasValidLocation = item.location !== null && item.location !== undefined;
+      return !isStockSold && !isInventorySold && hasValidLocation;
     });
 
     return filtered;

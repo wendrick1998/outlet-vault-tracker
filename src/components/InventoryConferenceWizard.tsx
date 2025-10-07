@@ -83,7 +83,7 @@ export function InventoryConferenceWizard({ open, onOpenChange, onSuccess }: Wiz
   const handleStart = () => {
     if (!user?.id) return;
 
-    // Map location string to stock_location enum
+    // Map location string to stock_location enum with validation
     const locationMap: Record<string, string> = {
       'Loja Centro': 'estoque',
       'Loja Shopping': 'estoque',
@@ -92,9 +92,18 @@ export function InventoryConferenceWizard({ open, onOpenChange, onSuccess }: Wiz
       'Oficina Técnica': 'conserto'
     };
 
+    // Valid enum values from stock_location
+    const validLocations = ['estoque', 'vitrine', 'assistencia', 'deposito', 'loja_online', 'conserto'];
+    
+    // Map location, default to 'estoque' for custom locations
+    const mappedLocation = locationMap[location] || 'estoque';
+    
+    // Validate: If somehow an invalid value was set, force to 'estoque'
+    const finalLocation = validLocations.includes(mappedLocation) ? mappedLocation : 'estoque';
+
     const auditData = {
       location,
-      location_expected: locationMap[location] || 'estoque', 
+      location_expected: finalLocation as any,
       user_id: user.id,
       filters: filters,
       snapshot_count: snapshot.length
