@@ -14,6 +14,8 @@ interface CreateLinkedItemParams {
   cost?: number;
   location?: 'vitrine' | 'estoque' | 'assistencia' | 'deposito' | 'loja_online' | 'conserto';
   notes?: string;
+  batch_id?: string;
+  supplier_name?: string;
 }
 
 export const useUnifiedInventory = () => {
@@ -34,6 +36,8 @@ export const useUnifiedInventory = () => {
         p_cost: params.cost || null,
         p_location: params.location || 'estoque',
         p_notes: params.notes || null,
+        p_batch_id: params.batch_id || null,
+        p_supplier_name: params.supplier_name || null,
       });
 
       if (error) throw error;

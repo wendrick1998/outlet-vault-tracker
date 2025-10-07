@@ -187,4 +187,46 @@ export class LoanService {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Vender empréstimo e opcionalmente registrar troca
+   */
+  static async sellWithTradeIn(
+    loanId: string,
+    saleNumber: string | undefined,
+    notes: string | undefined,
+    tradeInData?: {
+      imei: string;
+      model: string;
+      color?: string;
+      battery_pct?: number;
+      notes?: string;
+    }
+  ): Promise<{ loan: Loan; tradeInResult?: any }> {
+    // 1. Marcar como vendido
+    const loan = await this.sellLoan(loanId, saleNumber, notes);
+    
+    let tradeInResult = null;
+    
+    // 2. Se tem dados de troca, criar aparelho
+    if (tradeInData) {
+      const { data, error } = await supabase.rpc('create_linked_item', {
+        p_imei: tradeInData.imei,
+        p_model: tradeInData.model,
+        p_brand: 'Apple', // mesma marca do vendido
+        p_color: tradeInData.color || null,
+        p_condition: 'usado', // sempre usado para trocas
+        p_battery_pct: tradeInData.battery_pct || 80,
+        p_location: 'estoque',
+        p_notes: `Troca referente à venda ${saleNumber || loanId}${tradeInData.notes ? ` - ${tradeInData.notes}` : ''}`,
+        p_batch_id: null,
+        p_supplier_name: null,
+      });
+      
+      if (error) throw error;
+      tradeInResult = data;
+    }
+    
+    return { loan, tradeInResult };
+  }
 }

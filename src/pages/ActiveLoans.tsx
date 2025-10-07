@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, AlertTriangle, User, Tag, Search, Filter, ShoppingCart, Edit } from "lucide-react";
 import { useActiveLoans, useLoans } from "@/hooks/useLoans";
@@ -12,6 +13,7 @@ import { useActiveReasons } from "@/hooks/useReasons";
 import { useActiveSellers } from "@/hooks/useSellers";
 import { useToast } from "@/hooks/use-toast";
 import { LoanCorrectionModal } from "@/components/LoanCorrectionModal";
+import { TradeInQuickForm } from "@/components/TradeInQuickForm";
 import type { Database } from "@/integrations/supabase/types";
 
 interface ActiveLoansProps {
@@ -44,6 +46,13 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
   // Correction modal state
   const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
   const [selectedLoanForCorrection, setSelectedLoanForCorrection] = useState<LoanWithDetails | null>(null);
+
+  // Trade-in states
+  const [showTradeInQuestion, setShowTradeInQuestion] = useState(false);
+  const [showTradeInForm, setShowTradeInForm] = useState(false);
+  const [pendingSaleLoanId, setPendingSaleLoanId] = useState<string | null>(null);
+  const [pendingSaleItemModel, setPendingSaleItemModel] = useState<string | null>(null);
+  const [tradeInResolver, setTradeInResolver] = useState<((value: boolean) => void) | null>(null);
 
   // Filtered loans
   const filteredLoans = useMemo(() => {
@@ -107,7 +116,7 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
     }
   };
 
-  const handleSale = async (loanId: string) => {
+  const handleSale = async (loanId: string, itemModel: string) => {
     const saleNumber = prompt("Número da venda (opcional):");
     
     setLoadingStates(prev => ({ ...prev, [loanId]: { ...prev[loanId], selling: true } }));
@@ -123,6 +132,19 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
           ? `Item vendido com número: ${saleNumber}`
           : "Item marcado como vendido",
       });
+
+      // Perguntar sobre troca
+      setPendingSaleLoanId(loanId);
+      setPendingSaleItemModel(itemModel);
+      
+      const userWantsTradeIn = await new Promise<boolean>((resolve) => {
+        setShowTradeInQuestion(true);
+        setTradeInResolver(() => resolve);
+      });
+
+      if (userWantsTradeIn) {
+        setShowTradeInForm(true);
+      }
     } catch (error: any) {
       console.error('Erro ao registrar venda:', error);
       toast({
@@ -234,7 +256,7 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
               {loadingStates[loan.id]?.returning ? "Devolvendo..." : "Devolver"}
             </Button>
             <Button
-              onClick={() => handleSale(loan.id)}
+              onClick={() => handleSale(loan.id, item.model)}
               disabled={loadingStates[loan.id]?.returning || loadingStates[loan.id]?.selling}
               className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
             >
@@ -391,6 +413,68 @@ export const ActiveLoans = ({ onBack }: ActiveLoansProps) => {
           }}
           loan={selectedLoanForCorrection}
         />
+
+        {/* Pergunta sobre troca */}
+        {showTradeInQuestion && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="max-w-md w-full p-6">
+              <Alert>
+                <AlertDescription>
+                  <div className="space-y-4">
+                    <p className="font-medium text-lg">
+                      🔄 Cliente entregou aparelho na troca?
+                    </p>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          tradeInResolver?.(true);
+                          setShowTradeInQuestion(false);
+                        }}
+                      >
+                        Sim
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          tradeInResolver?.(false);
+                          setShowTradeInQuestion(false);
+                          setPendingSaleLoanId(null);
+                          setPendingSaleItemModel(null);
+                        }}
+                      >
+                        Não
+                      </Button>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de troca */}
+        {showTradeInForm && pendingSaleLoanId && pendingSaleItemModel && (
+          <TradeInQuickForm
+            soldLoanId={pendingSaleLoanId}
+            soldItemModel={pendingSaleItemModel}
+            onTradeAdded={(data) => {
+              toast({
+                title: "✅ Venda + Troca registradas!",
+                description: `Aparelho da troca (${data.model || "aparelho"}) adicionado ao estoque.`,
+              });
+              setShowTradeInForm(false);
+              setPendingSaleLoanId(null);
+              setPendingSaleItemModel(null);
+            }}
+            onSkip={() => {
+              setShowTradeInForm(false);
+              setPendingSaleLoanId(null);
+              setPendingSaleItemModel(null);
+            }}
+          />
+        )}
       </main>
     </div>
   );
