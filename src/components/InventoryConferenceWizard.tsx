@@ -62,9 +62,15 @@ export function InventoryConferenceWizard({ open, onOpenChange, onSuccess }: Wiz
   };
 
   const generateSnapshot = async () => {
+    if (!location) return;
+    
     setLoading(true);
     try {
-      const snapshotData = await InventoryAuditService.createSnapshot(filters);
+      const snapshotFilters = {
+        ...filters,
+        location: location
+      };
+      const snapshotData = await InventoryAuditService.createSnapshot(snapshotFilters);
       setSnapshot(snapshotData);
       setStep(3);
     } catch (error) {
@@ -77,14 +83,24 @@ export function InventoryConferenceWizard({ open, onOpenChange, onSuccess }: Wiz
   const handleStart = () => {
     if (!user?.id) return;
 
+    // Map location string to stock_location enum
+    const locationMap: Record<string, string> = {
+      'Loja Centro': 'estoque',
+      'Loja Shopping': 'estoque',
+      'Depósito Principal': 'deposito',
+      'Depósito Secundário': 'deposito',
+      'Oficina Técnica': 'conserto'
+    };
+
     const auditData = {
       location,
+      location_expected: locationMap[location] || 'estoque', 
       user_id: user.id,
       filters: filters,
       snapshot_count: snapshot.length
     };
 
-    createAudit(auditData, {
+    createAudit(auditData as any, {
       onSuccess: (data) => {
         onSuccess(data.id);
         onOpenChange(false);

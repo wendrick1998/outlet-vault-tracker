@@ -519,6 +519,7 @@ export type Database = {
           id: string
           imei: string | null
           item_id: string | null
+          location_found: Database["public"]["Enums"]["stock_location"] | null
           raw_code: string
           scan_result: string
           serial: string | null
@@ -531,6 +532,7 @@ export type Database = {
           id?: string
           imei?: string | null
           item_id?: string | null
+          location_found?: Database["public"]["Enums"]["stock_location"] | null
           raw_code: string
           scan_result: string
           serial?: string | null
@@ -543,6 +545,7 @@ export type Database = {
           id?: string
           imei?: string | null
           item_id?: string | null
+          location_found?: Database["public"]["Enums"]["stock_location"] | null
           raw_code?: string
           scan_result?: string
           serial?: string | null
@@ -655,6 +658,9 @@ export type Database = {
           id: string
           incongruent_count: number
           location: string
+          location_expected:
+            | Database["public"]["Enums"]["stock_location"]
+            | null
           missing_count: number
           notes: string | null
           snapshot_count: number
@@ -673,6 +679,9 @@ export type Database = {
           id?: string
           incongruent_count?: number
           location: string
+          location_expected?:
+            | Database["public"]["Enums"]["stock_location"]
+            | null
           missing_count?: number
           notes?: string | null
           snapshot_count?: number
@@ -691,6 +700,9 @@ export type Database = {
           id?: string
           incongruent_count?: number
           location?: string
+          location_expected?:
+            | Database["public"]["Enums"]["stock_location"]
+            | null
           missing_count?: number
           notes?: string | null
           snapshot_count?: number

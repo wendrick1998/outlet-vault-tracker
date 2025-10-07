@@ -19,6 +19,7 @@ import { Settings } from "./pages/Settings";
 import { Stock } from "./pages/Stock";
 import { InventoryConferencePage } from "./pages/InventoryConferencePage";
 import { ConferenceReport } from "./pages/ConferenceReport";
+import ConferenceDashboard from "./pages/ConferenceDashboard";
 import HistoricalAudits from "@/pages/HistoricalAudits";
 import SystemMonitoring from "@/pages/SystemMonitoring";
 import { Auth } from "./pages/Auth";
@@ -252,18 +253,26 @@ const AppContent = () => {
         } 
       />
       <Route 
-        path="/conference/:auditId/report" 
+        path="/conference" 
         element={
           <AppLayout>
-            <ConferenceReport />
+            <ConferenceDashboard />
           </AppLayout>
         } 
       />
       <Route 
-        path="/conference" 
+        path="/conference/:auditId" 
         element={
           <AppLayout>
             <InventoryConferencePage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/conference/:auditId/report" 
+        element={
+          <AppLayout>
+            <ConferenceReport />
           </AppLayout>
         } 
       />

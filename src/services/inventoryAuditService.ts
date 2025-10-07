@@ -75,15 +75,22 @@ export class InventoryAuditService {
     return data || [];
   }
 
-  // Scan Management
-  static async addScan(scanData: InventoryAuditScanInsert): Promise<InventoryAuditScan> {
+  // Scan Management with location tracking
+  static async addScan(scanData: InventoryAuditScanInsert & { location_found?: string }): Promise<InventoryAuditScan> {
     const { data, error } = await supabase
       .from('inventory_audit_scans')
       .insert(scanData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Check for duplicate constraint violation
+      if (error.code === '23505') {
+        throw new Error('DUPLICATE_SCAN');
+      }
+      throw error;
+    }
+
     return data;
   }
 
@@ -222,32 +229,32 @@ export class InventoryAuditService {
     return {};
   }
 
-  // Snapshot creation
+  // Snapshot creation using unified_inventory
   static async createSnapshot(filters: any = {}): Promise<any[]> {
     let query = supabase
-      .from('inventory')
+      .from('unified_inventory')
       .select('*')
-      .eq('is_archived', false);
+      .or('stock_status.is.null,stock_status.neq.vendido')
+      .or('inventory_status.is.null,inventory_status.neq.sold');
 
-    // Apply filters for audit snapshot
-    if (filters.status && filters.status !== 'all') {
-      // For audits, typically only count 'available' items
-      query = query.eq('status', 'available');
-    } else {
-      query = query.eq('status', 'available');
+    // Apply filters
+    if (filters.location) {
+      query = query.eq('location', filters.location);
     }
-
     if (filters.brand && filters.brand !== 'all') {
       query = query.eq('brand', filters.brand);
     }
-
-    if (filters.location) {
-      // If location filtering is implemented
+    if (filters.model) {
+      query = query.ilike('model', `%${filters.model}%`);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query.order('imei');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating snapshot:', error);
+      throw error;
+    }
+
     return data || [];
   }
 
