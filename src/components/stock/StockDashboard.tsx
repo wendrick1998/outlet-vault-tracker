@@ -203,8 +203,8 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
       {/* Main Content */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="grid w-full grid-cols-9">
+          <TabsTrigger value="integration">🔗 Integração</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="integration">Integração</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="items">Itens</TabsTrigger>
           <TabsTrigger value="search">Buscar</TabsTrigger>
@@ -213,6 +213,10 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
           <TabsTrigger value="conferences">Conferências</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="integration" className="space-y-6">
+          <IntegrationDashboard />
+        </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-6">
           {/* Recent Items */}
@@ -246,10 +250,6 @@ export const StockDashboard = ({ onBack }: StockDashboardProps) => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="integration" className="space-y-6">
-          <IntegrationDashboard />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">

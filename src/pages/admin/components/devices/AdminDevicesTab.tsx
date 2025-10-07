@@ -218,7 +218,12 @@ export const AdminDevicesTab = () => {
                 <TableHead>Condição</TableHead>
                 <TableHead>Bateria</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Sinc.</TableHead>
+                <TableHead className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>Sinc.</span>
+                    <span className="text-xs text-muted-foreground" title="Integração com Stock">ℹ️</span>
+                  </div>
+                </TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>

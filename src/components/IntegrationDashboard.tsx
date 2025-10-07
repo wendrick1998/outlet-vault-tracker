@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Link2, Database, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link2, Database, CheckCircle2, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -70,17 +71,29 @@ export const IntegrationDashboard = () => {
   const isFullySynced = syncRate === 100;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Link2 className="h-5 w-5" />
-          Status da Integração Inventory ↔ Stock
-        </CardTitle>
-        <CardDescription>
-          Sincronização automática entre sistemas de empréstimo e venda
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-4">
+      {/* Alert de atenção se houver itens não sincronizados */}
+      {stats && stats.unsynced_items > 0 && (
+        <Alert variant="default" className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-900 dark:text-orange-100">
+            <strong>Atenção:</strong> Existem {stats.unsynced_items} itens não sincronizados. 
+            Execute a sincronização abaixo para integrar completamente o sistema.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            Status da Integração Inventory ↔ Stock
+          </CardTitle>
+          <CardDescription>
+            Sincronização automática entre sistemas de empréstimo e venda
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -163,5 +176,6 @@ export const IntegrationDashboard = () => {
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };
